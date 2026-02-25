@@ -1,0 +1,14 @@
+{
+  "name": "tnl",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun src/index.html",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}
+

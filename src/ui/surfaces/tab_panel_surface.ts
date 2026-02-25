@@ -1,0 +1,183 @@
+import { signal, type Signal } from "../../core/reactivity"
+import { draw, Line, Rect as RectOp, RRect, Text } from "../../core/draw"
+import { theme } from "../../config/theme"
+import { UIElement, type Rect, type Vec2, PointerUIEvent } from "../base/ui"
+import { ViewportElement, type Surface, type ViewportContext } from "../base/viewport"
+
+class SurfaceRoot extends UIElement {
+  bounds(): Rect {
+    return { x: -1e9, y: -1e9, w: 2e9, h: 2e9 }
+  }
+}
+
+class TabButton extends UIElement {
+  private readonly rect: () => Rect
+  private readonly text: () => string
+  private readonly selected: () => boolean
+  private readonly onSelect: () => void
+  private readonly coverLineY: () => number
+  private readonly coverColor: string
+  private hover = false
+  private down = false
+
+  constructor(opts: { rect: () => Rect; text: () => string; selected: () => boolean; onSelect: () => void; coverLineY: () => number; coverColor: string }) {
+    super()
+    this.rect = opts.rect
+    this.text = opts.text
+    this.selected = opts.selected
+    this.onSelect = opts.onSelect
+    this.coverLineY = opts.coverLineY
+    this.coverColor = opts.coverColor
+    this.z = 10
+  }
+
+  bounds(): Rect {
+    return this.rect()
+  }
+
+  protected onDraw(ctx: CanvasRenderingContext2D) {
+    const r = this.rect()
+    const sel = this.selected()
+    const bg = sel ? "rgba(255,255,255,0.06)" : this.down ? "rgba(255,255,255,0.05)" : this.hover ? "rgba(255,255,255,0.04)" : "transparent"
+    const stroke = sel || this.hover ? { color: "rgba(255,255,255,0.14)", hairline: true } : undefined
+    if (bg !== "transparent" || stroke) draw(ctx, RRect({ x: r.x, y: r.y, w: r.w, h: r.h, r: 6 }, { fill: bg !== "transparent" ? { color: bg } : undefined, stroke, pixelSnap: true }))
+    draw(
+      ctx,
+      Text({
+        x: r.x + r.w / 2,
+        y: r.y + r.h / 2 + 0.5,
+        text: this.text().toUpperCase(),
+        style: {
+          color: sel ? theme.colors.textPrimary : theme.colors.textMuted,
+          font: `${600} ${Math.max(10, theme.typography.body.size - 1)}px ${theme.typography.family}`,
+          align: "center",
+          baseline: "middle",
+        },
+      }),
+    )
+    if (sel) {
+      const y = this.coverLineY()
+      draw(ctx, Line({ x: r.x + 6, y }, { x: r.x + r.w - 6, y }, { color: this.coverColor, width: 2 }))
+    }
+  }
+
+  onPointerEnter() {
+    this.hover = true
+  }
+
+  onPointerLeave() {
+    this.hover = false
+    this.down = false
+  }
+
+  onPointerDown(e: PointerUIEvent) {
+    if (e.button !== 0) return
+    this.down = true
+    e.capture()
+  }
+
+  onPointerUp(_e: PointerUIEvent) {
+    if (!this.down) return
+    this.down = false
+    if (!this.hover) return
+    this.onSelect()
+  }
+}
+
+export type TabSpec = { id: string; title: string; surface: Surface }
+
+export class TabPanelSurface implements Surface {
+  readonly id: string
+  private readonly root = new SurfaceRoot()
+  private size: Vec2 = { x: 0, y: 0 }
+  private readonly tabs: TabSpec[]
+  private readonly selectedId: Signal<string>
+  private readonly contentViewport: ViewportElement
+  private readonly tabBarH = 24
+
+  constructor(opts: { id: string; tabs: TabSpec[]; selectedId?: string }) {
+    this.id = opts.id
+    this.tabs = opts.tabs
+    this.selectedId = signal(opts.selectedId ?? (opts.tabs[0]?.id ?? ""))
+
+    const containerFill = "rgba(255,255,255,0.02)"
+    const tabW = 82
+    const gap = 4
+    const pad = theme.spacing.xs
+    const dividerY = () => this.tabBarH + 0.5
+    const contentY = () => this.tabBarH
+
+    for (let i = 0; i < this.tabs.length; i++) {
+      const tab = this.tabs[i]
+      this.root.add(
+        new TabButton({
+          rect: () => ({
+            x: pad + i * (tabW + gap),
+            y: 1,
+            w: tabW,
+            h: this.tabBarH - 1,
+          }),
+          text: () => tab.title,
+          selected: () => this.selectedId.peek() === tab.id,
+          onSelect: () => this.selectedId.set(tab.id),
+          coverLineY: dividerY,
+          coverColor: containerFill,
+        }),
+      )
+    }
+
+    this.root.add(
+      new TabBarDivider({
+        rect: () => ({ x: 0, y: dividerY(), w: this.size.x, h: 1 }),
+      }),
+    )
+
+    this.contentViewport = new ViewportElement({
+      rect: () => ({ x: 0, y: contentY(), w: this.size.x, h: Math.max(0, this.size.y - contentY()) }),
+      target: this.currentSurface(),
+      options: { clip: true, padding: theme.spacing.sm },
+    })
+    this.contentViewport.z = 1
+    this.root.add(this.contentViewport)
+  }
+
+  private currentSurface(): Surface | null {
+    const id = this.selectedId.peek()
+    return this.tabs.find((t) => t.id === id)?.surface ?? this.tabs[0]?.surface ?? null
+  }
+
+  render(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, viewport: ViewportContext) {
+    this.size = { x: viewport.contentRect.w, y: viewport.contentRect.h }
+
+    draw(ctx as any, RRect({ x: 0, y: 0, w: this.size.x, h: this.size.y, r: theme.radii.sm }, { fill: { color: "rgba(255,255,255,0.02)" }, stroke: { color: "rgba(255,255,255,0.10)", hairline: true }, pixelSnap: true }))
+    draw(ctx as any, RectOp({ x: 0, y: 0, w: this.size.x, h: this.tabBarH }, { fill: { color: "rgba(255,255,255,0.015)" } }))
+
+    const s = this.currentSurface()
+    if (s !== (this as any)._lastSurface) {
+      ;(this as any)._lastSurface = s
+      this.contentViewport.setTarget(s)
+    }
+
+    this.root.draw(ctx as any)
+  }
+
+  hitTest(pSurface: Vec2) {
+    return this.root.hitTest(pSurface)
+  }
+}
+
+class TabBarDivider extends UIElement {
+  private readonly rect: () => Rect
+  constructor(opts: { rect: () => Rect }) {
+    super()
+    this.rect = opts.rect
+    this.z = 2
+  }
+  bounds(): Rect {
+    return this.rect()
+  }
+  protected onDraw(ctx: CanvasRenderingContext2D) {
+    const r = this.rect()
+    draw(ctx, Line({ x: r.x, y: r.y }, { x: r.x + r.w, y: r.y }, { color: "rgba(255,255,255,0.10)", hairline: true }))
+  }
+}
