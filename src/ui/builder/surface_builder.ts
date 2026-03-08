@@ -13,12 +13,38 @@ export type BoxStyle = {
   radius?: number
 }
 
+export type InheritedTextStyle = {
+  color?: string
+  fontFamily?: string
+  fontSize?: number
+  fontWeight?: number
+  lineHeight?: number
+  emphasis?: TextEmphasis
+}
+
+export type InheritedSurfaceStyle = {
+  tone?: "default" | "subtle"
+  density?: "comfortable" | "compact"
+  panelFill?: string
+  panelStroke?: string
+  sectionFill?: string
+  sectionStroke?: string
+  scrollFill?: string
+}
+
+export type InheritedStyle = {
+  text?: InheritedTextStyle
+  surface?: InheritedSurfaceStyle
+}
+
 type NodeBase = {
   key?: string
   style?: LayoutStyle
   active?: boolean
   visible?: boolean
   box?: BoxStyle
+  provideStyle?: Partial<InheritedStyle>
+  styleOverride?: Partial<InheritedStyle>
 }
 
 export type CommonNodeProps = NodeBase
@@ -42,20 +68,23 @@ type TextNode = NodeBase & {
 type RichTextNode = NodeBase & {
   kind: "richText"
   spans: RichTextSpan[]
-  textStyle: RichTextStyle
+  textStyle?: RichTextStyle
   align?: "start" | "center" | "end"
 }
 
 type ButtonNode = NodeBase & {
   kind: "button"
   text: string
+  title?: string
   onClick?: () => void
+  disabled?: boolean
 }
 
 type CheckboxNode = NodeBase & {
   kind: "checkbox"
   label: string
   checked: Signal<boolean>
+  disabled?: boolean
 }
 
 type RadioNode = NodeBase & {
@@ -63,6 +92,7 @@ type RadioNode = NodeBase & {
   label: string
   value: string
   selected: Signal<string>
+  disabled?: boolean
 }
 
 export type RowVariant = "group" | "item"
@@ -111,7 +141,12 @@ export type SurfaceMountSpec<P> = {
   props: P
 }
 
-type AstNode = LayoutNode & { builder: BuilderNode; children?: AstNode[] }
+type AstNode = LayoutNode & {
+  builder: BuilderNode
+  inherited: InheritedStyle
+  resolved: InheritedStyle
+  children?: AstNode[]
+}
 
 type DrawOp = (ctx: CanvasRenderingContext2D) => void
 
@@ -119,7 +154,9 @@ type ButtonCell = {
   widget: Button
   rect: Rect
   text: string
+  title?: string
   active: boolean
+  disabled: boolean
   onClick?: () => void
   used: boolean
 }
@@ -130,6 +167,7 @@ type CheckboxCell = {
   label: string
   checked: Signal<boolean>
   active: boolean
+  disabled: boolean
   used: boolean
 }
 
@@ -140,6 +178,7 @@ type RadioCell = {
   value: string
   selected: Signal<string>
   active: boolean
+  disabled: boolean
   used: boolean
 }
 
@@ -171,6 +210,87 @@ function defaultBodyStyle(): RichTextStyle {
     fontWeight: theme.typography.body.weight,
     lineHeight: theme.spacing.lg,
   }
+}
+
+function defaultInheritedStyle(): InheritedStyle {
+  return {
+    text: {
+      color: theme.colors.textPrimary,
+      fontFamily: theme.typography.family,
+      fontSize: theme.typography.body.size,
+      fontWeight: theme.typography.body.weight,
+      lineHeight: theme.spacing.lg,
+    },
+    surface: {
+      tone: "default",
+      density: "comfortable",
+      panelFill: "rgba(255,255,255,0.02)",
+      panelStroke: "rgba(255,255,255,0.10)",
+      sectionFill: "rgba(255,255,255,0.02)",
+      sectionStroke: "rgba(255,255,255,0.08)",
+      scrollFill: "rgba(255,255,255,0.01)",
+    },
+  }
+}
+
+function mergeTextStyle(base: InheritedTextStyle | undefined, patch: InheritedTextStyle | undefined): InheritedTextStyle | undefined {
+  if (!base && !patch) return undefined
+  return {
+    color: patch?.color ?? base?.color,
+    fontFamily: patch?.fontFamily ?? base?.fontFamily,
+    fontSize: patch?.fontSize ?? base?.fontSize,
+    fontWeight: patch?.fontWeight ?? base?.fontWeight,
+    lineHeight: patch?.lineHeight ?? base?.lineHeight,
+    emphasis: patch?.emphasis ?? base?.emphasis,
+  }
+}
+
+function mergeSurfaceStyle(base: InheritedSurfaceStyle | undefined, patch: InheritedSurfaceStyle | undefined): InheritedSurfaceStyle | undefined {
+  if (!base && !patch) return undefined
+  return {
+    tone: patch?.tone ?? base?.tone,
+    density: patch?.density ?? base?.density,
+    panelFill: patch?.panelFill ?? base?.panelFill,
+    panelStroke: patch?.panelStroke ?? base?.panelStroke,
+    sectionFill: patch?.sectionFill ?? base?.sectionFill,
+    sectionStroke: patch?.sectionStroke ?? base?.sectionStroke,
+    scrollFill: patch?.scrollFill ?? base?.scrollFill,
+  }
+}
+
+function mergeInheritedStyle(base: InheritedStyle, patch: Partial<InheritedStyle> | undefined): InheritedStyle {
+  if (!patch) return base
+  return {
+    text: mergeTextStyle(base.text, patch.text),
+    surface: mergeSurfaceStyle(base.surface, patch.surface),
+  }
+}
+
+function inheritedTextToRichTextStyle(text: InheritedTextStyle | undefined): RichTextStyle {
+  return {
+    fontFamily: text?.fontFamily ?? theme.typography.family,
+    fontSize: text?.fontSize ?? theme.typography.body.size,
+    fontWeight: text?.fontWeight ?? theme.typography.body.weight,
+    lineHeight: text?.lineHeight ?? theme.spacing.lg,
+  }
+}
+
+function resolveTextStyle(inherited: InheritedStyle, node: TextNode): RichTextStyle {
+  const text = inherited.text
+  return {
+    fontFamily: text?.fontFamily ?? theme.typography.family,
+    fontSize: text?.fontSize ?? theme.typography.body.size,
+    fontWeight: node.emphasis?.bold ? 700 : (text?.fontWeight ?? theme.typography.body.weight),
+    lineHeight: text?.lineHeight ?? theme.spacing.lg,
+  }
+}
+
+function resolveTextColor(inherited: InheritedStyle, node: TextNode) {
+  return node.color ?? inherited.text?.color ?? theme.colors.textPrimary
+}
+
+function resolveTextEmphasis(inherited: InheritedStyle, node: TextNode) {
+  return node.emphasis ?? inherited.text?.emphasis
 }
 
 function nodeVisible(node: BuilderNode) {
@@ -338,7 +458,7 @@ class BuilderEngine {
   }
 
   measureContentWithContext(ctx: CanvasRenderingContext2D, viewportSize: Vec2, node: BuilderNode) {
-    const ast = this.toAst(node, ctx, "root")
+    const ast = this.toAst(node, ctx, "root", defaultInheritedStyle())
     const measured = this.measureAst(ctx, ast, { w: viewportSize.x, h: Number.POSITIVE_INFINITY })
     return { x: Math.max(viewportSize.x, measured.w), y: Math.max(viewportSize.y, measured.h) }
   }
@@ -351,7 +471,7 @@ class BuilderEngine {
     this.usedScrollAreas.clear()
     this.drawOps = []
 
-    const ast = this.toAst(node, ctx, "root")
+    const ast = this.toAst(node, ctx, "root", defaultInheritedStyle())
     const measured = this.measureAst(ctx, ast, { w: size.x, h: Number.POSITIVE_INFINITY })
     const outer = { x: 0, y: 0, w: size.x, h: Math.max(size.y, measured.h) }
     layout(ast, outer)
@@ -377,35 +497,38 @@ class BuilderEngine {
     }
   }
 
-  private toAst(node: BuilderNode, ctx: CanvasRenderingContext2D, path: string): AstNode {
+  private toAst(node: BuilderNode, ctx: CanvasRenderingContext2D, path: string, inherited: InheritedStyle): AstNode {
+    const nextInherited = mergeInheritedStyle(inherited, node.provideStyle)
+    const resolved = mergeInheritedStyle(nextInherited, node.styleOverride)
     const ast: AstNode = {
       id: nodeKey(node, path),
       builder: node,
+      inherited: nextInherited,
+      resolved,
       style: node.style,
-      measure: (max) => this.measureNode(ctx, node, max, path),
+      measure: (max) => this.measureNode(ctx, node, max, path, resolved, nextInherited),
     }
     if (node.kind === "row" || node.kind === "column" || node.kind === "stack") {
       ast.style = { ...node.style, axis: node.kind }
       delete ast.measure
-      ast.children = node.children.filter(nodeVisible).map((child, index) => this.toAst(child, ctx, `${path}/${index}`))
+      ast.children = node.children.filter(nodeVisible).map((child, index) => this.toAst(child, ctx, `${path}/${index}`, nextInherited))
     }
     return ast
   }
 
   private measureAst(ctx: CanvasRenderingContext2D, ast: AstNode, max: { w: number; h: number }) {
-    return ast.measure ? ast.measure(max) : this.measureNode(ctx, ast.builder, max, ast.id ?? "root")
+    return ast.measure ? ast.measure(max) : measureLayout(ast, max)
   }
 
-  private measureNode(ctx: CanvasRenderingContext2D, node: BuilderNode, max: { w: number; h: number }, path: string): { w: number; h: number } {
-    const base = defaultBodyStyle()
+  private measureNode(ctx: CanvasRenderingContext2D, node: BuilderNode, max: { w: number; h: number }, path: string, resolved: InheritedStyle, inheritedForChildren: InheritedStyle): { w: number; h: number } {
     switch (node.kind) {
       case "text": {
-        const style = base
-        const f = textFont(style, node.emphasis)
+        const style = resolveTextStyle(resolved, node)
+        const f = textFont(style, resolveTextEmphasis(resolved, node))
         return { w: Math.min(max.w, measureTextWidth(ctx, node.text, f)), h: style.lineHeight }
       }
       case "richText": {
-        const block = this.ensureRichBlock(nodeKey(node, path), node.spans, node.textStyle, node.align)
+        const block = this.ensureRichBlock(nodeKey(node, path), node.spans, node.textStyle ?? inheritedTextToRichTextStyle(resolved.text), node.align)
         return block.measure(ctx, Math.max(0, max.w))
       }
       case "button": {
@@ -420,7 +543,7 @@ class BuilderEngine {
       case "rowItem":
         return { w: max.w, h: 22 }
       case "scrollArea": {
-        const childAst = this.toAst(node.child, ctx, `${path}/content`)
+        const childAst = this.toAst(node.child, ctx, `${path}/content`, inheritedForChildren)
         const child = measureLayout(childAst, { w: max.w, h: Number.POSITIVE_INFINITY })
         return { w: Math.min(max.w, child.w), h: Math.min(max.h, child.h) }
       }
@@ -429,7 +552,7 @@ class BuilderEngine {
       case "row":
       case "column":
       case "stack": {
-        const ast = this.toAst(node, ctx, path)
+        const ast = this.toAst(node, ctx, path, inheritedForChildren)
         return measureLayout(ast, max)
       }
     }
@@ -437,6 +560,7 @@ class BuilderEngine {
 
   private mountAst(ctx: CanvasRenderingContext2D, ast: AstNode, path: string) {
     const node = ast.builder
+    const resolved = ast.resolved
     const rect = ast.rect ?? rectZero()
     const active = nodeActive(node) && rect.w > 0 && rect.h > 0
 
@@ -468,6 +592,7 @@ class BuilderEngine {
       case "text":
         if (!active) return
         this.drawOps.push((canvas) => {
+          const style = resolveTextStyle(resolved, node)
           draw(
             canvas,
             Text({
@@ -475,8 +600,8 @@ class BuilderEngine {
               y: rect.y,
               text: node.text,
               style: {
-                color: node.color ?? theme.colors.textPrimary,
-                font: textFont(defaultBodyStyle(), node.emphasis),
+                color: resolveTextColor(resolved, node),
+                font: textFont(style, resolveTextEmphasis(resolved, node)),
                 baseline: "top",
               },
             }),
@@ -486,7 +611,7 @@ class BuilderEngine {
       case "richText":
         if (!active) return
         this.drawOps.push((canvas) => {
-          const block = this.ensureRichBlock(nodeKey(node, path), node.spans, node.textStyle, node.align)
+          const block = this.ensureRichBlock(nodeKey(node, path), node.spans, node.textStyle ?? inheritedTextToRichTextStyle(resolved.text), node.align)
           block.measure(canvas, rect.w)
           block.draw(canvas, { x: rect.x, y: rect.y })
         })
@@ -525,14 +650,18 @@ class BuilderEngine {
       cell = {
         rect,
         text: node.text,
+        title: node.title,
         active,
+        disabled: node.disabled ?? false,
         onClick: node.onClick,
         used: true,
         widget: new Button({
           rect: () => cell!.active ? cell!.rect : rectZero(),
           text: () => cell!.text,
+          title: () => cell!.title ?? cell!.text,
           onClick: () => cell!.onClick?.(),
           active: () => cell!.active,
+          disabled: () => cell!.disabled,
         }),
       }
       cell.widget.z = 10
@@ -541,7 +670,9 @@ class BuilderEngine {
     }
     cell.rect = rect
     cell.text = node.text
+    cell.title = node.title
     cell.active = active
+    cell.disabled = node.disabled ?? false
     cell.onClick = node.onClick
     cell.used = true
   }
@@ -554,12 +685,14 @@ class BuilderEngine {
         label: node.label,
         checked: node.checked,
         active,
+        disabled: node.disabled ?? false,
         used: true,
         widget: new Checkbox({
           rect: () => cell!.active ? cell!.rect : rectZero(),
           label: () => cell!.label,
           checked: node.checked,
           active: () => cell!.active,
+          disabled: () => cell!.disabled,
         }),
       }
       cell.widget.z = 10
@@ -570,6 +703,7 @@ class BuilderEngine {
     cell.label = node.label
     cell.checked = node.checked
     cell.active = active
+    cell.disabled = node.disabled ?? false
     cell.used = true
   }
 
@@ -582,6 +716,7 @@ class BuilderEngine {
         value: node.value,
         selected: node.selected,
         active,
+        disabled: node.disabled ?? false,
         used: true,
         widget: new Radio({
           rect: () => cell!.active ? cell!.rect : rectZero(),
@@ -589,6 +724,7 @@ class BuilderEngine {
           value: node.value,
           selected: node.selected,
           active: () => cell!.active,
+          disabled: () => cell!.disabled,
         }),
       }
       cell.widget.z = 10
@@ -600,6 +736,7 @@ class BuilderEngine {
     cell.value = node.value
     cell.selected = node.selected
     cell.active = active
+    cell.disabled = node.disabled ?? false
     cell.used = true
   }
 
@@ -814,28 +951,39 @@ export function scrollAreaNode(child: BuilderNode, opts: Omit<ScrollAreaNode, "k
   return { kind: "scrollArea", child, ...opts }
 }
 
-export function section(title: string, body: BuilderNode[], opts: { key?: string; box?: BoxStyle; style?: LayoutStyle } = {}): BuilderNode {
+export function section(title: string, body: BuilderNode[], opts: Omit<NodeBase, "style"> & { style?: LayoutStyle } = {}): BuilderNode {
   return column(
     [
-      textNode(title, { key: opts.key ? `${opts.key}.title` : undefined, color: theme.colors.textPrimary, emphasis: { bold: true }, style: { margin: { b: theme.spacing.xs, l: 0, t: 0, r: 0 } } }),
+      textNode(title, {
+        key: opts.key ? `${opts.key}.title` : undefined,
+        emphasis: { bold: true },
+        style: { margin: { b: theme.spacing.xs, l: 0, t: 0, r: 0 } },
+      }),
       ...body,
     ],
     { padding: theme.spacing.md, ...(opts.style ?? {}) },
-    { key: opts.key, box: opts.box ?? { fill: "rgba(255,255,255,0.02)", stroke: "rgba(255,255,255,0.08)" } },
+    {
+      key: opts.key,
+      box: opts.box ?? { fill: "rgba(255,255,255,0.02)", stroke: "rgba(255,255,255,0.08)" },
+      active: opts.active,
+      visible: opts.visible,
+      provideStyle: opts.provideStyle,
+      styleOverride: opts.styleOverride,
+    },
   )
 }
 
-export function formRow(label: string, field: BuilderNode, opts: { key?: string; labelWidth?: number; style?: LayoutStyle } = {}): BuilderNode {
+export function formRow(label: string, field: BuilderNode, opts: Omit<NodeBase, "style"> & { key?: string; labelWidth?: number; style?: LayoutStyle } = {}): BuilderNode {
   return row(
     [
       textNode(label, { key: opts.key ? `${opts.key}.label` : undefined, color: theme.colors.textMuted, style: { fixed: opts.labelWidth ?? 92 } }),
       field,
     ],
     { align: "center", gap: theme.spacing.sm, ...(opts.style ?? {}) },
-    { key: opts.key },
+    { key: opts.key, active: opts.active, visible: opts.visible, provideStyle: opts.provideStyle, styleOverride: opts.styleOverride, box: opts.box },
   )
 }
 
-export function toolbarRow(children: BuilderNode[], opts: { key?: string; style?: LayoutStyle } = {}): BuilderNode {
-  return row(children, { align: "center", gap: theme.spacing.sm, ...(opts.style ?? {}) }, { key: opts.key })
+export function toolbarRow(children: BuilderNode[], opts: Omit<NodeBase, "style"> & { key?: string; style?: LayoutStyle } = {}): BuilderNode {
+  return row(children, { align: "center", gap: theme.spacing.sm, ...(opts.style ?? {}) }, { key: opts.key, active: opts.active, visible: opts.visible, provideStyle: opts.provideStyle, styleOverride: opts.styleOverride, box: opts.box })
 }

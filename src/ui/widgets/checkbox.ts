@@ -8,11 +8,12 @@ export class Checkbox extends UIElement {
   private readonly label: () => string
   private readonly checked: Signal<boolean>
   private readonly active: () => boolean
+  private readonly disabled: () => boolean
 
   private hover = false
   private down = false
 
-  constructor(opts: { rect: () => Rect; label: string | (() => string); checked: Signal<boolean>; active?: () => boolean }) {
+  constructor(opts: { rect: () => Rect; label: string | (() => string); checked: Signal<boolean>; active?: () => boolean; disabled?: () => boolean }) {
     super()
     this.rect = opts.rect
     if (typeof opts.label === "string") {
@@ -23,6 +24,11 @@ export class Checkbox extends UIElement {
     }
     this.checked = opts.checked
     this.active = opts.active ?? (() => true)
+    this.disabled = opts.disabled ?? (() => false)
+  }
+
+  private interactive() {
+    return this.active() && !this.disabled()
   }
 
   bounds(): Rect {
@@ -38,20 +44,25 @@ export class Checkbox extends UIElement {
     if (!this.active()) return
     const r = this.rect()
     const box = { x: r.x, y: r.y + 2, w: 16, h: 16, r: 4 }
-    const bg = this.down
-      ? "rgba(233,237,243,0.10)"
-      : this.hover
-        ? "rgba(233,237,243,0.08)"
-        : "rgba(233,237,243,0.06)"
+    const disabled = this.disabled()
+    const bg = disabled
+      ? "rgba(233,237,243,0.03)"
+      : this.down
+        ? "rgba(233,237,243,0.10)"
+        : this.hover
+          ? "rgba(233,237,243,0.08)"
+          : "rgba(233,237,243,0.06)"
+    const stroke = disabled ? "rgba(255,255,255,0.10)" : theme.colors.windowBorder
+    const textColor = disabled ? "rgba(233,237,243,0.38)" : theme.colors.textPrimary
 
     draw(
       ctx,
-      RRect(box, { fill: { color: bg }, stroke: { color: theme.colors.windowBorder, hairline: true }, pixelSnap: true }),
+      RRect(box, { fill: { color: bg }, stroke: { color: stroke, hairline: true }, pixelSnap: true }),
       Text({
         x: r.x + 24,
         y: r.y,
         text: this.label(),
-        style: { color: theme.colors.textPrimary, font: font(theme, theme.typography.body), baseline: "top" },
+        style: { color: textColor, font: font(theme, theme.typography.body), baseline: "top" },
       }),
     )
 
@@ -64,13 +75,14 @@ export class Checkbox extends UIElement {
       const y2 = box.y + 5
       draw(
         ctx,
-        Line({ x: x0, y: y0 }, { x: x1, y: y1 }, { color: theme.colors.textPrimary, width: 2.0, lineCap: "round" }),
-        Line({ x: x1, y: y1 }, { x: x2, y: y2 }, { color: theme.colors.textPrimary, width: 2.0, lineCap: "round" }),
+        Line({ x: x0, y: y0 }, { x: x1, y: y1 }, { color: disabled ? "rgba(233,237,243,0.38)" : theme.colors.textPrimary, width: 2.0, lineCap: "round" }),
+        Line({ x: x1, y: y1 }, { x: x2, y: y2 }, { color: disabled ? "rgba(233,237,243,0.38)" : theme.colors.textPrimary, width: 2.0, lineCap: "round" }),
       )
     }
   }
 
   onPointerEnter() {
+    if (!this.interactive()) return
     this.hover = true
   }
 
@@ -80,13 +92,17 @@ export class Checkbox extends UIElement {
   }
 
   onPointerDown(e: PointerUIEvent) {
-    if (!this.active()) return
+    if (!this.interactive()) return
     if (e.button !== 0) return
     this.down = true
     e.capture()
   }
 
   onPointerUp(_e: PointerUIEvent) {
+    if (!this.interactive()) {
+      this.down = false
+      return
+    }
     if (!this.down) return
     this.down = false
     if (!this.hover) return

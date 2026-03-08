@@ -13,6 +13,23 @@ export type RowLayout = {
   selected?: boolean
 }
 
+function truncateToWidth(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
+  if (maxWidth <= 0) return ""
+  if (ctx.measureText(text).width <= maxWidth) return text
+  const ellipsis = "..."
+  const ellipsisW = ctx.measureText(ellipsis).width
+  if (ellipsisW >= maxWidth) return ""
+  let low = 0
+  let high = text.length
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2)
+    const candidate = text.slice(0, mid) + ellipsis
+    if (ctx.measureText(candidate).width <= maxWidth) low = mid
+    else high = mid - 1
+  }
+  return text.slice(0, low) + ellipsis
+}
+
 export class Row extends UIElement {
   private layout: RowLayout = { rect: { x: 0, y: 0, w: 0, h: 0 }, leftText: "" }
   private onClick: (() => void) | undefined
@@ -50,30 +67,49 @@ export class Row extends UIElement {
     const isGroup = (this.layout.variant ?? "item") === "group"
     const leftColor = isGroup ? theme.colors.textPrimary : theme.colors.textMuted
     const leftFont = `${isGroup ? 600 : 500} ${Math.max(10, theme.typography.body.size - 1)}px ${theme.typography.family}`
+    const rightFont = `${400} ${Math.max(10, theme.typography.body.size - 2)}px ${theme.typography.family}`
     const leftPad = 8
+    const rightPad = 8
+    const contentW = Math.max(0, r.w - leftPad - rightPad)
+
+    const right = this.layout.rightText
+    let rightText = ""
+    let rightW = 0
+    if (right) {
+      ctx.save()
+      ctx.font = rightFont
+      const rightMax = Math.max(0, Math.min(contentW * 0.45, contentW - indent - 24))
+      rightText = truncateToWidth(ctx, right, rightMax)
+      rightW = rightText ? ctx.measureText(rightText).width : 0
+      ctx.restore()
+    }
+
+    ctx.save()
+    ctx.font = leftFont
+    const leftMax = Math.max(0, contentW - indent - (rightText ? rightW + 12 : 0))
+    const leftText = truncateToWidth(ctx, this.layout.leftText, leftMax)
+    ctx.restore()
 
     draw(
       ctx,
       Text({
         x: r.x + leftPad + indent,
         y: r.y + r.h / 2 + 0.5,
-        text: this.layout.leftText,
+        text: leftText,
         style: { color: leftColor, font: leftFont, baseline: "middle" },
       }),
     )
 
-    const right = this.layout.rightText
-    if (right) {
-      const t = right.length > 80 ? right.slice(0, 77) + "..." : right
+    if (rightText) {
       draw(
         ctx,
         Text({
-          x: r.x + r.w - leftPad,
+          x: r.x + r.w - rightPad,
           y: r.y + r.h / 2 + 0.5,
-          text: t,
+          text: rightText,
           style: {
             color: theme.colors.textMuted,
-            font: `${400} ${Math.max(10, theme.typography.body.size - 2)}px ${theme.typography.family}`,
+            font: rightFont,
             baseline: "middle",
             align: "end",
           },

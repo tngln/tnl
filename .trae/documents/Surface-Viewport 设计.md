@@ -1,3 +1,11 @@
+## 现状更新
+- 本文是最初的 Surface / Viewport 设计稿。
+- 当前实现已经在其基础上继续演进：
+  - `Surface` 已支持 `contentSize`、`hitTest`、`onWheel`、`compose`
+  - `ViewportElement` 已承担 clip / padding / scroll / pointer / wheel 路由
+  - `ModalWindow` 已内建 body host，不再要求子类手工 `translate + render`
+- 后续继续使用时，请优先参考：`UI系统现状与调用约定.md`
+
 ## 背景与目标
 - 当前 UI 结构以 `UIElement` 直接挂在 Root 下进行绘制与命中测试，窗口内的内容也多以“绝对坐标 + 手工布局”推进。
 - 引入 **Surface/Viewport** 的目的是把“内容（可布局/可交互/可复用）”与“承载与约束（尺寸/裁切/滚动/事件投递）”解耦，使后续：
@@ -96,4 +104,3 @@
 - Canvas 的 clip/translate 需要严格成对 `save/restore`，防止污染其它窗口绘制。
 - 命中测试与坐标变换要统一：建议把“point to surface-local”的函数放进 ViewportContext。
 - 短期内不要引入过度复杂的“layout 参与 measure”系统：先把 Viewport 的大小由窗口/布局直接给定，Surface 仅在内部排版即可。
-

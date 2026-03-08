@@ -1,3 +1,17 @@
+## 现状更新
+- 本文是 layout 系统的初始设计稿。
+- 当前 `src/core/layout.ts` 已经实现并扩展到比原计划更高一层的能力：
+  - `row` / `column` / `stack`
+  - `padding` / `inset` / `margin`
+  - `gap` / `rowGap` / `columnGap`
+  - `grow` / `shrink` / `basis`
+  - `fixed` / `fill`
+  - `position: "flow" | "overlay"`
+  - `overflow`
+  - `measureLayout(...)` 与测量缓存
+- 当前 layout 的主要消费方不是直接的 `UIElement`，而是 Builder engine。
+- 当前继续开发时，请优先参考：`UI系统现状与调用约定.md`
+
 ## 目标
 - 在 core/layout.ts 设计并实现一个简易、类 Flexbox 的排版系统，用于把“绝对位置手算”转为“从外到内的自动布局”。
 - 仅做布局（计算每个节点的 Rect），不负责绘制；布局结果可被 UI/绘制层直接使用。
@@ -96,4 +110,3 @@
 
 ## Phase 0 目标更新（计划）
 - 在 Phase 0 目标中新增条目：“提供简易 Flexbox-like 布局（core/layout.ts）以简化 UI 绝对定位。”
-

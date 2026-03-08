@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import { signal } from "../../core/reactivity"
 import { theme } from "../../config/theme"
-import { BuilderSurface, buttonNode, checkboxNode, column, defineSurface, mountSurface, rowItemNode, scrollAreaNode } from "./surface_builder"
+import { BuilderSurface, buttonNode, checkboxNode, column, defineSurface, mountSurface, richTextNode, rowItemNode, scrollAreaNode, textNode } from "./surface_builder"
 
 function fakeCtx() {
   let font = "400 12px system-ui"
@@ -50,6 +50,24 @@ function fakeCtx() {
     },
   }
   return ctx as CanvasRenderingContext2D
+}
+
+function withFakeDocument<T>(run: () => T) {
+  const prevDocument = (globalThis as any).document
+  ;(globalThis as any).document = {
+    createElement() {
+      return {
+        getContext() {
+          return fakeCtx()
+        },
+      }
+    },
+  }
+  try {
+    return run()
+  } finally {
+    ;(globalThis as any).document = prevDocument
+  }
 }
 
 describe("surface builder", () => {
@@ -109,22 +127,10 @@ describe("surface builder", () => {
           { key: "scroll" },
         ),
     })
-    const prevDocument = (globalThis as any).document
-    ;(globalThis as any).document = {
-      createElement() {
-        return {
-          getContext() {
-            return fakeCtx()
-          },
-        }
-      },
-    }
-    try {
+    withFakeDocument(() => {
       const size = surface.contentSize({ x: 180, y: 40 })
       expect(size.y).toBeGreaterThan(40)
-    } finally {
-      ;(globalThis as any).document = prevDocument
-    }
+    })
   })
 
   it("runs setup once per mounted instance and preserves instance-local state", () => {
@@ -192,5 +198,71 @@ describe("surface builder", () => {
 
     expect(setupCount).toBe(1)
     expect(seen).toEqual(["alpha", "beta"])
+  })
+
+  it("applies inherited text style from parent containers", () => {
+    const defaultSurface = new BuilderSurface({
+      id: "Builder.Inherit.Default",
+      build: () => column([textNode("MMMM")], { axis: "column" }),
+    })
+    const inheritedSurface = new BuilderSurface({
+      id: "Builder.Inherit.Custom",
+      build: () =>
+        column([textNode("MMMM")], { axis: "column" }, {
+          provideStyle: { text: { fontSize: 20, lineHeight: 24 } },
+        }),
+    })
+
+    withFakeDocument(() => {
+      const base = defaultSurface.contentSize({ x: 180, y: 0 })
+      const inherited = inheritedSurface.contentSize({ x: 180, y: 0 })
+      expect(inherited.y).toBeGreaterThan(base.y)
+    })
+  })
+
+  it("does not propagate styleOverride to descendants", () => {
+    const surface = new BuilderSurface({
+      id: "Builder.Override.Scope",
+      build: () =>
+        column(
+          [
+            textNode("MMMM", { key: "top" }),
+            column(
+              [textNode("MMMM", { key: "nested" })],
+              { axis: "column" },
+              { styleOverride: { text: { fontSize: 8, lineHeight: 10 } } },
+            ),
+          ],
+          { axis: "column" },
+          { provideStyle: { text: { fontSize: 20, lineHeight: 24 } } },
+        ),
+    })
+
+    withFakeDocument(() => {
+      const size = surface.contentSize({ x: 0, y: 0 })
+      expect(size.y).toBeGreaterThanOrEqual(48)
+    })
+  })
+
+  it("measures rich text from inherited defaults when textStyle is omitted", () => {
+    const surface = new BuilderSurface({
+      id: "Builder.RichText.Inherit",
+      build: () =>
+        column(
+          [
+            richTextNode([{ text: "Hello world", color: theme.colors.textMuted }], {
+              key: "copy",
+            }),
+          ],
+          { axis: "column" },
+          { provideStyle: { text: { fontSize: 14, lineHeight: 20 } } },
+        ),
+    })
+
+    withFakeDocument(() => {
+      const size = surface.contentSize({ x: 180, y: 0 })
+      expect(size.y).toBeGreaterThanOrEqual(20)
+      expect(size.x).toBeGreaterThanOrEqual(180)
+    })
   })
 })

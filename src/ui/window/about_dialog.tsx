@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "../jsx"
-import { Column, RichText, Spacer, Text } from "../builder/components"
+import { PanelColumn, RichText, Spacer, Text } from "../builder/components"
 import { defineSurface, surfaceMount } from "../builder/surface_builder"
 import { theme } from "../../config/theme"
 import { type RichTextSpan } from "../../core/draw.text"
@@ -10,18 +10,6 @@ export const ABOUT_DIALOG_ID = "Help.About"
 const AboutBodySurface = defineSurface({
   id: "About.Body",
   setup: () => {
-    const copyStyle = {
-      fontFamily: theme.typography.family,
-      fontSize: theme.typography.body.size,
-      fontWeight: theme.typography.body.weight,
-      lineHeight: theme.spacing.lg,
-    }
-    const headlineStyle = {
-      fontFamily: theme.typography.family,
-      fontSize: theme.typography.headline.size,
-      fontWeight: theme.typography.headline.weight,
-      lineHeight: theme.spacing.lg,
-    }
     const copySpans: RichTextSpan[] = [
       { text: "Copyright (c) ", color: theme.colors.textMuted },
       { text: "Tung Leen", color: theme.colors.textPrimary, emphasis: { bold: true } },
@@ -33,17 +21,13 @@ const AboutBodySurface = defineSurface({
     ]
 
     return () => (
-      <Column style={{ axis: "column", padding: theme.spacing.md, gap: 0, w: "auto", h: "auto" }}>
-        <RichText
-          key="about.headline"
-          spans={[{ text: "tnl - Tung's Non-Linear Editor", color: theme.colors.textPrimary, emphasis: { bold: true } }]}
-          textStyle={headlineStyle}
-        />
-        <Spacer style={{ fixed: theme.spacing.sm }} />
-        <Text key="about.license" color={theme.colors.textMuted}>MIT License</Text>
+      <PanelColumn>
+        <Text key="about.headline" size="headline" weight="bold">tnl - Tung's Non-Linear Editor</Text>
+        <Spacer style={{ fixed: 10 }} />
+        <Text key="about.license" tone="muted">MIT License</Text>
         <Spacer style={{ fixed: theme.spacing.xs }} />
-        <RichText key="about.copy" spans={copySpans} textStyle={copyStyle} />
-      </Column>
+        <RichText key="about.copy" spans={copySpans} tone="muted" />
+      </PanelColumn>
     )
   },
 })

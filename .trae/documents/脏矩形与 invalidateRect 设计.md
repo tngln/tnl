@@ -1,3 +1,14 @@
+## 现状更新
+- 本文是 dirty rect 机制的初始设计稿。
+- 当前 `CanvasUI` 已实现：
+  - `invalidateRect()`
+  - 脏矩形合并
+  - 脏矩形数量与面积阈值退化为全屏重绘
+  - 基于 clip 的局部重绘
+  - `UIElement.draw(ctx, rt)` 与 clip 协作
+- 当前高频交互路径（hover、pointer、window 拖拽/缩放、wheel）都已经接入局部 invalidation。
+- 当前继续开发时，请优先参考：`UI系统现状与调用约定.md`
+
 ## 目标
 - 引入 `invalidateRect()` 与“脏矩形（dirty rect）”机制，减少帧与帧之间不必要的全量重画。
 - 在不引入复杂渲染树/保留缓存（retained rendering）的前提下，优先做到：
@@ -99,4 +110,3 @@
 - 阴影溢出导致脏矩形不够大：通过 `pad` 扩张，以及窗口类调用时使用更大 pad（≈ shadow blur + offset）。
 - 多脏矩形 clip 叠加导致重复遍历：合并算法 + 阈值退化为全屏。
 - 未来要引入滚动条/动画：可把动画元素定期 `invalidateRect`（时间驱动）而不必全屏。
-

@@ -1,7 +1,6 @@
 import { createElement, Fragment } from "../../../jsx"
-import { Column, RowItem, ScrollArea, Spacer, Text, ToolbarRow } from "../../../builder/components"
+import { Column, PanelColumn, PanelScroll, PanelToolbar, RowItem, Spacer, Text } from "../../../builder/components"
 import { defineSurface, mountSurface } from "../../../builder/surface_builder"
-import { theme } from "../../../../config/theme"
 import type { DeveloperPanelSpec } from "../index"
 import { getStateTree, type DataNode } from "../states"
 
@@ -54,13 +53,13 @@ export const DataPanelSurface = defineSurface({
       }
       const flatRows = rows(tree, expanded)
       return (
-        <Column style={{ axis: "column", padding: theme.spacing.sm, gap: theme.spacing.sm, w: "auto", h: "auto" }}>
-          <ToolbarRow key="data.toolbar">
-            <Text key="data.title" color={theme.colors.textPrimary} emphasis={{ bold: true }}>State Tree</Text>
+        <PanelColumn>
+          <PanelToolbar key="data.toolbar">
+            <Text key="data.title" weight="bold">State Tree</Text>
             <Spacer style={{ fill: true }} />
-            <Text key="data.meta" color={theme.colors.textMuted}>{`${flatRows.length} rows`}</Text>
-          </ToolbarRow>
-          <ScrollArea key="data.scroll" style={{ fill: true }} box={{ fill: "rgba(255,255,255,0.01)" }}>
+            <Text key="data.meta" tone="muted" size="meta">{`${flatRows.length} rows`}</Text>
+          </PanelToolbar>
+          <PanelScroll key="data.scroll">
             <Column key="data.rows" style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
               {flatRows.map((row, index) => (
                 <RowItem
@@ -73,8 +72,8 @@ export const DataPanelSurface = defineSurface({
                 />
               ))}
             </Column>
-          </ScrollArea>
-        </Column>
+          </PanelScroll>
+        </PanelColumn>
       )
     }
   },

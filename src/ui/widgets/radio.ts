@@ -9,11 +9,12 @@ export class Radio extends UIElement {
   private readonly value: string
   private readonly selected: Signal<string>
   private readonly active: () => boolean
+  private readonly disabled: () => boolean
 
   private hover = false
   private down = false
 
-  constructor(opts: { rect: () => Rect; label: string | (() => string); value: string; selected: Signal<string>; active?: () => boolean }) {
+  constructor(opts: { rect: () => Rect; label: string | (() => string); value: string; selected: Signal<string>; active?: () => boolean; disabled?: () => boolean }) {
     super()
     this.rect = opts.rect
     if (typeof opts.label === "string") {
@@ -25,6 +26,11 @@ export class Radio extends UIElement {
     this.value = opts.value
     this.selected = opts.selected
     this.active = opts.active ?? (() => true)
+    this.disabled = opts.disabled ?? (() => false)
+  }
+
+  private interactive() {
+    return this.active() && !this.disabled()
   }
 
   bounds(): Rect {
@@ -41,16 +47,19 @@ export class Radio extends UIElement {
     const r = this.rect()
     const cx = r.x + 8
     const cy = r.y + 10
-    const stroke = this.down
-      ? "rgba(233,237,243,0.30)"
-      : this.hover
-        ? "rgba(233,237,243,0.24)"
-        : "rgba(233,237,243,0.20)"
+    const disabled = this.disabled()
+    const stroke = disabled
+      ? "rgba(233,237,243,0.12)"
+      : this.down
+        ? "rgba(233,237,243,0.30)"
+        : this.hover
+          ? "rgba(233,237,243,0.24)"
+          : "rgba(233,237,243,0.20)"
 
     draw(ctx, Circle({ x: cx, y: cy, r: 8 }, { stroke: { color: stroke, hairline: true } }))
 
     if (this.selected.peek() === this.value) {
-      draw(ctx, Circle({ x: cx, y: cy, r: 4 }, { fill: { color: theme.colors.textPrimary } }))
+      draw(ctx, Circle({ x: cx, y: cy, r: 4 }, { fill: { color: disabled ? "rgba(233,237,243,0.38)" : theme.colors.textPrimary } }))
     }
 
     draw(
@@ -59,12 +68,13 @@ export class Radio extends UIElement {
         x: r.x + 24,
         y: r.y,
         text: this.label(),
-        style: { color: theme.colors.textPrimary, font: font(theme, theme.typography.body), baseline: "top" },
+        style: { color: disabled ? "rgba(233,237,243,0.38)" : theme.colors.textPrimary, font: font(theme, theme.typography.body), baseline: "top" },
       }),
     )
   }
 
   onPointerEnter() {
+    if (!this.interactive()) return
     this.hover = true
   }
 
@@ -74,13 +84,17 @@ export class Radio extends UIElement {
   }
 
   onPointerDown(e: PointerUIEvent) {
-    if (!this.active()) return
+    if (!this.interactive()) return
     if (e.button !== 0) return
     this.down = true
     e.capture()
   }
 
   onPointerUp(_e: PointerUIEvent) {
+    if (!this.interactive()) {
+      this.down = false
+      return
+    }
     if (!this.down) return
     this.down = false
     if (!this.hover) return
