@@ -7,7 +7,7 @@ import { SurfaceRoot, ViewportElement, type Surface, type ViewportContext } from
 import { UIElement, WheelUIEvent, pointInRect, type Rect, type Vec2 } from "../base/ui"
 import { Button, Checkbox, Radio, Row, Scrollbar } from "../widgets"
 
-type BoxStyle = {
+export type BoxStyle = {
   fill?: string
   stroke?: string
   radius?: number
@@ -20,6 +20,8 @@ type NodeBase = {
   visible?: boolean
   box?: BoxStyle
 }
+
+export type CommonNodeProps = NodeBase
 
 type ContainerNode = NodeBase & {
   kind: "row" | "column" | "stack"
@@ -63,12 +65,14 @@ type RadioNode = NodeBase & {
   selected: Signal<string>
 }
 
+export type RowVariant = "group" | "item"
+
 type RowNode = NodeBase & {
   kind: "rowItem"
   leftText: string
   rightText?: string
   indent?: number
-  variant?: "group" | "item"
+  variant?: RowVariant
   selected?: boolean
   onClick?: () => void
 }
@@ -88,6 +92,24 @@ export type BuilderNode =
   | RadioNode
   | RowNode
   | ScrollAreaNode
+
+export type SurfaceRender<P> = (props: P) => BuilderNode
+export type SurfaceSetupResult<P> = SurfaceRender<P> | { render: SurfaceRender<P> }
+export type SurfaceSetup<P> = (props: P) => SurfaceSetupResult<P>
+
+export type SurfaceDefinition<P> = {
+  readonly kind: "surface-definition"
+  readonly displayName: string
+  mount(props: P): FunctionalBuilderSurface<P>
+}
+
+export type SurfaceComponent<P> = SurfaceDefinition<P>
+
+export type SurfaceMountSpec<P> = {
+  kind: "surface-mount"
+  definition: SurfaceDefinition<P>
+  props: P
+}
 
 type AstNode = LayoutNode & { builder: BuilderNode; children?: AstNode[] }
 
@@ -670,6 +692,82 @@ export class BuilderSurface implements Surface {
   debugCounts() {
     return this.tree.engine.debugCounts()
   }
+}
+
+export class FunctionalBuilderSurface<P> implements Surface {
+  readonly id: string
+  private readonly tree: BuilderTreeSurface
+  private readonly renderNode: SurfaceRender<P>
+  private props: P
+
+  constructor(opts: { id: string; props: P; setup: SurfaceSetup<P> }) {
+    this.id = opts.id
+    this.tree = new BuilderTreeSurface(opts.id)
+    this.props = opts.props
+    const result = opts.setup(opts.props)
+    this.renderNode = typeof result === "function" ? result : result.render
+  }
+
+  setProps(props: P) {
+    this.props = props
+  }
+
+  private buildNode() {
+    return this.renderNode(this.props)
+  }
+
+  contentSize(viewportSize: Vec2) {
+    const node = this.buildNode()
+    this.tree.setNode(node)
+    return this.tree.contentSize(viewportSize)
+  }
+
+  render(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, viewport: ViewportContext) {
+    this.tree.setNode(this.buildNode())
+    this.tree.render(ctx, viewport)
+  }
+
+  hitTest(pSurface: Vec2) {
+    return this.tree.hitTest(pSurface)
+  }
+
+  onWheel(e: WheelUIEvent, _viewport: ViewportContext) {
+    this.tree.onWheel?.(e)
+  }
+
+  debugCounts() {
+    return this.tree.engine.debugCounts()
+  }
+}
+
+export function defineSurface<P>(opts: {
+  id: string | ((props: P) => string)
+  setup: SurfaceSetup<P>
+  displayName?: string
+}): SurfaceDefinition<P> {
+  return {
+    kind: "surface-definition",
+    displayName: opts.displayName ?? (typeof opts.id === "string" ? opts.id : "FunctionalBuilderSurface"),
+    mount(props: P) {
+      return new FunctionalBuilderSurface<P>({
+        id: typeof opts.id === "function" ? opts.id(props) : opts.id,
+        props,
+        setup: opts.setup,
+      })
+    },
+  }
+}
+
+export function mountSurface<P>(definition: SurfaceDefinition<P>, props: P) {
+  return definition.mount(props)
+}
+
+export function surfaceMount<P>(definition: SurfaceDefinition<P>, props: P): SurfaceMountSpec<P> {
+  return { kind: "surface-mount", definition, props }
+}
+
+export function isSurfaceMountSpec(value: unknown): value is SurfaceMountSpec<unknown> {
+  return typeof value === "object" && value !== null && (value as SurfaceMountSpec<unknown>).kind === "surface-mount"
 }
 
 export function column(children: BuilderNode[], style?: LayoutStyle, base?: Omit<NodeBase, "style">): BuilderNode {

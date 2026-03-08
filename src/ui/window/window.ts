@@ -2,7 +2,9 @@ import { signal, type Signal } from "../../core/reactivity"
 import { draw, Line, Rect, Text } from "../../core/draw"
 import { clamp } from "../../core/rect"
 import { font, theme } from "../../config/theme"
+import { isSurfaceMountSpec, mountSurface, type SurfaceMountSpec } from "../builder/surface_builder"
 import { pointInRect, type Rect as BoundsRect, type Vec2, PointerUIEvent, UIElement } from "../base/ui"
+import { ViewportElement, type Surface } from "../base/viewport"
 
 export class Root extends UIElement {
   bounds(): BoundsRect {
@@ -55,6 +57,11 @@ export class ModalWindow extends UIElement {
   readonly maxW: number
   readonly maxH: number
   readonly resizable: boolean
+  private bodyRect: BoundsRect = { x: 0, y: 0, w: 0, h: 0 }
+  private bodySurface: Surface | null = null
+  private readonly bodyViewport: ViewportElement
+  private bodyPadding = 0
+  private bodyClip = true
   private minimizedRect: BoundsRect = { x: 0, y: 0, w: 0, h: 0 }
   private restoreRect: BoundsRect | null = null
   minimizedOrder = 0
@@ -98,9 +105,31 @@ export class ModalWindow extends UIElement {
     this.title = signal(opts.title)
     this.open = signal(opts.open ?? true)
     this.minimized = signal(false)
+    this.bodyViewport = new ViewportElement({
+      rect: () => this.bodyRect,
+      target: this.bodySurface,
+      options: {
+        clip: this.bodyClip,
+        padding: this.bodyPadding,
+        active: () => this.open.peek() && !this.minimized.peek() && this.bodySurface !== null,
+      },
+    })
+    this.bodyViewport.z = 1
+    this.add(this.bodyViewport)
     this.add(new CloseButton(this))
     if (this.minimizable) this.add(new MinimizeButton(this))
     if (this.resizable) this.add(new ResizeHandle(this))
+  }
+
+  setBodySurface(surface: Surface | SurfaceMountSpec<unknown> | null, opts: { padding?: number; clip?: boolean } = {}) {
+    this.bodySurface = isSurfaceMountSpec(surface) ? mountSurface(surface.definition, surface.props) : surface
+    if (opts.padding !== undefined) this.bodyPadding = Math.max(0, opts.padding)
+    if (opts.clip !== undefined) this.bodyClip = opts.clip
+    this.bodyViewport.setTarget(this.bodySurface)
+  }
+
+  protected bodyBounds() {
+    return this.bodyRect
   }
 
   bounds(): BoundsRect {
@@ -121,6 +150,7 @@ export class ModalWindow extends UIElement {
     const y = b.y
     const w = b.w
     const h = b.h
+    this.bodyRect = { x, y: y + this.titleBarHeight, w, h: Math.max(0, h - this.titleBarHeight) }
 
     draw(
       ctx,
@@ -159,7 +189,7 @@ export class ModalWindow extends UIElement {
       }
     }
 
-    if (!this.minimized.peek()) this.drawBody(ctx, x, y + this.titleBarHeight, w, h - this.titleBarHeight)
+    if (!this.minimized.peek() && this.bodySurface === null) this.drawBody(ctx, x, y + this.titleBarHeight, w, h - this.titleBarHeight)
   }
 
   protected drawBody(ctx: CanvasRenderingContext2D, x: number, y: number, _w: number, _h: number) {
@@ -234,6 +264,32 @@ export class ModalWindow extends UIElement {
 
   setMinimizedRect(r: BoundsRect) {
     this.minimizedRect = r
+  }
+}
+
+export class SurfaceWindow extends ModalWindow {
+  constructor(
+    opts: {
+      id: string
+      x: number
+      y: number
+      w: number
+      h: number
+      title: string
+      open?: boolean
+      minW?: number
+      minH?: number
+      maxW?: number
+      maxH?: number
+      resizable?: boolean
+      chrome?: "default" | "tool"
+      minimizable?: boolean
+      body: Surface | SurfaceMountSpec<unknown> | (() => Surface)
+      bodyOptions?: { padding?: number; clip?: boolean }
+    },
+  ) {
+    super(opts)
+    this.setBodySurface(typeof opts.body === "function" ? opts.body() : opts.body, opts.bodyOptions)
   }
 }
 
@@ -431,4 +487,3 @@ export function constrainToCanvas(win: ModalWindow, canvasSize: Signal<Vec2>) {
     win.y.set((y) => clamp(y, 0, Math.max(0, size.y - h)))
   }
 }
-
