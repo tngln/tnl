@@ -41,6 +41,22 @@ export function takeTextContent(children: BuilderChild[] | undefined) {
   return text
 }
 
+/** Extract raw children array from JSX props. */
+function rawChildren(props: { children?: BuilderChild | BuilderChild[] }): BuilderChild[] {
+  if (Array.isArray(props.children)) return props.children
+  return props.children !== undefined ? [props.children] : []
+}
+
+/** Resolve JSX children into a normalized BuilderNode array. */
+export function resolveChildren(props: { children?: BuilderChild | BuilderChild[] }): BuilderNode[] {
+  return normalizeChildren(rawChildren(props))
+}
+
+/** Extract text content from JSX children props. */
+export function resolveTextContent(props: { children?: BuilderChild | BuilderChild[] }): string {
+  return takeTextContent(rawChildren(props) || undefined)
+}
+
 export function createElement<P>(
   type: string | BuilderComponent<P>,
   props: (P & ComponentProps) | null,

@@ -22,7 +22,7 @@ import {
   type InheritedStyle,
   type RowVariant,
 } from "./surface_builder"
-import { normalizeChildren, takeTextContent, type BuilderChild, type JSXNodeProps } from "../jsx"
+import { normalizeChildren, resolveChildren, resolveTextContent, type BuilderChild, type JSXNodeProps } from "../jsx"
 import type { RichTextSpan, RichTextStyle, TextEmphasis } from "../../core/draw.text"
 
 type ContainerProps = JSXNodeProps
@@ -169,15 +169,15 @@ function inheritedTextPatch(props: { tone?: "primary" | "muted"; weight?: "norma
 }
 
 export function Column(props: ContainerProps) {
-  return column(normalizeChildren(Array.isArray(props.children) ? props.children : props.children !== undefined ? [props.children] : []), props.style, common(props))
+  return column(resolveChildren(props), props.style, common(props))
 }
 
 export function Row(props: ContainerProps) {
-  return row(normalizeChildren(Array.isArray(props.children) ? props.children : props.children !== undefined ? [props.children] : []), props.style, common(props))
+  return row(resolveChildren(props), props.style, common(props))
 }
 
 export function Stack(props: ContainerProps) {
-  return stack(normalizeChildren(Array.isArray(props.children) ? props.children : props.children !== undefined ? [props.children] : []), props.style, common(props))
+  return stack(resolveChildren(props), props.style, common(props))
 }
 
 export function Spacer(props: JSXNodeProps) {
@@ -185,8 +185,7 @@ export function Spacer(props: JSXNodeProps) {
 }
 
 export function Text(props: TextProps) {
-  const childText = takeTextContent(Array.isArray(props.children) ? props.children : props.children !== undefined ? [props.children] : undefined)
-  const text = props.text ?? childText
+  const text = props.text ?? resolveTextContent(props)
   return textNode(text, {
     ...common(props),
     color: props.color,
@@ -205,18 +204,15 @@ export function RichText(props: RichTextProps) {
 }
 
 export function Button(props: ButtonProps) {
-  const childText = takeTextContent(Array.isArray(props.children) ? props.children : props.children !== undefined ? [props.children] : undefined)
-  return buttonNode(props.text ?? childText, { ...common(props), title: props.title, onClick: props.onClick, disabled: props.disabled })
+  return buttonNode(props.text ?? resolveTextContent(props), { ...common(props), title: props.title, onClick: props.onClick, disabled: props.disabled })
 }
 
 export function Checkbox(props: CheckboxProps) {
-  const childText = takeTextContent(Array.isArray(props.children) ? props.children : props.children !== undefined ? [props.children] : undefined)
-  return checkboxNode(props.label ?? childText, props.checked, { ...common(props), disabled: props.disabled })
+  return checkboxNode(props.label ?? resolveTextContent(props), props.checked, { ...common(props), disabled: props.disabled })
 }
 
 export function Radio(props: RadioProps) {
-  const childText = takeTextContent(Array.isArray(props.children) ? props.children : props.children !== undefined ? [props.children] : undefined)
-  return radioNode(props.label ?? childText, props.value, props.selected, { ...common(props), disabled: props.disabled })
+  return radioNode(props.label ?? resolveTextContent(props), props.value, props.selected, { ...common(props), disabled: props.disabled })
 }
 
 export function RowItem(props: RowItemProps) {
@@ -224,14 +220,13 @@ export function RowItem(props: RowItemProps) {
 }
 
 export function ScrollArea(props: ScrollAreaProps) {
-  const children = normalizeChildren(Array.isArray(props.children) ? props.children : props.children !== undefined ? [props.children] : [])
+  const children = resolveChildren(props)
   const child = children.length <= 1 ? (children[0] ?? spacer()) : column(children, { axis: "column", gap: 0, w: "auto", h: "auto" })
   return scrollAreaNode(child, common(props))
 }
 
 export function Section(props: SectionProps) {
-  const children = normalizeChildren(Array.isArray(props.children) ? props.children : props.children !== undefined ? [props.children] : [])
-  return section(props.title, children, { ...common(props), style: props.style })
+  return section(props.title, resolveChildren(props), { ...common(props), style: props.style })
 }
 
 export function FormRow(props: FormRowProps) {
@@ -239,8 +234,7 @@ export function FormRow(props: FormRowProps) {
 }
 
 export function ToolbarRow(props: ToolbarRowProps) {
-  const children = normalizeChildren(Array.isArray(props.children) ? props.children : props.children !== undefined ? [props.children] : [])
-  return toolbarRow(children, { ...common(props), style: props.style })
+  return toolbarRow(resolveChildren(props), { ...common(props), style: props.style })
 }
 
 export function PanelColumn(props: PanelContainerProps) {
@@ -281,13 +275,13 @@ export function PanelHeader(props: PanelHeaderProps) {
       Text({ key: props.key ? `${props.key}.title` : undefined, weight: "bold", children: [props.title] }),
       Spacer({ style: { fill: true } }),
       ...(props.meta ? [Text({ key: props.key ? `${props.key}.meta` : undefined, tone: "muted", size: "meta", children: [props.meta] })] : []),
-      ...normalizeChildren(Array.isArray(props.children) ? props.children : props.children !== undefined ? [props.children] : []),
+      ...resolveChildren(props),
     ],
   })
 }
 
 export function PanelActionRow(props: PanelActionRowProps) {
-  const trailing = normalizeChildren(Array.isArray(props.children) ? props.children : props.children !== undefined ? [props.children] : [])
+  const trailing = resolveChildren(props)
   const compact = props.compact ?? false
   return PanelToolbar({
     ...props,
