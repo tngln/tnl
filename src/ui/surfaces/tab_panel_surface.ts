@@ -2,23 +2,20 @@ import { signal, type Signal } from "../../core/reactivity"
 import { draw, Line, Rect as RectOp, RRect, Text } from "../../core/draw"
 import { clamp } from "../../core/rect"
 import { theme } from "../../config/theme"
-import { UIElement, type Rect, type Vec2, PointerUIEvent, WheelUIEvent, pointInRect } from "../base/ui"
+import { UIElement, type Rect, type Vec2, WheelUIEvent, pointInRect } from "../base/ui"
 import { ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "../base/viewport"
+import { InteractiveElement } from "../widgets/interactive"
 import { Scrollbar } from "../widgets"
 
-class TabButton extends UIElement {
-  private readonly rect: () => Rect
+class TabButton extends InteractiveElement {
   private readonly text: () => string
   private readonly selected: () => boolean
   private readonly onSelect: () => void
   private readonly coverLineY: () => number
   private readonly coverColor: string
-  private hover = false
-  private down = false
 
   constructor(opts: { rect: () => Rect; text: () => string; selected: () => boolean; onSelect: () => void; coverLineY: () => number; coverColor: string }) {
-    super()
-    this.rect = opts.rect
+    super({ rect: opts.rect })
     this.text = opts.text
     this.selected = opts.selected
     this.onSelect = opts.onSelect
@@ -27,12 +24,8 @@ class TabButton extends UIElement {
     this.z = 10
   }
 
-  bounds(): Rect {
-    return this.rect()
-  }
-
   protected onDraw(ctx: CanvasRenderingContext2D) {
-    const r = this.rect()
+    const r = this._rect()
     const sel = this.selected()
     const bg = sel ? "rgba(255,255,255,0.06)" : this.down ? "rgba(255,255,255,0.05)" : this.hover ? "rgba(255,255,255,0.04)" : "transparent"
     const stroke = sel || this.hover ? { color: "rgba(255,255,255,0.14)", hairline: true } : undefined
@@ -57,25 +50,7 @@ class TabButton extends UIElement {
     }
   }
 
-  onPointerEnter() {
-    this.hover = true
-  }
-
-  onPointerLeave() {
-    this.hover = false
-    this.down = false
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (e.button !== 0) return
-    this.down = true
-    e.capture()
-  }
-
-  onPointerUp(_e: PointerUIEvent) {
-    if (!this.down) return
-    this.down = false
-    if (!this.hover) return
+  protected onActivate() {
     this.onSelect()
   }
 }
