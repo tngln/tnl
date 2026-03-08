@@ -1,5 +1,6 @@
 import { createRichTextBlock, type RichTextSpan, type RichTextStyle } from "../../core/draw.text"
-import { UIElement, type Rect } from "../base/ui"
+import { ZERO_RECT, type Rect } from "../../core/rect"
+import { UIElement } from "../base/ui"
 
 export class Paragraph extends UIElement {
   private readonly rect: () => Rect
@@ -14,7 +15,7 @@ export class Paragraph extends UIElement {
   }
 
   bounds(): Rect {
-    if (!this.active()) return { x: 0, y: 0, w: 0, h: 0 }
+    if (!this.active()) return ZERO_RECT
     return this.rect()
   }
 

@@ -1,3 +1,4 @@
+export { InteractiveElement } from "./interactive"
 export { Button } from "./button"
 export { Label } from "./label"
 export { Paragraph } from "./paragraph"

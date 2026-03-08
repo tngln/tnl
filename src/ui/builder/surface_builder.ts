@@ -3,6 +3,7 @@ import { type Signal } from "../../core/reactivity"
 import { draw, Rect as RectOp, RRect, Text } from "../../core/draw"
 import { createRichTextBlock, measureTextWidth, type RichTextSpan, type RichTextStyle, type TextEmphasis } from "../../core/draw.text"
 import { layout, measureLayout, type LayoutNode, type LayoutStyle, type Rect as LayoutRect } from "../../core/layout"
+import { ZERO_RECT } from "../../core/rect"
 import { createMeasureContext } from "../../platform/web/canvas"
 import { SurfaceRoot, ViewportElement, type Surface, type ViewportContext } from "../base/viewport"
 import { UIElement, WheelUIEvent, pointInRect, type Rect, type Vec2 } from "../base/ui"
@@ -197,7 +198,7 @@ type RowCell = {
 }
 
 function rectZero(): Rect {
-  return { x: 0, y: 0, w: 0, h: 0 }
+  return ZERO_RECT
 }
 
 function clamp(v: number, a: number, b: number) {

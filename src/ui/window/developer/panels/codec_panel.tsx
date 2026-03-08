@@ -4,6 +4,7 @@ import { defineSurface, mountSurface } from "../../../builder/surface_builder"
 import type { CodecRuntimeEntry } from "../../../../core/codecs"
 import { getWebNavigatorInfo, getWebRuntimeFlags } from "../../../../platform/web/navigator"
 import { probeCodecConfig } from "../../../../platform/web/webcodecs"
+import { invalidateAll } from "../../../invalidate"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 
 type ProbeRow = {
@@ -35,9 +36,6 @@ function runtimeInstanceRows(instances: CodecRuntimeEntry[]) {
   })
 }
 
-function invalidateAll() {
-  ;(globalThis as any).__TNL_DEVTOOLS__?.invalidate?.()
-}
 
 function boolText(value: boolean) {
   return value ? "Yes" : "No"

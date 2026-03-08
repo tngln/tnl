@@ -1,53 +1,28 @@
 import { draw, RRect, Text } from "../../core/draw"
 import { font, theme } from "../../config/theme"
-import { PointerUIEvent, UIElement, type Rect } from "../base/ui"
+import { toGetter, type Rect } from "../../core/rect"
+import { InteractiveElement } from "./interactive"
 
-export class Button extends UIElement {
-  private readonly rect: () => Rect
+export class Button extends InteractiveElement {
   private readonly text: () => string
   private readonly title: () => string
   private readonly onClick: (() => void) | undefined
-  private readonly active: () => boolean
-  private readonly disabled: () => boolean
-
-  private hover = false
-  private down = false
 
   constructor(opts: { rect: () => Rect; text: string | (() => string); title?: string | (() => string); onClick?: () => void; active?: () => boolean; disabled?: () => boolean }) {
-    super()
-    this.rect = opts.rect
-    if (typeof opts.text === "string") {
-      const t = opts.text
-      this.text = () => t
-    } else {
-      this.text = opts.text
-    }
-    if (!opts.title) {
-      this.title = this.text
-    } else if (typeof opts.title === "string") {
-      const t = opts.title
-      this.title = () => t
-    } else {
-      this.title = opts.title
-    }
+    super(opts)
+    this.text = toGetter(opts.text)
+    this.title = opts.title ? toGetter(opts.title) : this.text
     this.onClick = opts.onClick
-    this.active = opts.active ?? (() => true)
-    this.disabled = opts.disabled ?? (() => false)
   }
 
-  private interactive() {
-    return this.active() && !this.disabled()
-  }
-
-  bounds(): Rect {
-    if (!this.active()) return { x: 0, y: 0, w: 0, h: 0 }
-    return this.rect()
+  protected onActivate() {
+    this.onClick?.()
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
-    if (!this.active()) return
-    const r = this.rect()
-    const disabled = this.disabled()
+    if (!this._active()) return
+    const r = this._rect()
+    const disabled = this._disabled()
     const bg = disabled
       ? "rgba(233,237,243,0.03)"
       : this.down
@@ -77,7 +52,7 @@ export class Button extends UIElement {
     )
 
     const title = this.title().trim()
-    if (!title || !this.hover || this.down || title === this.text()) return
+    if (!title || !this.hover || this.down || title === this.text()) return  // eslint-disable-line @typescript-eslint/prefer-nullish-coalescing
     ctx.save()
     ctx.font = font(theme, theme.typography.body)
     const metrics = ctx.measureText(title)
@@ -106,33 +81,5 @@ export class Button extends UIElement {
         },
       }),
     )
-  }
-
-  onPointerEnter() {
-    if (!this.interactive()) return
-    this.hover = true
-  }
-
-  onPointerLeave() {
-    this.hover = false
-    this.down = false
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (!this.interactive()) return
-    if (e.button !== 0) return
-    this.down = true
-    e.capture()
-  }
-
-  onPointerUp(_e: PointerUIEvent) {
-    if (!this.interactive()) {
-      this.down = false
-      return
-    }
-    if (!this.down) return
-    this.down = false
-    if (!this.hover) return
-    this.onClick?.()
   }
 }

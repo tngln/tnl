@@ -46,6 +46,8 @@ export function rectArea(r: Rect) {
   return Math.max(0, r.w) * Math.max(0, r.h)
 }
 
+export const ZERO_RECT: Rect = Object.freeze({ x: 0, y: 0, w: 0, h: 0 })
+
 export function mergeRectInto(list: Rect[], next: Rect) {
   let r = next
   for (let i = 0; i < list.length; i++) {
@@ -57,4 +59,18 @@ export function mergeRectInto(list: Rect[], next: Rect) {
   }
   list.push(r)
 }
+
+/** Normalize a `string | (() => T)` to `() => T`, also handles undefined with a default. */
+export function toGetter<T>(value: T | (() => T)): () => T
+export function toGetter<T>(value: T | (() => T) | undefined, fallback: T): () => T
+export function toGetter<T>(value: T | (() => T) | undefined, fallback?: T): () => T {
+  if (typeof value === "function") return value as () => T
+  if (value !== undefined) {
+    const v = value
+    return () => v
+  }
+  const f = fallback as T
+  return () => f
+}
+
 

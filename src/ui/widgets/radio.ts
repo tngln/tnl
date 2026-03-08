@@ -1,53 +1,31 @@
 import { draw, Circle, Text } from "../../core/draw"
 import { font, theme } from "../../config/theme"
 import { type Signal } from "../../core/reactivity"
-import { PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "../base/ui"
+import { toGetter, type Rect } from "../../core/rect"
+import { InteractiveElement } from "./interactive"
 
-export class Radio extends UIElement {
-  private readonly rect: () => Rect
+export class Radio extends InteractiveElement {
   private readonly label: () => string
   private readonly value: string
   private readonly selected: Signal<string>
-  private readonly active: () => boolean
-  private readonly disabled: () => boolean
-
-  private hover = false
-  private down = false
 
   constructor(opts: { rect: () => Rect; label: string | (() => string); value: string; selected: Signal<string>; active?: () => boolean; disabled?: () => boolean }) {
-    super()
-    this.rect = opts.rect
-    if (typeof opts.label === "string") {
-      const t = opts.label
-      this.label = () => t
-    } else {
-      this.label = opts.label
-    }
+    super(opts)
+    this.label = toGetter(opts.label)
     this.value = opts.value
     this.selected = opts.selected
-    this.active = opts.active ?? (() => true)
-    this.disabled = opts.disabled ?? (() => false)
   }
 
-  private interactive() {
-    return this.active() && !this.disabled()
-  }
-
-  bounds(): Rect {
-    if (!this.active()) return { x: 0, y: 0, w: 0, h: 0 }
-    return this.rect()
-  }
-
-  protected containsPoint(p: Vec2) {
-    return pointInRect(p, this.bounds())
+  protected onActivate() {
+    this.selected.set(this.value)
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
-    if (!this.active()) return
-    const r = this.rect()
+    if (!this._active()) return
+    const r = this._rect()
     const cx = r.x + 8
     const cy = r.y + 10
-    const disabled = this.disabled()
+    const disabled = this._disabled()
     const stroke = disabled
       ? "rgba(233,237,243,0.12)"
       : this.down
@@ -72,32 +50,5 @@ export class Radio extends UIElement {
       }),
     )
   }
-
-  onPointerEnter() {
-    if (!this.interactive()) return
-    this.hover = true
-  }
-
-  onPointerLeave() {
-    this.hover = false
-    this.down = false
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (!this.interactive()) return
-    if (e.button !== 0) return
-    this.down = true
-    e.capture()
-  }
-
-  onPointerUp(_e: PointerUIEvent) {
-    if (!this.interactive()) {
-      this.down = false
-      return
-    }
-    if (!this.down) return
-    this.down = false
-    if (!this.hover) return
-    this.selected.set(this.value)
-  }
 }
+

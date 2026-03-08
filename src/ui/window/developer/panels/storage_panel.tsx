@@ -5,6 +5,7 @@ import { downloadBlob, pickFiles } from "../../../../platform/web/file_io"
 import { createElement, Fragment } from "../../../jsx"
 import { Column, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, RowItem, Text } from "../../../builder/components"
 import { defineSurface, mountSurface } from "../../../builder/surface_builder"
+import { invalidateAll } from "../../../invalidate"
 import type { DeveloperPanelSpec } from "../index"
 
 export function createStoragePanel(): DeveloperPanelSpec {
@@ -29,9 +30,6 @@ function formatBytes(bytes: number) {
   return `${n.toFixed(digits)} ${units[u]}`
 }
 
-function invalidateAll() {
-  ;(globalThis as any).__TNL_DEVTOOLS__?.invalidate?.()
-}
 
 function formatUsageText(usage: { entries: number; bytes: number; quota?: number; usage?: number }) {
   const parts: string[] = []

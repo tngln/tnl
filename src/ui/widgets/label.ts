@@ -1,6 +1,7 @@
 import { draw, Text } from "../../core/draw"
 import { font, theme } from "../../config/theme"
-import { UIElement, type Rect } from "../base/ui"
+import { ZERO_RECT, toGetter, type Rect } from "../../core/rect"
+import { UIElement } from "../base/ui"
 
 export class Label extends UIElement {
   private readonly rect: () => Rect
@@ -11,25 +12,13 @@ export class Label extends UIElement {
   constructor(opts: { rect: () => Rect; text: string | (() => string); color?: string | (() => string); active?: () => boolean }) {
     super()
     this.rect = opts.rect
-    if (typeof opts.text === "string") {
-      const t = opts.text
-      this.text = () => t
-    } else {
-      this.text = opts.text
-    }
-    if (!opts.color) {
-      this.color = () => theme.colors.textMuted
-    } else if (typeof opts.color === "string") {
-      const c = opts.color
-      this.color = () => c
-    } else {
-      this.color = opts.color
-    }
+    this.text = toGetter(opts.text)
+    this.color = toGetter(opts.color, theme.colors.textMuted)
     this.active = opts.active ?? (() => true)
   }
 
   bounds(): Rect {
-    if (!this.active()) return { x: 0, y: 0, w: 0, h: 0 }
+    if (!this.active()) return ZERO_RECT
     return this.rect()
   }
 
