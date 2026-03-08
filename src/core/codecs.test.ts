@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test"
-import { CodecRuntimeRegistry } from "./codecs"
+import { createCodecRegistry } from "./codecs"
 
 describe("codecs registry", () => {
   it("registers, updates, lists, and unregisters codec runtime entries", () => {
-    const registry = new CodecRuntimeRegistry()
+    const registry = createCodecRegistry()
 
     registry.register({
       id: "decoder.1",

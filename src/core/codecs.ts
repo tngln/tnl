@@ -13,40 +13,40 @@ export type CodecRuntimeEntry = {
   detail?: string
 }
 
-export class CodecRuntimeRegistry {
-  private readonly entries = new Map<string, CodecRuntimeEntry>()
+export type CodecRuntimeRegistry = ReturnType<typeof createCodecRegistry>
 
-  register(entry: CodecRuntimeEntry) {
-    this.entries.set(entry.id, { ...entry })
-  }
+export function createCodecRegistry() {
+  const entries = new Map<string, CodecRuntimeEntry>()
 
-  update(id: string, patch: Partial<Omit<CodecRuntimeEntry, "id">>) {
-    const current = this.entries.get(id)
-    if (!current) return
-    this.entries.set(id, { ...current, ...patch, id })
-  }
-
-  unregister(id: string) {
-    this.entries.delete(id)
-  }
-
-  list() {
-    return [...this.entries.values()].sort((a, b) => {
-      if (a.kind !== b.kind) return a.kind.localeCompare(b.kind)
-      return a.label.localeCompare(b.label)
-    })
-  }
-
-  summary() {
-    const list = this.list()
-    return {
-      total: list.length,
-      byKind: {
-        videoDecoders: list.filter((entry) => entry.kind === "video-decoder").length,
-        videoEncoders: list.filter((entry) => entry.kind === "video-encoder").length,
-        audioDecoders: list.filter((entry) => entry.kind === "audio-decoder").length,
-        audioEncoders: list.filter((entry) => entry.kind === "audio-encoder").length,
-      },
-    }
+  return {
+    register(entry: CodecRuntimeEntry) {
+      entries.set(entry.id, { ...entry })
+    },
+    update(id: string, patch: Partial<Omit<CodecRuntimeEntry, "id">>) {
+      const current = entries.get(id)
+      if (!current) return
+      entries.set(id, { ...current, ...patch, id })
+    },
+    unregister(id: string) {
+      entries.delete(id)
+    },
+    list() {
+      return [...entries.values()].sort((a, b) => {
+        if (a.kind !== b.kind) return a.kind.localeCompare(b.kind)
+        return a.label.localeCompare(b.label)
+      })
+    },
+    summary() {
+      const list = this.list()
+      return {
+        total: list.length,
+        byKind: {
+          videoDecoders: list.filter((e) => e.kind === "video-decoder").length,
+          videoEncoders: list.filter((e) => e.kind === "video-encoder").length,
+          audioDecoders: list.filter((e) => e.kind === "audio-decoder").length,
+          audioEncoders: list.filter((e) => e.kind === "audio-encoder").length,
+        },
+      }
+    },
   }
 }

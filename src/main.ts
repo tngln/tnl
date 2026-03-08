@@ -1,5 +1,5 @@
 import { effect } from "./core/reactivity"
-import { CodecRuntimeRegistry } from "./core/codecs"
+import { createCodecRegistry } from "./core/codecs"
 import { theme } from "./config/theme"
 import { ModalWindow, Root } from "./ui/window/window"
 import { WindowManager } from "./ui/window/window_manager"
@@ -18,7 +18,7 @@ applyDocumentTheme(theme.colors.appBg, theme.colors.appBg)
 
 const root = new Root()
 const windows = new WindowManager(root)
-const codecs = new CodecRuntimeRegistry()
+const codecs = createCodecRegistry()
 
 const about = createAboutDialog()
 windows.register(about)
