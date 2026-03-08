@@ -1,4 +1,5 @@
 import { draw, Rect as RectOp, Text } from "../../core/draw"
+import { createPressMachine } from "../../core/fsm"
 import { theme } from "../../config/theme"
 import { PointerUIEvent, UIElement, pointInRect, type Rect } from "../base/ui"
 
@@ -34,7 +35,7 @@ export class Row extends UIElement {
   private layout: RowLayout = { rect: { x: 0, y: 0, w: 0, h: 0 }, leftText: "" }
   private onClick: (() => void) | undefined
   private hover = false
-  private down = false
+  private readonly press = createPressMachine()
 
   set(layout: RowLayout, onClick?: () => void) {
     this.layout = layout
@@ -54,14 +55,14 @@ export class Row extends UIElement {
   protected onDraw(ctx: CanvasRenderingContext2D) {
     const r = this.layout.rect
     if (r.w <= 0 || r.h <= 0) return
-    const bg = this.down
-      ? "rgba(255,255,255,0.06)"
-      : this.layout.selected
+    const pressed = this.press.matches("pressed")
+    const bg = this.layout.selected
         ? "rgba(255,255,255,0.055)"
         : this.hover
           ? "rgba(255,255,255,0.05)"
           : "transparent"
-    if (bg !== "transparent") draw(ctx, RectOp(r, { fill: { color: bg } }))
+    const resolvedBg = pressed ? "rgba(255,255,255,0.06)" : bg
+    if (resolvedBg !== "transparent") draw(ctx, RectOp(r, { fill: { color: resolvedBg } }))
 
     const indent = Math.max(0, this.layout.indent ?? 0)
     const isGroup = (this.layout.variant ?? "item") === "group"
@@ -124,18 +125,18 @@ export class Row extends UIElement {
 
   onPointerLeave() {
     this.hover = false
-    this.down = false
+    if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "leave" })
   }
 
   onPointerDown(e: PointerUIEvent) {
     if (e.button !== 0) return
-    this.down = true
+    this.press.send({ type: "PRESS", point: { x: e.x, y: e.y } })
     e.capture()
   }
 
-  onPointerUp(_e: PointerUIEvent) {
-    if (!this.down) return
-    this.down = false
+  onPointerUp(e: PointerUIEvent) {
+    if (!this.press.matches("pressed")) return
+    this.press.send({ type: "RELEASE", point: { x: e.x, y: e.y } })
     if (!this.hover) return
     this.onClick?.()
   }

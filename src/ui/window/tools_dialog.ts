@@ -3,12 +3,13 @@ import { DividerSurface } from "../surfaces/divider_surface"
 import { TabPanelSurface } from "../surfaces/tab_panel_surface"
 import { TextSurface } from "../surfaces/text_surface"
 import { mountSurface } from "../builder/surface_builder"
+import type { Surface } from "../base/viewport"
 import { SurfaceWindow } from "./window"
 
 export const TOOLS_DIALOG_ID = "Tools.Dialog"
 
-export function createToolsDialog() {
-  const tabs = new TabPanelSurface({
+export function createToolsSurface(): Surface {
+  return new TabPanelSurface({
     id: "Tools.Tabs",
     tabs: [
         {
@@ -58,6 +59,10 @@ export function createToolsDialog() {
       selectedId: "scroll",
       scrollbar: true,
     })
+}
+
+export function createToolsDialog() {
+    const tabs = createToolsSurface()
     return new SurfaceWindow({
       id: TOOLS_DIALOG_ID,
       x: 20,

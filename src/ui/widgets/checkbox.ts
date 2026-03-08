@@ -25,7 +25,7 @@ export class Checkbox extends InteractiveElement {
     const disabled = this._disabled()
     const bg = disabled
       ? "rgba(233,237,243,0.03)"
-      : this.down
+      : this.pressed()
         ? "rgba(233,237,243,0.10)"
         : this.hover
           ? "rgba(233,237,243,0.08)"

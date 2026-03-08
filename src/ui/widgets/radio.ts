@@ -28,7 +28,7 @@ export class Radio extends InteractiveElement {
     const disabled = this._disabled()
     const stroke = disabled
       ? "rgba(233,237,243,0.12)"
-      : this.down
+      : this.pressed()
         ? "rgba(233,237,243,0.30)"
         : this.hover
           ? "rgba(233,237,243,0.24)"
@@ -51,4 +51,3 @@ export class Radio extends InteractiveElement {
     )
   }
 }
-

@@ -25,7 +25,7 @@ export class Button extends InteractiveElement {
     const disabled = this._disabled()
     const bg = disabled
       ? "rgba(233,237,243,0.03)"
-      : this.down
+      : this.pressed()
         ? "rgba(233,237,243,0.12)"
         : this.hover
           ? "rgba(233,237,243,0.08)"
@@ -52,7 +52,7 @@ export class Button extends InteractiveElement {
     )
 
     const title = this.title().trim()
-    if (!title || !this.hover || this.down || title === this.text()) return  // eslint-disable-line @typescript-eslint/prefer-nullish-coalescing
+    if (!title || !this.hover || this.pressed() || title === this.text()) return  // eslint-disable-line @typescript-eslint/prefer-nullish-coalescing
     ctx.save()
     ctx.font = font(theme, theme.typography.body)
     const metrics = ctx.measureText(title)

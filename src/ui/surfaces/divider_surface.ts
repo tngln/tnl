@@ -1,5 +1,6 @@
 import { signal, type Signal } from "../../core/reactivity"
 import { draw, RRect } from "../../core/draw"
+import { createEventStream, dragSession } from "../../core/event_stream"
 import { clamp } from "../../core/rect"
 import { theme } from "../../config/theme"
 import { UIElement, type Rect, type Vec2, PointerUIEvent, pointInRect } from "../base/ui"
@@ -26,8 +27,10 @@ class DividerHandle extends UIElement {
 
   private hover = false
   private down = false
-  private start = 0
   private startPos = 0
+  private readonly downEvents = createEventStream<PointerUIEvent>()
+  private readonly moveEvents = createEventStream<PointerUIEvent>()
+  private readonly upEvents = createEventStream<PointerUIEvent>()
 
   constructor(opts: { rect: () => Rect; axis: Axis; position: Signal<number>; minA: () => number; minB: () => number; total: () => number }) {
     super()
@@ -38,6 +41,7 @@ class DividerHandle extends UIElement {
     this.minB = opts.minB
     this.total = opts.total
     this.z = 50
+    this.setupGestures()
   }
 
   bounds(): Rect {
@@ -102,6 +106,30 @@ class DividerHandle extends UIElement {
     )
   }
 
+  private setupGestures() {
+    dragSession({
+      down: this.downEvents.stream,
+      move: this.moveEvents.stream,
+      up: this.upEvents.stream,
+      point: (event) => ({ x: event.x, y: event.y }),
+      thresholdSq: 0,
+    }).subscribe((event) => {
+      if (event.kind === "start") {
+        this.startPos = this.position.peek()
+        return
+      }
+      if (event.kind !== "move") return
+      const start = this.axis === "x" ? event.down.x : event.down.y
+      const cur = this.axis === "x" ? event.current.x : event.current.y
+      const delta = cur - start
+      const total = this.total()
+      const minA = this.minA()
+      const minB = this.minB()
+      const next = clamp(this.startPos + delta, minA, Math.max(minA, total - minB))
+      this.position.set(next)
+    })
+  }
+
   onPointerEnter() {
     this.hover = true
   }
@@ -114,23 +142,17 @@ class DividerHandle extends UIElement {
   onPointerDown(e: PointerUIEvent) {
     if (e.button !== 0) return
     this.down = true
-    this.start = this.axis === "x" ? e.x : e.y
-    this.startPos = this.position.peek()
+    this.downEvents.emit(e)
     e.capture()
   }
 
   onPointerMove(e: PointerUIEvent) {
     if (!this.down) return
-    const cur = this.axis === "x" ? e.x : e.y
-    const delta = cur - this.start
-    const total = this.total()
-    const minA = this.minA()
-    const minB = this.minB()
-    const next = clamp(this.startPos + delta, minA, Math.max(minA, total - minB))
-    this.position.set(next)
+    this.moveEvents.emit(e)
   }
 
-  onPointerUp(_e: PointerUIEvent) {
+  onPointerUp(e: PointerUIEvent) {
+    this.upEvents.emit(e)
     this.down = false
   }
 }

@@ -410,10 +410,15 @@ export class CanvasUI {
       shiftKey: e.shiftKey,
       metaKey: e.metaKey,
     })
+    let topBefore: UIElement | null = target
+    while (topBefore && topBefore.parent && topBefore.parent !== this.root) topBefore = topBefore.parent
+    const before = topBefore ? topBefore.bounds() : null
     target.onPointerMove(ev)
-    let top: UIElement | null = target
-    while (top && top.parent && top.parent !== this.root) top = top.parent
-    if (top) this.invalidateRect(top.bounds(), { pad: 8 })
+    let topAfter: UIElement | null = target
+    while (topAfter && topAfter.parent && topAfter.parent !== this.root) topAfter = topAfter.parent
+    const after = topAfter ? topAfter.bounds() : before
+    if (before && after) this.invalidateRect(unionRect(before, after), { pad: 24 })
+    else if (after) this.invalidateRect(after, { pad: 24 })
   }
 
   private onPointerUp = (e: PointerEvent) => {

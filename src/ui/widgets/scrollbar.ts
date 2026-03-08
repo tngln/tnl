@@ -1,4 +1,6 @@
 import { draw, RRect } from "../../core/draw"
+import { createEventStream, dragSession } from "../../core/event_stream"
+import { createMachine, type Machine } from "../../core/fsm"
 import { clamp } from "../../core/rect"
 import { theme } from "../../config/theme"
 import { PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "../base/ui"
@@ -12,6 +14,19 @@ type ThumbMetrics = {
   thumbOffset: number
 }
 
+type ScrollbarState = "idle" | "pressed" | "dragging"
+type ScrollbarContext = {
+  originPointer: Vec2
+  lastPointer: Vec2
+  dragOffset: number
+}
+type ScrollbarEvent =
+  | { type: "PRESS"; pointer: Vec2; dragOffset: number }
+  | { type: "DRAG_START"; pointer: Vec2 }
+  | { type: "DRAG_MOVE"; pointer: Vec2 }
+  | { type: "RELEASE"; pointer: Vec2 }
+  | { type: "CANCEL"; reason: string }
+
 export class Scrollbar extends UIElement {
   private readonly rect: () => Rect
   private readonly axis: Axis
@@ -24,8 +39,11 @@ export class Scrollbar extends UIElement {
   private readonly autoHide: boolean
 
   private hover = false
-  private down = false
-  private dragOffset = 0
+  private readonly downEvents = createEventStream<PointerUIEvent>()
+  private readonly moveEvents = createEventStream<PointerUIEvent>()
+  private readonly upEvents = createEventStream<PointerUIEvent>()
+  private readonly cancelEvents = createEventStream<string>()
+  private readonly machine: Machine<ScrollbarState, ScrollbarEvent, ScrollbarContext>
 
   constructor(opts: {
     rect: () => Rect
@@ -49,6 +67,60 @@ export class Scrollbar extends UIElement {
     this.autoHide = opts.autoHide ?? true
     this.active = opts.active ?? (() => true)
     this.z = 40
+    this.machine = createMachine<ScrollbarState, ScrollbarEvent, ScrollbarContext>({
+      initial: "idle",
+      context: { originPointer: { x: 0, y: 0 }, lastPointer: { x: 0, y: 0 }, dragOffset: 0 },
+      states: {
+        idle: {
+          on: {
+            PRESS: {
+              target: "pressed",
+              reduce: (_snapshot, event) => ({
+                originPointer: event.pointer,
+                lastPointer: event.pointer,
+                dragOffset: event.dragOffset,
+              }),
+            },
+          },
+        },
+        pressed: {
+          on: {
+            DRAG_START: {
+              target: "dragging",
+              reduce: (_snapshot, event) => ({ lastPointer: event.pointer }),
+              effect: (snapshot, event) => {
+                this.setByPointer(this.axis === "y" ? event.pointer.y : event.pointer.x, snapshot.context.dragOffset)
+              },
+            },
+            RELEASE: {
+              target: "idle",
+              reduce: (_snapshot, event) => ({ lastPointer: event.pointer }),
+            },
+            CANCEL: {
+              target: "idle",
+            },
+          },
+        },
+        dragging: {
+          on: {
+            DRAG_MOVE: {
+              reduce: (_snapshot, event) => ({ lastPointer: event.pointer }),
+              effect: (snapshot, event) => {
+                this.setByPointer(this.axis === "y" ? event.pointer.y : event.pointer.x, snapshot.context.dragOffset)
+              },
+            },
+            RELEASE: {
+              target: "idle",
+              reduce: (_snapshot, event) => ({ lastPointer: event.pointer }),
+            },
+            CANCEL: {
+              target: "idle",
+            },
+          },
+        },
+      },
+    })
+    this.setupGestures()
   }
 
   private metrics(): ThumbMetrics {
@@ -80,15 +152,40 @@ export class Scrollbar extends UIElement {
     return { x: r.x + m.thumbOffset, y: r.y, w: m.thumbLength, h: r.h }
   }
 
-  private setByPointer(pointer: number) {
+  private setByPointer(pointer: number, dragOffset: number) {
     const r = this.rect()
     const m = this.metrics()
     if (m.maxValue <= 0) return
     const trackPos = this.axis === "y" ? pointer - r.y : pointer - r.x
     const span = Math.max(0, m.trackLength - m.thumbLength)
-    const nextThumb = clamp(trackPos - this.dragOffset, 0, span)
+    const nextThumb = clamp(trackPos - dragOffset, 0, span)
     const next = span <= 0 ? 0 : (nextThumb / span) * m.maxValue
     this.onChange(next)
+  }
+
+  private setupGestures() {
+    dragSession({
+      down: this.downEvents.stream,
+      move: this.moveEvents.stream,
+      up: this.upEvents.stream,
+      cancel: this.cancelEvents.stream,
+      point: (event) => ({ x: event.x, y: event.y }),
+      thresholdSq: 0,
+    }).subscribe((event) => {
+      if (event.kind === "start") {
+        this.machine.send({ type: "DRAG_START", pointer: { x: event.current.x, y: event.current.y } })
+        return
+      }
+      if (event.kind === "move") {
+        this.machine.send({ type: "DRAG_MOVE", pointer: { x: event.current.x, y: event.current.y } })
+        return
+      }
+      if (event.kind === "end") {
+        this.machine.send({ type: "RELEASE", pointer: { x: event.up.x, y: event.up.y } })
+        return
+      }
+      this.machine.send({ type: "CANCEL", reason: event.reason })
+    })
   }
 
   bounds(): Rect {
@@ -104,8 +201,9 @@ export class Scrollbar extends UIElement {
     if (this.hidden()) return
     const r = this.rect()
     const t = this.thumbRect()
-    const track = this.down ? "rgba(255,255,255,0.07)" : this.hover ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.04)"
-    const thumb = this.down ? "rgba(233,237,243,0.46)" : this.hover ? "rgba(233,237,243,0.38)" : "rgba(233,237,243,0.30)"
+    const active = this.machine.matches("pressed") || this.machine.matches("dragging")
+    const track = active ? "rgba(255,255,255,0.07)" : this.hover ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.04)"
+    const thumb = active ? "rgba(233,237,243,0.46)" : this.hover ? "rgba(233,237,243,0.38)" : "rgba(233,237,243,0.30)"
     draw(
       ctx,
       RRect({ x: r.x, y: r.y, w: r.w, h: r.h, r: Math.min(theme.radii.sm, Math.min(r.w, r.h) / 2) }, { fill: { color: track } }),
@@ -122,7 +220,7 @@ export class Scrollbar extends UIElement {
 
   onPointerLeave() {
     this.hover = false
-    this.down = false
+    if (this.machine.matches("pressed")) this.cancelEvents.emit("leave")
   }
 
   onPointerDown(e: PointerUIEvent) {
@@ -130,23 +228,26 @@ export class Scrollbar extends UIElement {
     if (e.button !== 0) return
     const thumb = this.thumbRect()
     const p = this.axis === "y" ? e.y : e.x
+    let dragOffset = 0
     if (pointInRect({ x: e.x, y: e.y }, thumb)) {
-      this.dragOffset = this.axis === "y" ? e.y - thumb.y : e.x - thumb.x
+      dragOffset = this.axis === "y" ? e.y - thumb.y : e.x - thumb.x
     } else {
       const thumbLen = this.axis === "y" ? thumb.h : thumb.w
-      this.dragOffset = thumbLen / 2
-      this.setByPointer(p)
+      dragOffset = thumbLen / 2
+      this.setByPointer(p, dragOffset)
     }
-    this.down = true
+    this.machine.send({ type: "PRESS", pointer: { x: e.x, y: e.y }, dragOffset })
+    this.downEvents.emit(e)
     e.capture()
   }
 
   onPointerMove(e: PointerUIEvent) {
-    if (!this.down) return
-    this.setByPointer(this.axis === "y" ? e.y : e.x)
+    if (this.machine.matches("idle")) return
+    this.moveEvents.emit(e)
   }
 
-  onPointerUp(_e: PointerUIEvent) {
-    this.down = false
+  onPointerUp(e: PointerUIEvent) {
+    if (this.machine.matches("idle")) return
+    this.upEvents.emit(e)
   }
 }

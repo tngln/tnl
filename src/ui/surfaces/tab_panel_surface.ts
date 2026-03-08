@@ -27,7 +27,7 @@ class TabButton extends InteractiveElement {
   protected onDraw(ctx: CanvasRenderingContext2D) {
     const r = this._rect()
     const sel = this.selected()
-    const bg = sel ? "rgba(255,255,255,0.06)" : this.down ? "rgba(255,255,255,0.05)" : this.hover ? "rgba(255,255,255,0.04)" : "transparent"
+    const bg = sel ? "rgba(255,255,255,0.06)" : this.pressed() ? "rgba(255,255,255,0.05)" : this.hover ? "rgba(255,255,255,0.04)" : "transparent"
     const stroke = sel || this.hover ? { color: "rgba(255,255,255,0.14)", hairline: true } : undefined
     if (bg !== "transparent" || stroke) draw(ctx, RRect({ x: r.x, y: r.y, w: r.w, h: r.h, r: 6 }, { fill: bg !== "transparent" ? { color: bg } : undefined, stroke, pixelSnap: true }))
     draw(

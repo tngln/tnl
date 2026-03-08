@@ -1,4 +1,5 @@
 import { ZERO_RECT, type Rect } from "../../core/rect"
+import { createPressMachine } from "../../core/fsm"
 import { PointerUIEvent, UIElement, pointInRect, type Vec2 } from "../base/ui"
 
 /**
@@ -11,7 +12,7 @@ export class InteractiveElement extends UIElement {
   protected readonly _disabled: () => boolean
 
   protected hover = false
-  protected down = false
+  private readonly press = createPressMachine()
 
   constructor(opts: { rect: () => Rect; active?: () => boolean; disabled?: () => boolean }) {
     super()
@@ -40,25 +41,29 @@ export class InteractiveElement extends UIElement {
 
   onPointerLeave() {
     this.hover = false
-    this.down = false
+    if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "leave" })
   }
 
   onPointerDown(e: PointerUIEvent) {
     if (!this.interactive()) return
     if (e.button !== 0) return
-    this.down = true
+    this.press.send({ type: "PRESS", point: { x: e.x, y: e.y } })
     e.capture()
   }
 
-  onPointerUp(_e: PointerUIEvent) {
+  onPointerUp(e: PointerUIEvent) {
     if (!this.interactive()) {
-      this.down = false
+      if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "inactive" })
       return
     }
-    if (!this.down) return
-    this.down = false
+    if (!this.press.matches("pressed")) return
+    this.press.send({ type: "RELEASE", point: { x: e.x, y: e.y } })
     if (!this.hover) return
     this.onActivate()
+  }
+
+  protected pressed() {
+    return this.press.matches("pressed")
   }
 
   /** Override this to handle the "click" action when the pointer is released over the widget. */
