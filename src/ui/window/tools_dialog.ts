@@ -15,7 +15,7 @@ export class ToolsDialog extends SurfaceWindow {
         {
           id: "scroll",
           title: "Scroll",
-          surface: new TextSurface({
+          surface: TextSurface({
             id: "Tools.Scroll.Demo",
             title: "Wheel Scroll Demo",
             body:
@@ -35,7 +35,7 @@ export class ToolsDialog extends SurfaceWindow {
           surface: new DividerSurface({
             id: "Tools.Split",
             a: mountSurface(ControlsSurface, {}),
-            b: new TextSurface({
+            b: TextSurface({
               id: "Tools.Split.Info",
               title: "Divider",
               body: "A divider hosts two surfaces in one panel and lets you drag the handle to adjust the split position.",
@@ -49,7 +49,7 @@ export class ToolsDialog extends SurfaceWindow {
         {
           id: "info",
           title: "Info",
-          surface: new TextSurface({
+          surface: TextSurface({
             id: "Tools.Info",
             title: "Tabs",
             body: "A tab panel switches content surfaces within one window. Each tab can host its own Surface and Viewport constraints.",
