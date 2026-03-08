@@ -1,5 +1,7 @@
 import { theme } from "../../../../config/theme"
 import { openOpfs, type OpfsEntryV1 } from "../../../../core/opfs"
+import { showAlert, showConfirm, showPrompt } from "../../../../platform/web/dialogs"
+import { downloadBlob, pickFiles } from "../../../../platform/web/file_io"
 import { createElement, Fragment } from "../../../jsx"
 import { Column, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, RowItem, Text } from "../../../builder/components"
 import { defineSurface, mountSurface } from "../../../builder/surface_builder"
@@ -29,21 +31,6 @@ function formatBytes(bytes: number) {
 
 function invalidateAll() {
   ;(globalThis as any).__TNL_DEVTOOLS__?.invalidate?.()
-}
-
-function ensureHiddenFileInput(): HTMLInputElement {
-  const id = "tnl-devtools-file-input"
-  let el = document.getElementById(id) as HTMLInputElement | null
-  if (el) return el
-  el = document.createElement("input")
-  el.id = id
-  el.type = "file"
-  el.multiple = true
-  el.style.position = "fixed"
-  el.style.left = "-10000px"
-  el.style.top = "-10000px"
-  document.body.appendChild(el)
-  return el
 }
 
 function formatUsageText(usage: { entries: number; bytes: number; quota?: number; usage?: number }) {
@@ -100,32 +87,27 @@ export const StoragePanelSurface = defineSurface({
     }
 
     const upload = async () => {
-      const input = ensureHiddenFileInput()
-      input.value = ""
-      input.onchange = async () => {
-        const files = input.files ? [...input.files] : []
-        if (!files.length) return
-        const nextPrefix = (prefix ?? "uploads").trim() || "uploads"
-        const seq = ++opSeq
-        busy = true
-        invalidateAll()
-        try {
-          const fs = await ensureFs()
-          for (const file of files) {
-            await fs.writeFile(`${nextPrefix}/${file.name}`, file, { type: file.type || "application/octet-stream" })
-          }
-          if (seq !== opSeq) return
-          await refresh()
-        } catch (e) {
-          if (seq !== opSeq) return
-          error = e instanceof Error ? e.message : String(e)
-        } finally {
-          if (seq !== opSeq) return
-          busy = false
-          invalidateAll()
+      const files = await pickFiles({ multiple: true, inputId: "tnl-devtools-file-input" })
+      if (!files.length) return
+      const nextPrefix = (prefix ?? "uploads").trim() || "uploads"
+      const seq = ++opSeq
+      busy = true
+      invalidateAll()
+      try {
+        const fs = await ensureFs()
+        for (const file of files) {
+          await fs.writeFile(`${nextPrefix}/${file.name}`, file, { type: file.type || "application/octet-stream" })
         }
+        if (seq !== opSeq) return
+        await refresh()
+      } catch (e) {
+        if (seq !== opSeq) return
+        error = e instanceof Error ? e.message : String(e)
+      } finally {
+        if (seq !== opSeq) return
+        busy = false
+        invalidateAll()
       }
-      input.click()
     }
 
     const downloadSelected = async () => {
@@ -138,15 +120,7 @@ export const StoragePanelSurface = defineSurface({
         const fs = await ensureFs()
         const blob = await fs.readFile(path)
         if (seq !== opSeq) return
-        const url = URL.createObjectURL(blob)
-        const anchor = document.createElement("a")
-        anchor.href = url
-        anchor.download = path.split("/").pop() ?? "download"
-        anchor.style.display = "none"
-        document.body.appendChild(anchor)
-        anchor.click()
-        anchor.remove()
-        setTimeout(() => URL.revokeObjectURL(url), 1000)
+        downloadBlob(blob, path.split("/").pop() ?? "download")
       } catch (e) {
         if (seq !== opSeq) return
         error = e instanceof Error ? e.message : String(e)
@@ -160,7 +134,7 @@ export const StoragePanelSurface = defineSurface({
     const deleteSelected = async () => {
       const path = selectedPath
       if (!path) return
-      if (!confirm(`Delete ${path}?`)) return
+      if (!showConfirm(`Delete ${path}?`)) return
       const seq = ++opSeq
       busy = true
       invalidateAll()
@@ -184,9 +158,9 @@ export const StoragePanelSurface = defineSurface({
       const path = selectedPath
       if (!path) return
       const current = entries.find((entry) => entry.path === path)
-      const type = prompt("type (mime)", current?.type ?? "application/octet-stream")
+      const type = showPrompt("type (mime)", current?.type ?? "application/octet-stream")
       if (type === null) return
-      const extrasText = prompt("extras (JSON)", JSON.stringify(current?.extras ?? {}, null, 2))
+      const extrasText = showPrompt("extras (JSON)", JSON.stringify(current?.extras ?? {}, null, 2))
       if (extrasText === null) return
 
       let extras: Record<string, unknown> | undefined
@@ -195,7 +169,7 @@ export const StoragePanelSurface = defineSurface({
         if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) extras = parsed
         else extras = { value: parsed }
       } catch {
-        alert("Invalid JSON")
+        showAlert("Invalid JSON")
         return
       }
 
@@ -218,7 +192,7 @@ export const StoragePanelSurface = defineSurface({
     }
 
     const setPrefix = () => {
-      const next = prompt("prefix (optional)", prefix ?? "")
+      const next = showPrompt("prefix (optional)", prefix ?? "")
       if (next === null) return
       const value = next.trim()
       prefix = value ? value : null

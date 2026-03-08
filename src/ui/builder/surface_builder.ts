@@ -3,6 +3,7 @@ import { type Signal } from "../../core/reactivity"
 import { draw, Rect as RectOp, RRect, Text } from "../../core/draw"
 import { createRichTextBlock, measureTextWidth, type RichTextSpan, type RichTextStyle, type TextEmphasis } from "../../core/draw.text"
 import { layout, measureLayout, type LayoutNode, type LayoutStyle, type Rect as LayoutRect } from "../../core/layout"
+import { createMeasureContext } from "../../platform/web/canvas"
 import { SurfaceRoot, ViewportElement, type Surface, type ViewportContext } from "../base/viewport"
 import { UIElement, WheelUIEvent, pointInRect, type Rect, type Vec2 } from "../base/ui"
 import { Button, Checkbox, Radio, Row, Scrollbar } from "../widgets"
@@ -332,10 +333,9 @@ export class BuilderTreeSurface implements Surface {
 
   contentSize(viewportSize: Vec2) {
     if (!this.node) return viewportSize
-    if (typeof document === "undefined") return viewportSize
-    const ctx = document.createElement("canvas").getContext("2d")
+    const ctx = createMeasureContext()
     if (!ctx) return viewportSize
-    return this.engine.measureContentWithContext(ctx, viewportSize, this.node)
+    return this.engine.measureContentWithContext(ctx as CanvasRenderingContext2D, viewportSize, this.node)
   }
 
   measureWithContext(ctx: CanvasRenderingContext2D, viewportSize: Vec2) {
@@ -451,10 +451,9 @@ class BuilderEngine {
   }
 
   measureContent(viewportSize: Vec2, node: BuilderNode) {
-    if (typeof document === "undefined") return viewportSize
-    const ctx = document.createElement("canvas").getContext("2d")
+    const ctx = createMeasureContext()
     if (!ctx) return viewportSize
-    return this.measureContentWithContext(ctx, viewportSize, node)
+    return this.measureContentWithContext(ctx as CanvasRenderingContext2D, viewportSize, node)
   }
 
   measureContentWithContext(ctx: CanvasRenderingContext2D, viewportSize: Vec2, node: BuilderNode) {

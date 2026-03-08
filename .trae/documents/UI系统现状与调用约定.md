@@ -79,6 +79,22 @@
   - 让文本颜色、字重、字号、surface tone 等视觉语义沿 Builder 树有限继承
   - 不让 flex/layout 尺寸也参与继承
 
+7. 平台能力收口
+- 目录：`src/platform/web`
+- 当前负责集中：
+  - DOM app 入口
+  - RAF / resize / load
+  - canvas / OffscreenCanvas / DPR / 测量 context
+  - navigator / runtime flags
+  - WebCodecs probe
+  - OPFS root / storage estimate
+  - prompt / confirm / alert
+  - 文件选择与下载
+- 目的：
+  - 保持当前 web-first 运行
+  - 显式集中浏览器绑定点
+  - 为未来 native runtime 迁移留清晰替换边界
+
 ---
 
 ## 2. 当前推荐的 authoring 范式
@@ -505,6 +521,7 @@ export class AboutDialog extends SurfaceWindow {
 2. `defineSurface`
 3. JSX + Builder components
 4. `PanelColumn / PanelHeader / PanelActionRow / PanelScroll / PanelSection`
+5. 浏览器能力从 `src/platform/web` 进入
 
 ### 11.2 不要优先做的事情
 
@@ -513,6 +530,7 @@ export class AboutDialog extends SurfaceWindow {
 - 面板里重新手写一套列表 widget
 - 仅为了保存局部状态去 `extends BuilderSurface`
 - 在每一行 JSX 上重复手写 theme token
+- 在 `core`、`ui/base`、`ui/window`、Developer panels 里直接读取 `document` / `window` / `navigator`
 
 ### 11.3 什么时候仍然应该回到底层
 
@@ -521,6 +539,8 @@ export class AboutDialog extends SurfaceWindow {
 - 需要多个 viewport 协调
 - 需要独立滚动/缩放坐标系
 - 需要专门的绘图管线和裁剪策略
+
+但即使在这些场景里，运行时平台能力也应尽量继续通过 `src/platform/web` 集中访问，而不是把浏览器全局读取重新散回业务文件。
 
 ---
 

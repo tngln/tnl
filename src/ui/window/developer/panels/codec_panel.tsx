@@ -1,6 +1,9 @@
 import { createElement, Fragment } from "../../../jsx"
 import { Button, Column, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, RowItem, Text } from "../../../builder/components"
 import { defineSurface, mountSurface } from "../../../builder/surface_builder"
+import type { CodecRuntimeEntry } from "../../../../core/codecs"
+import { getWebNavigatorInfo, getWebRuntimeFlags } from "../../../../platform/web/navigator"
+import { probeCodecConfig } from "../../../../platform/web/webcodecs"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 
 type ProbeRow = {
@@ -18,10 +21,18 @@ type CodecProbeResult = {
   detail: string
 }
 
-type UserAgentDataLike = {
-  platform?: string
-  mobile?: boolean
-  brands?: Array<{ brand: string; version: string }>
+function runtimeInstanceRows(instances: CodecRuntimeEntry[]) {
+  return instances.map((entry) => {
+    const parts = [entry.codec, entry.status]
+    if (entry.queueSize !== undefined) parts.push(`q${entry.queueSize}`)
+    if (entry.hardwareAcceleration) parts.push(entry.hardwareAcceleration)
+    if (entry.detail) parts.push(entry.detail)
+    return {
+      id: entry.id,
+      left: `${entry.label} (${entry.kind})`,
+      right: parts.join(" · "),
+    }
+  })
 }
 
 function invalidateAll() {
@@ -41,38 +52,37 @@ function valueRow(id: string, label: string, value: unknown): ProbeRow {
 }
 
 function navigatorInfoRows() {
-  const nav = navigator as Navigator & { userAgentData?: UserAgentDataLike; deviceMemory?: number }
-  const uaBrands = nav.userAgentData?.brands?.map((entry) => `${entry.brand} ${entry.version}`).join(", ") ?? "-"
+  const info = getWebNavigatorInfo()
   return [
-    valueRow("browser.ua", "User Agent", navigator.userAgent),
-    valueRow("browser.platform", "Platform", nav.userAgentData?.platform ?? navigator.platform),
-    valueRow("browser.brands", "Brands", uaBrands),
-    valueRow("browser.lang", "Language", navigator.language),
-    valueRow("browser.languages", "Languages", navigator.languages.join(", ")),
-    valueRow("browser.mobile", "Mobile", nav.userAgentData?.mobile === undefined ? "-" : boolText(nav.userAgentData.mobile)),
-    valueRow("browser.online", "Online", boolText(navigator.onLine)),
-    valueRow("browser.memory", "Device Memory", nav.deviceMemory ? `${nav.deviceMemory} GB` : "-"),
-    valueRow("browser.threads", "Hardware Concurrency", navigator.hardwareConcurrency || "-"),
-    valueRow("browser.touch", "Max Touch Points", navigator.maxTouchPoints),
+    valueRow("browser.ua", "User Agent", info.userAgent),
+    valueRow("browser.platform", "Platform", info.platform),
+    valueRow("browser.brands", "Brands", info.brands),
+    valueRow("browser.lang", "Language", info.language),
+    valueRow("browser.languages", "Languages", info.languages.join(", ")),
+    valueRow("browser.mobile", "Mobile", info.mobile === null ? "-" : boolText(info.mobile)),
+    valueRow("browser.online", "Online", boolText(info.online)),
+    valueRow("browser.memory", "Device Memory", info.deviceMemory ? `${info.deviceMemory} GB` : "-"),
+    valueRow("browser.threads", "Hardware Concurrency", info.hardwareConcurrency || "-"),
+    valueRow("browser.touch", "Max Touch Points", info.maxTouchPoints ?? "-"),
   ]
 }
 
 function runtimeCapabilityRows() {
-  const g = globalThis as any
+  const flags = getWebRuntimeFlags()
   return [
-    yesNoRow("runtime.secure", "Secure Context", Boolean(g.isSecureContext)),
-    yesNoRow("runtime.coi", "Cross-Origin Isolated", Boolean(g.crossOriginIsolated)),
-    yesNoRow("runtime.sab", "SharedArrayBuffer", typeof g.SharedArrayBuffer !== "undefined"),
-    yesNoRow("runtime.worker", "Worker", typeof g.Worker !== "undefined"),
-    yesNoRow("runtime.offscreen", "OffscreenCanvas", typeof g.OffscreenCanvas !== "undefined"),
-    yesNoRow("runtime.mcap", "MediaCapabilities", typeof navigator.mediaCapabilities !== "undefined"),
-    yesNoRow("runtime.videoFrame", "VideoFrame", typeof g.VideoFrame !== "undefined"),
-    yesNoRow("runtime.encodedVideoChunk", "EncodedVideoChunk", typeof g.EncodedVideoChunk !== "undefined"),
-    yesNoRow("runtime.encodedAudioChunk", "EncodedAudioChunk", typeof g.EncodedAudioChunk !== "undefined"),
-    yesNoRow("runtime.vdec", "VideoDecoder", typeof g.VideoDecoder !== "undefined"),
-    yesNoRow("runtime.venc", "VideoEncoder", typeof g.VideoEncoder !== "undefined"),
-    yesNoRow("runtime.adec", "AudioDecoder", typeof g.AudioDecoder !== "undefined"),
-    yesNoRow("runtime.aenc", "AudioEncoder", typeof g.AudioEncoder !== "undefined"),
+    yesNoRow("runtime.secure", "Secure Context", flags.secureContext),
+    yesNoRow("runtime.coi", "Cross-Origin Isolated", flags.crossOriginIsolated),
+    yesNoRow("runtime.sab", "SharedArrayBuffer", flags.sharedArrayBuffer),
+    yesNoRow("runtime.worker", "Worker", flags.worker),
+    yesNoRow("runtime.offscreen", "OffscreenCanvas", flags.offscreenCanvas),
+    yesNoRow("runtime.mcap", "MediaCapabilities", flags.mediaCapabilities),
+    yesNoRow("runtime.videoFrame", "VideoFrame", flags.videoFrame),
+    yesNoRow("runtime.encodedVideoChunk", "EncodedVideoChunk", flags.encodedVideoChunk),
+    yesNoRow("runtime.encodedAudioChunk", "EncodedAudioChunk", flags.encodedAudioChunk),
+    yesNoRow("runtime.vdec", "VideoDecoder", flags.videoDecoder),
+    yesNoRow("runtime.venc", "VideoEncoder", flags.videoEncoder),
+    yesNoRow("runtime.adec", "AudioDecoder", flags.audioDecoder),
+    yesNoRow("runtime.aenc", "AudioEncoder", flags.audioEncoder),
   ]
 }
 
@@ -82,45 +92,18 @@ async function probeCodec(
   codec: string,
   config: Record<string, unknown>,
 ): Promise<CodecProbeResult> {
-  const g = globalThis as any
-  const ctor =
-    kind === "video-decoder"
-      ? g.VideoDecoder
-      : kind === "video-encoder"
-        ? g.VideoEncoder
-        : kind === "audio-decoder"
-          ? g.AudioDecoder
-          : g.AudioEncoder
-
-  if (!ctor || typeof ctor.isConfigSupported !== "function") {
+  const support = await probeCodecConfig(kind, config)
+  if (!support.available) {
     return { id: `${kind}.${codec}`, kind, label, codec, supported: false, detail: "API unavailable" }
   }
-
-  try {
-    const support = await ctor.isConfigSupported(config)
-    const normalized = support?.config ?? {}
-    const acceleration =
-      normalized && typeof normalized === "object" && "hardwareAcceleration" in normalized
-        ? (normalized.hardwareAcceleration as string | undefined)
-        : undefined
-    const suffix = acceleration ? ` (${acceleration})` : ""
-    return {
-      id: `${kind}.${codec}`,
-      kind,
-      label,
-      codec,
-      supported: Boolean(support?.supported),
-      detail: support?.supported ? `Supported${suffix}` : `Unsupported${suffix}` || "Unsupported",
-    }
-  } catch (error) {
-    return {
-      id: `${kind}.${codec}`,
-      kind,
-      label,
-      codec,
-      supported: false,
-      detail: error instanceof Error ? error.message : String(error),
-    }
+  const suffix = support.hardwareAcceleration ? ` (${support.hardwareAcceleration})` : ""
+  return {
+    id: `${kind}.${codec}`,
+    kind,
+    label,
+    codec,
+    supported: support.supported,
+    detail: support.detail === "Supported" || support.detail === "Unsupported" ? `${support.detail}${suffix}` : support.detail,
   }
 }
 
@@ -179,6 +162,7 @@ const CodecPanelSurface = defineSurface({
       }
 
       const extraInfo = ctx.codecs?.info?.()
+      const activeInstances = ctx.codecs?.list?.() ?? []
       const summary = running
         ? "Probing codec support..."
         : error
@@ -220,6 +204,18 @@ const CodecPanelSurface = defineSurface({
                     <RowItem key={row.id} leftText={row.label} rightText={row.right} />
                   ))}
                 </Column>
+              </PanelSection>
+
+              <PanelSection key="codec.instances" title="Active Instances">
+                {activeInstances.length > 0 ? (
+                  <Column style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                    {runtimeInstanceRows(activeInstances).map((row) => (
+                      <RowItem key={row.id} leftText={row.left} rightText={row.right} />
+                    ))}
+                  </Column>
+                ) : (
+                  <Text tone="muted">No active decoder or encoder instances have registered with the runtime yet.</Text>
+                )}
               </PanelSection>
 
               <PanelSection key="codec.video.decode" title="Video Decode Probe">

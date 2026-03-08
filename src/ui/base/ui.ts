@@ -2,6 +2,7 @@ import { theme } from "../../config/theme"
 import type { Shape } from "../../core/draw"
 import { clampRect, inflateRect, intersects, mergeRectInto, normalizeRect, rectArea, unionRect, clamp } from "../../core/rect"
 import type { Vec2, Rect } from "../../core/rect"
+import { addWindowResizeListener, getClampedDevicePixelRatio, scheduleAnimationFrame } from "../../platform/web"
 import { Compositor } from "./compositor"
 
 export type { Vec2, Rect }
@@ -219,6 +220,7 @@ export class CanvasUI {
   private frameId = 0
   private compositor = new Compositor()
   private readonly onTopLevelPointerDown?: (top: UIElement, target: UIElement) => void
+  private readonly removeResizeListener: () => void
 
   get sizeCss(): Vec2 {
     return { x: this.cssW, y: this.cssH }
@@ -237,7 +239,7 @@ export class CanvasUI {
     this.onTopLevelPointerDown = opts.onTopLevelPointerDown
 
     this.resize()
-    window.addEventListener("resize", this.resize)
+    this.removeResizeListener = addWindowResizeListener(this.resize)
 
     canvas.addEventListener("pointerdown", this.onPointerDown)
     canvas.addEventListener("pointermove", this.onPointerMove)
@@ -248,7 +250,7 @@ export class CanvasUI {
   }
 
   destroy() {
-    window.removeEventListener("resize", this.resize)
+    this.removeResizeListener()
     this.canvas.removeEventListener("pointerdown", this.onPointerDown)
     this.canvas.removeEventListener("pointermove", this.onPointerMove)
     this.canvas.removeEventListener("pointerup", this.onPointerUp)
@@ -292,7 +294,7 @@ export class CanvasUI {
   private scheduleRender() {
     if (this.rafPending) return
     this.rafPending = true
-    requestAnimationFrame(() => {
+    scheduleAnimationFrame(() => {
       this.rafPending = false
       this.render()
     })
@@ -300,7 +302,7 @@ export class CanvasUI {
 
   private resize = () => {
     const rect = this.canvas.getBoundingClientRect()
-    const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1))
+    const dpr = getClampedDevicePixelRatio(1, 3)
     this.dpr = dpr
     this.cssW = Math.max(1, rect.width)
     this.cssH = Math.max(1, rect.height)

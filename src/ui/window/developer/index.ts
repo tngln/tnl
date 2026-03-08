@@ -1,4 +1,5 @@
 import type { Surface } from "../../base/viewport"
+import type { CodecRuntimeEntry } from "../../../core/codecs"
 import type { WindowControlApi } from "../window_manager"
 import { createCodecPanel } from "./panels/codec_panel"
 import { createControlPanel } from "./panels/control_panel"
@@ -14,7 +15,7 @@ export type DeveloperContext = {
   storage?: { opfs?: FileSystemDirectoryHandle }
   wm?: WindowControlApi
   workers?: { list?: () => unknown[] }
-  codecs?: { info?: () => unknown }
+  codecs?: { info?: () => unknown; list?: () => CodecRuntimeEntry[] }
   surface?: { listLayers?: () => unknown[] }
   inspector?: { eval?: (code: string) => unknown }
 }

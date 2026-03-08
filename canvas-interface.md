@@ -19,6 +19,28 @@
 - Builder 已支持有限的级联样式继承
 - Developer 页面的高层 panels 已基本迁到 `defineSurface + JSX + Panel*`
 - Timeline 已经是独立核心窗口，不再作为 Developer tab
+- 浏览器专有能力已经集中到 `src/platform/web`
+
+## 0.1 平台边界现状
+
+当前项目仍然是 web-first 运行，但已经开始显式集中浏览器绑定点。
+
+- 浏览器能力目录：`src/platform/web`
+- 当前已收拢的能力模块：
+  - `app.ts`
+  - `animation.ts`
+  - `canvas.ts`
+  - `navigator.ts`
+  - `webcodecs.ts`
+  - `opfs.ts`
+  - `dialogs.ts`
+  - `file_io.ts`
+
+当前约定：
+- `core`、`ui/base`、`ui/window`、Developer panels 默认不应再直接读取 `document`、`window`、`navigator`
+- 浏览器运行时能力访问优先从 `src/platform/web` 进入
+- 这不是完整跨平台抽象层，只是先把 web 绑定点集中
+- 未来如果迁移到原生 JavaScript runtime，应优先从这些模块对应替换
 
 ## 1. 设计哲学 (Philosophy)
 
@@ -28,6 +50,7 @@
 - **Surface/Viewport Separation**: 将“内容定义”（Surface）与“显示窗口”（Viewport）分离，天然支持无限画布、缩放、裁剪和虚拟滚动。
 - **Performance Optimized**: 内置脏矩形（Dirty Rect）渲染、图层合成（Compositor）和 OffscreenCanvas 缓存机制。
 - **Declarative High-Level Authoring**: 在底层仍保留 `UIElement` / `Surface` 的前提下，上层页面优先使用 `defineSurface + JSX + Builder components`。
+- **Explicit Platform Boundary**: 浏览器专有能力集中在 `src/platform/web`，避免 DOM/Web API 访问继续散落在 UI 与业务代码里。
 
 ## 2. 响应式系统 (Reactivity System)
 
@@ -551,3 +574,4 @@ console.log(signal.peek())
 3. 内容结构：JSX + Builder components
 4. 页面骨架：`PanelColumn` / `PanelHeader` / `PanelActionRow` / `PanelScroll` / `PanelSection`
 5. 只有在需要复杂命中、缩放、多 viewport 协调时，才退回类式 `Surface`
+6. 浏览器运行时能力：优先从 `src/platform/web` 对应模块进入，而不是直接读取全局对象

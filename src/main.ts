@@ -1,4 +1,5 @@
 import { effect } from "./core/reactivity"
+import { CodecRuntimeRegistry } from "./core/codecs"
 import { theme } from "./config/theme"
 import { ModalWindow, Root } from "./ui/window/window"
 import { WindowManager } from "./ui/window/window_manager"
@@ -8,21 +9,27 @@ import { DEVELOPER_WINDOW_ID, DeveloperToolsWindow } from "./ui/window/developer
 import { unionRect } from "./core/rect"
 import { TOOLS_DIALOG_ID, ToolsDialog } from "./ui/window/tools_dialog"
 import { TIMELINE_TOOL_WINDOW_ID, TimelineToolWindow } from "./ui/window/timeline_tool_window"
+import { addWindowLoadListener, addWindowResizeListener, applyDocumentTheme, getRootCanvas, registerServiceWorker, scheduleAnimationFrame } from "./platform/web"
 
-const canvas = document.querySelector<HTMLCanvasElement>("#app")
+const canvas = getRootCanvas("#app")
 if (!canvas) throw new Error("Canvas not found")
 
-document.body.style.background = theme.colors.appBg
-const themeMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
-if (themeMeta) themeMeta.content = theme.colors.appBg
+applyDocumentTheme(theme.colors.appBg, theme.colors.appBg)
 
 const root = new Root()
 const windows = new WindowManager(root)
+const codecs = new CodecRuntimeRegistry()
 
 const about = new AboutDialog()
 windows.register(about)
 
-const developer = new DeveloperToolsWindow({ wm: windows })
+const developer = new DeveloperToolsWindow({
+  wm: windows,
+  codecs: {
+    info: () => codecs.summary(),
+    list: () => codecs.list(),
+  },
+})
 windows.register(developer)
 
 const tools = new ToolsDialog()
@@ -40,6 +47,7 @@ const ui = new CanvasUI(canvas, root, {
 windows.setCanvasSize(ui.sizeCss)
 ;(globalThis as any).__TNL_DEVTOOLS__ ??= {}
 ;(globalThis as any).__TNL_DEVTOOLS__.invalidate = () => ui.invalidate()
+;(globalThis as any).__TNL_DEVTOOLS__.codecs = codecs
 const lastRects = new Map<string, { x: number; y: number; w: number; h: number }>()
 
 effect(() => {
@@ -54,8 +62,8 @@ effect(() => {
   }
 })
 
-window.addEventListener("resize", () => {
-  requestAnimationFrame(() => {
+addWindowResizeListener(() => {
+  scheduleAnimationFrame(() => {
     windows.setCanvasSize(ui.sizeCss)
   })
 })
@@ -71,8 +79,6 @@ canvas.addEventListener("keydown", (e) => {
   ui.invalidate()
 })
 
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(() => {})
-  })
-}
+addWindowLoadListener(() => {
+  void registerServiceWorker("./sw.js", "./").catch(() => {})
+})

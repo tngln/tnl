@@ -1,24 +1,9 @@
 import { createRichTextBlock } from "../../core/draw.text"
 import { draw, Text } from "../../core/draw"
 import { font, theme } from "../../config/theme"
+import { createMeasureContext, type Any2DContext } from "../../platform/web/canvas"
 import type { Surface, ViewportContext } from "../base/viewport"
 import type { Vec2 } from "../base/ui"
-
-type Any2DContext = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
-
-function createMeasureContext(): Any2DContext | null {
-  if (typeof OffscreenCanvas !== "undefined") {
-    const c = new OffscreenCanvas(2, 2)
-    const ctx = c.getContext("2d", { alpha: true })
-    if (ctx) return ctx as Any2DContext
-  }
-  if (typeof document !== "undefined") {
-    const c = document.createElement("canvas")
-    const ctx = c.getContext("2d", { alpha: true })
-    if (ctx) return ctx as Any2DContext
-  }
-  return null
-}
 
 export class TextSurface implements Surface {
   readonly id: string

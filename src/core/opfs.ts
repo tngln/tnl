@@ -1,3 +1,5 @@
+import { estimateStorageUsage, getOpfsRootDirectory } from "../platform/web/opfs"
+
 export type OpfsErrorCode = "NotFound" | "AlreadyExists" | "InvalidPath" | "DbCorrupted" | "PermissionDenied" | "Unsupported" | "Unknown"
 
 export class OpfsError extends Error {
@@ -171,12 +173,16 @@ export class OpfsFs {
   }
 
   static async open() {
-    const nav = navigator as any
-    const getDirectory = nav?.storage?.getDirectory
-    if (typeof getDirectory !== "function") throw new OpfsError("Unsupported", "OPFS is not available in this environment")
-    const root = (await getDirectory.call(nav.storage)) as FileSystemDirectoryHandle
-    const db = await loadDb(root)
-    return new OpfsFs(root, db)
+    try {
+      const root = await getOpfsRootDirectory()
+      const db = await loadDb(root)
+      return new OpfsFs(root, db)
+    } catch (e) {
+      if (e instanceof Error && e.message === "OPFS is not available in this environment") {
+        throw new OpfsError("Unsupported", e.message, e)
+      }
+      throw e
+    }
   }
 
   close() {}
@@ -365,11 +371,9 @@ export class OpfsFs {
     return this.lock.run(async () => {
       const entries = Object.values(this.db.entries)
       const bytes = entries.reduce((s, e) => s + (Number.isFinite(e.size) ? e.size : 0), 0)
-      const nav = navigator as any
-      const estimate = nav?.storage?.estimate
-      if (typeof estimate !== "function") return { entries: entries.length, bytes }
       try {
-        const r = await estimate.call(nav.storage)
+        const r = await estimateStorageUsage()
+        if (!r) return { entries: entries.length, bytes }
         return { entries: entries.length, bytes, quota: r?.quota, usage: r?.usage }
       } catch {
         return { entries: entries.length, bytes }

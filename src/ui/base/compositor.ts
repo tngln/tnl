@@ -3,30 +3,16 @@ export type LayerOptions = {
   opacity?: number
 }
 
-type Any2DContext = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+import { createLayerCanvas, getCanvas2DContext, type Any2DContext, type AnyCanvas } from "../../platform/web/canvas"
 
 type Layer = {
   id: string
-  canvas: OffscreenCanvas | HTMLCanvasElement
+  canvas: AnyCanvas
   ctx: Any2DContext
   wCss: number
   hCss: number
   dpr: number
   renderedFrame: number
-}
-
-function makeCanvas(wPx: number, hPx: number): OffscreenCanvas | HTMLCanvasElement {
-  if (typeof OffscreenCanvas !== "undefined") return new OffscreenCanvas(wPx, hPx)
-  const c = document.createElement("canvas")
-  c.width = wPx
-  c.height = hPx
-  return c
-}
-
-function get2d(c: OffscreenCanvas | HTMLCanvasElement): Any2DContext {
-  const ctx = c.getContext("2d", { alpha: true, desynchronized: true } as any)
-  if (!ctx) throw new Error("2D context not available")
-  return ctx as Any2DContext
 }
 
 export class Compositor {
@@ -44,10 +30,10 @@ export class Compositor {
     const h = Math.max(1, Math.floor(hCss * dpr))
     const cur = this.layers.get(id)
     if (cur && cur.canvas.width === w && cur.canvas.height === h && cur.dpr === dpr && cur.wCss === wCss && cur.hCss === hCss) return cur
-    const canvas = cur?.canvas ?? makeCanvas(w, h)
+    const canvas = cur?.canvas ?? createLayerCanvas(w, h)
     canvas.width = w
     canvas.height = h
-    const ctx = cur?.ctx ?? get2d(canvas)
+    const ctx = cur?.ctx ?? getCanvas2DContext(canvas)
     const next: Layer = { id, canvas, ctx, wCss, hCss, dpr, renderedFrame: -1 }
     this.layers.set(id, next)
     return next
@@ -76,4 +62,3 @@ export class Compositor {
     main.restore()
   }
 }
-
