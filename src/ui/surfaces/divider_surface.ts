@@ -1,11 +1,20 @@
 import { signal, type Signal } from "../../core/reactivity"
-import { draw, Line, Rect as RectOp, RRect } from "../../core/draw"
+import { draw, RRect } from "../../core/draw"
 import { clamp } from "../../core/rect"
 import { theme } from "../../config/theme"
 import { UIElement, type Rect, type Vec2, PointerUIEvent, pointInRect } from "../base/ui"
 import { ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "../base/viewport"
 
 type Axis = "x" | "y"
+type DividerHandleChrome = {
+  fill: string
+  stroke: string
+  grip: string
+}
+type DividerHandleMetrics = {
+  frame: { x: number; y: number; w: number; h: number; r: number }
+  grip: { x: number; y: number; w: number; h: number; r: number }
+}
 
 class DividerHandle extends UIElement {
   private readonly rect: () => Rect
@@ -39,25 +48,58 @@ class DividerHandle extends UIElement {
     return pointInRect(p, this.rect())
   }
 
-  protected onDraw(ctx: CanvasRenderingContext2D) {
+  private chrome(): DividerHandleChrome {
+    return {
+      fill: this.down ? "rgba(255,255,255,0.08)" : this.hover ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.04)",
+      stroke: "rgba(255,255,255,0.10)",
+      grip: "rgba(255,255,255,0.18)",
+    }
+  }
+
+  private metrics(): DividerHandleMetrics {
     const r = this.rect()
-    const bg = this.down ? "rgba(255,255,255,0.08)" : this.hover ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.04)"
+    const inset = 1
+    const gripInset = 8
+    const gripThickness = 4
+    if (this.axis === "x") {
+      return {
+        frame: { x: r.x + inset, y: r.y + inset, w: Math.max(0, r.w - inset * 2), h: Math.max(0, r.h - inset * 2), r: 6 },
+        grip: {
+          x: r.x + Math.max(0, (r.w - gripThickness) / 2),
+          y: r.y + gripInset,
+          w: gripThickness,
+          h: Math.max(0, r.h - gripInset * 2),
+          r: gripThickness / 2,
+        },
+      }
+    }
+    return {
+      frame: { x: r.x + inset, y: r.y + inset, w: Math.max(0, r.w - inset * 2), h: Math.max(0, r.h - inset * 2), r: 6 },
+      grip: {
+        x: r.x + gripInset,
+        y: r.y + Math.max(0, (r.h - gripThickness) / 2),
+        w: Math.max(0, r.w - gripInset * 2),
+        h: gripThickness,
+        r: gripThickness / 2,
+      },
+    }
+  }
+
+  protected onDraw(ctx: CanvasRenderingContext2D) {
+    const chrome = this.chrome()
+    const metrics = this.metrics()
     draw(
       ctx,
-      RectOp(r, { fill: { color: bg } }),
-      RRect({ x: r.x + 1, y: r.y + 1, w: r.w - 2, h: r.h - 2, r: 6 }, { stroke: { color: "rgba(255,255,255,0.10)", hairline: true }, pixelSnap: true }),
+      RRect(metrics.frame, {
+        fill: { color: chrome.fill },
+        stroke: { color: chrome.stroke, hairline: true },
+        pixelSnap: true,
+      }),
+      RRect(metrics.grip, {
+        fill: { color: chrome.grip },
+        pixelSnap: true,
+      }),
     )
-    if (this.axis === "x") {
-      const x = r.x + r.w / 2
-      const y0 = r.y + 8
-      const y1 = r.y + r.h - 8
-      draw(ctx, Line({ x, y: y0 }, { x, y: y1 }, { color: "rgba(255,255,255,0.18)", width: 2, lineCap: "round" }))
-    } else {
-      const y = r.y + r.h / 2
-      const x0 = r.x + 8
-      const x1 = r.x + r.w - 8
-      draw(ctx, Line({ x: x0, y }, { x: x1, y }, { color: "rgba(255,255,255,0.18)", width: 2, lineCap: "round" }))
-    }
   }
 
   onPointerEnter() {
