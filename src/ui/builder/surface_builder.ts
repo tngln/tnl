@@ -197,10 +197,6 @@ type RowCell = {
   used: boolean
 }
 
-function rectZero(): Rect {
-  return ZERO_RECT
-}
-
 function clamp(v: number, a: number, b: number) {
   return Math.max(a, Math.min(b, v))
 }
@@ -359,7 +355,7 @@ export class BuilderTreeSurface implements Surface {
 }
 
 class BuilderScrollAreaElement extends UIElement {
-  private rect: Rect = rectZero()
+  private rect: Rect = ZERO_RECT
   private active = false
   private readonly contentSurface: BuilderTreeSurface
   private readonly viewport: ViewportElement
@@ -421,7 +417,7 @@ class BuilderScrollAreaElement extends UIElement {
   }
 
   bounds() {
-    if (!this.active) return rectZero()
+    if (!this.active) return ZERO_RECT
     return this.rect
   }
 }
@@ -489,11 +485,11 @@ class BuilderEngine {
     for (const cell of this.rows.values()) {
       if (cell.used) continue
       cell.active = false
-      cell.widget.set({ rect: rectZero(), leftText: "" })
+      cell.widget.set({ rect: ZERO_RECT, leftText: "" })
     }
     for (const [key, area] of this.scrollAreas) {
       if (this.usedScrollAreas.has(key)) continue
-      area.set({ rect: rectZero(), active: false, child: spacer() })
+      area.set({ rect: ZERO_RECT, active: false, child: spacer() })
     }
   }
 
@@ -561,7 +557,7 @@ class BuilderEngine {
   private mountAst(ctx: CanvasRenderingContext2D, ast: AstNode, path: string) {
     const node = ast.builder
     const resolved = ast.resolved
-    const rect = ast.rect ?? rectZero()
+    const rect = ast.rect ?? ZERO_RECT
     const active = nodeActive(node) && rect.w > 0 && rect.h > 0
 
     if (active && node.box && (node.box.fill || node.box.stroke)) {
@@ -656,7 +652,7 @@ class BuilderEngine {
         onClick: node.onClick,
         used: true,
         widget: new Button({
-          rect: () => cell!.active ? cell!.rect : rectZero(),
+          rect: () => cell!.active ? cell!.rect : ZERO_RECT,
           text: () => cell!.text,
           title: () => cell!.title ?? cell!.text,
           onClick: () => cell!.onClick?.(),
@@ -688,7 +684,7 @@ class BuilderEngine {
         disabled: node.disabled ?? false,
         used: true,
         widget: new Checkbox({
-          rect: () => cell!.active ? cell!.rect : rectZero(),
+          rect: () => cell!.active ? cell!.rect : ZERO_RECT,
           label: () => cell!.label,
           checked: node.checked,
           active: () => cell!.active,
@@ -719,7 +715,7 @@ class BuilderEngine {
         disabled: node.disabled ?? false,
         used: true,
         widget: new Radio({
-          rect: () => cell!.active ? cell!.rect : rectZero(),
+          rect: () => cell!.active ? cell!.rect : ZERO_RECT,
           label: () => cell!.label,
           value: node.value,
           selected: node.selected,
@@ -778,7 +774,7 @@ class BuilderEngine {
             variant: node.variant ?? "item",
             selected: node.selected,
           }
-        : { rect: rectZero(), leftText: "" },
+        : { rect: ZERO_RECT, leftText: "" },
       active ? node.onClick : undefined,
     )
   }
