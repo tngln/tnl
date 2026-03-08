@@ -1,16 +1,16 @@
-import { TextSurface } from "../../../surfaces/text_surface"
+import { createInfoPanel } from "./info_panel"
 import type { DeveloperPanelSpec } from "../index"
 
 export function createWorkerPanel(): DeveloperPanelSpec {
-  return {
+  return createInfoPanel({
     id: "Developer.Worker",
     title: "Worker",
-    build: (_ctx) =>
-      new TextSurface({
-        id: "Developer.Worker.Surface",
-        title: "Workers",
-        body: "TODO: add a Worker registry. TODO: show active workers and current job description. TODO: progress reporting protocol and cancellation. TODO: surface errors and logs without leaking sensitive data.",
-      }),
-  }
+    heading: "Workers",
+    summary: "Worker diagnostics are still not backed by a registry, but the panel structure is now aligned with the current declarative Builder approach.",
+    notes: [
+      "Add a worker registry.",
+      "Show active workers and current job descriptions.",
+      "Support progress reporting, cancellation, and safe error or log surfacing.",
+    ],
+  })
 }
-

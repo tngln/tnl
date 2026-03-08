@@ -1,16 +1,16 @@
-import { TextSurface } from "../../../surfaces/text_surface"
+import { createInfoPanel } from "./info_panel"
 import type { DeveloperPanelSpec } from "../index"
 
 export function createCodecPanel(): DeveloperPanelSpec {
-  return {
+  return createInfoPanel({
     id: "Developer.Codec",
     title: "Codec",
-    build: (_ctx) =>
-      new TextSurface({
-        id: "Developer.Codec.Surface",
-        title: "WebCodecs",
-        body: "TODO: show codec support matrix and hardware acceleration hints. TODO: expose active decoder/encoder instances and their configuration. TODO: surface dropped frames, queue sizes, and decode/encode latency.",
-      }),
-  }
+    heading: "WebCodecs",
+    summary: "Codec diagnostics have not been wired to real runtime state yet. This panel is now on the Builder/JSX path, so the remaining work is data integration rather than more ad-hoc layout code.",
+    notes: [
+      "Show codec support matrix and hardware acceleration hints.",
+      "Expose active decoder and encoder instances with current configuration.",
+      "Surface dropped frames, queue sizes, and decode or encode latency.",
+    ],
+  })
 }
-

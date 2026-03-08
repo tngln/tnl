@@ -1,16 +1,16 @@
-import { TextSurface } from "../../../surfaces/text_surface"
+import { createInfoPanel } from "./info_panel"
 import type { DeveloperPanelSpec } from "../index"
 
 export function createWmPanel(): DeveloperPanelSpec {
-  return {
+  return createInfoPanel({
     id: "Developer.WM",
     title: "WM",
-    build: (_ctx) =>
-      new TextSurface({
-        id: "Developer.WM.Surface",
-        title: "Window Manager",
-        body: "TODO: define WindowManager API (list windows, focus, toggle open, minimize/restore, move/resize). TODO: render a window list with current state. TODO: actions per row + bulk actions. TODO: keep ids stable and reflect real-time changes.",
-      }),
-  }
+    heading: "Window Manager",
+    summary: "The window manager panel has been moved onto the current Builder authoring path. The missing piece is live window data and actions, not more manual surface layout.",
+    notes: [
+      "Define a WindowManager API for list, focus, toggle, minimize, restore, move, and resize.",
+      "Render a live window list with current state.",
+      "Add per-row and bulk actions while keeping window ids stable.",
+    ],
+  })
 }
-

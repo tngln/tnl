@@ -1,16 +1,16 @@
-import { TextSurface } from "../../../surfaces/text_surface"
+import { createInfoPanel } from "./info_panel"
 import type { DeveloperPanelSpec } from "../index"
 
 export function createInspectorPanel(): DeveloperPanelSpec {
-  return {
+  return createInfoPanel({
     id: "Developer.Inspector",
     title: "Inspector",
-    build: (_ctx) =>
-      new TextSurface({
-        id: "Developer.Inspector.Surface",
-        title: "Inspector",
-        body: "TODO: element picking (hover highlight + click select). TODO: show element bounds, props, and runtime state. TODO: REPL console with safe evaluation and restricted globals. TODO: history, autocomplete, and error reporting.",
-      }),
-  }
+    heading: "Inspector",
+    summary: "The inspector shell now matches the Builder panel model, but it still needs real picking and evaluation plumbing before it becomes useful.",
+    notes: [
+      "Implement element picking with hover highlight and click select.",
+      "Show element bounds, props, and runtime state.",
+      "Add a restricted REPL with history, autocomplete, and error reporting.",
+    ],
+  })
 }
-
