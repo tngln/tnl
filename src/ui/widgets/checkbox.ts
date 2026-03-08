@@ -3,15 +3,11 @@ import { font, theme } from "../../config/theme"
 import { type Signal } from "../../core/reactivity"
 import { PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "../base/ui"
 
-function isActive(active: (() => boolean) | undefined) {
-  return active ? active() : true
-}
-
 export class Checkbox extends UIElement {
   private readonly rect: () => Rect
   private readonly label: () => string
   private readonly checked: Signal<boolean>
-  private readonly active: (() => boolean) | undefined
+  private readonly active: () => boolean
 
   private hover = false
   private down = false
@@ -26,11 +22,11 @@ export class Checkbox extends UIElement {
       this.label = opts.label
     }
     this.checked = opts.checked
-    this.active = opts.active
+    this.active = opts.active ?? (() => true)
   }
 
   bounds(): Rect {
-    if (!isActive(this.active)) return { x: 0, y: 0, w: 0, h: 0 }
+    if (!this.active()) return { x: 0, y: 0, w: 0, h: 0 }
     return this.rect()
   }
 
@@ -39,7 +35,7 @@ export class Checkbox extends UIElement {
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
-    if (!isActive(this.active)) return
+    if (!this.active()) return
     const r = this.rect()
     const box = { x: r.x, y: r.y + 2, w: 16, h: 16, r: 4 }
     const bg = this.down
@@ -84,7 +80,7 @@ export class Checkbox extends UIElement {
   }
 
   onPointerDown(e: PointerUIEvent) {
-    if (!isActive(this.active)) return
+    if (!this.active()) return
     if (e.button !== 0) return
     this.down = true
     e.capture()

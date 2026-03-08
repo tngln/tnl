@@ -1,19 +1,15 @@
 import { theme } from "../../config/theme"
 import type { Shape } from "../../core/draw"
-import { clampRect, inflateRect, intersects, mergeRectInto, normalizeRect, rectArea, unionRect } from "../../core/rect"
+import { clampRect, inflateRect, intersects, mergeRectInto, normalizeRect, rectArea, unionRect, clamp } from "../../core/rect"
+import type { Vec2, Rect } from "../../core/rect"
 import { Compositor } from "./compositor"
 
-export type Vec2 = { x: number; y: number }
-export type Rect = { x: number; y: number; w: number; h: number }
+export type { Vec2, Rect }
 export type RRect = { x: number; y: number; w: number; h: number; r: number }
 export type Circle = { x: number; y: number; r: number }
 
 export function pointInRect(p: Vec2, r: Rect) {
   return p.x >= r.x && p.y >= r.y && p.x <= r.x + r.w && p.y <= r.y + r.h
-}
-
-function clamp(v: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, v))
 }
 
 export function pointInRRect(p: Vec2, rr: RRect) {

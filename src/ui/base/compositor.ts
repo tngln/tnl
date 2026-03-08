@@ -15,16 +15,6 @@ type Layer = {
   renderedFrame: number
 }
 
-type Present = {
-  layerId: string
-  x: number
-  y: number
-  w: number
-  h: number
-  blendMode: GlobalCompositeOperation
-  opacity: number
-}
-
 function makeCanvas(wPx: number, hPx: number): OffscreenCanvas | HTMLCanvasElement {
   if (typeof OffscreenCanvas !== "undefined") return new OffscreenCanvas(wPx, hPx)
   const c = document.createElement("canvas")
@@ -41,14 +31,12 @@ function get2d(c: OffscreenCanvas | HTMLCanvasElement): Any2DContext {
 
 export class Compositor {
   private layers = new Map<string, Layer>()
-  private presents: Present[] = []
   private main: CanvasRenderingContext2D | null = null
   private frame = 0
 
   beginFrame(main: CanvasRenderingContext2D, frameId: number) {
     this.main = main
     this.frame = frameId
-    this.presents = []
   }
 
   private ensureLayer(id: string, wCss: number, hCss: number, dpr: number) {
@@ -76,12 +64,6 @@ export class Compositor {
     return layer
   }
 
-  present(layerId: string, dest: { x: number; y: number; w: number; h: number }, opts: LayerOptions = {}) {
-    const blendMode = opts.blendMode ?? "source-over"
-    const opacity = opts.opacity ?? 1
-    this.presents.push({ layerId, x: dest.x, y: dest.y, w: dest.w, h: dest.h, blendMode, opacity })
-  }
-
   blit(layerId: string, dest: { x: number; y: number; w: number; h: number }, opts: LayerOptions = {}) {
     const main = this.main
     if (!main) return
@@ -92,20 +74,6 @@ export class Compositor {
     main.globalAlpha = opts.opacity ?? 1
     main.drawImage(layer.canvas as any, dest.x, dest.y, dest.w, dest.h)
     main.restore()
-  }
-
-  flush() {
-    const main = this.main
-    if (!main) return
-    for (const p of this.presents) {
-      const layer = this.layers.get(p.layerId)
-      if (!layer) continue
-      main.save()
-      main.globalCompositeOperation = p.blendMode
-      main.globalAlpha = p.opacity
-      main.drawImage(layer.canvas as any, p.x, p.y, p.w, p.h)
-      main.restore()
-    }
   }
 }
 

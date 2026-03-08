@@ -3,16 +3,12 @@ import { font, theme } from "../../config/theme"
 import { type Signal } from "../../core/reactivity"
 import { PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "../base/ui"
 
-function isActive(active: (() => boolean) | undefined) {
-  return active ? active() : true
-}
-
 export class Radio extends UIElement {
   private readonly rect: () => Rect
   private readonly label: () => string
   private readonly value: string
   private readonly selected: Signal<string>
-  private readonly active: (() => boolean) | undefined
+  private readonly active: () => boolean
 
   private hover = false
   private down = false
@@ -28,11 +24,11 @@ export class Radio extends UIElement {
     }
     this.value = opts.value
     this.selected = opts.selected
-    this.active = opts.active
+    this.active = opts.active ?? (() => true)
   }
 
   bounds(): Rect {
-    if (!isActive(this.active)) return { x: 0, y: 0, w: 0, h: 0 }
+    if (!this.active()) return { x: 0, y: 0, w: 0, h: 0 }
     return this.rect()
   }
 
@@ -41,7 +37,7 @@ export class Radio extends UIElement {
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
-    if (!isActive(this.active)) return
+    if (!this.active()) return
     const r = this.rect()
     const cx = r.x + 8
     const cy = r.y + 10
@@ -78,7 +74,7 @@ export class Radio extends UIElement {
   }
 
   onPointerDown(e: PointerUIEvent) {
-    if (!isActive(this.active)) return
+    if (!this.active()) return
     if (e.button !== 0) return
     this.down = true
     e.capture()

@@ -2,15 +2,11 @@ import { draw, Text } from "../../core/draw"
 import { font, theme } from "../../config/theme"
 import { UIElement, type Rect } from "../base/ui"
 
-function isActive(active: (() => boolean) | undefined) {
-  return active ? active() : true
-}
-
 export class Label extends UIElement {
   private readonly rect: () => Rect
   private readonly text: () => string
   private readonly color: () => string
-  private readonly active: (() => boolean) | undefined
+  private readonly active: () => boolean
 
   constructor(opts: { rect: () => Rect; text: string | (() => string); color?: string | (() => string); active?: () => boolean }) {
     super()
@@ -29,16 +25,16 @@ export class Label extends UIElement {
     } else {
       this.color = opts.color
     }
-    this.active = opts.active
+    this.active = opts.active ?? (() => true)
   }
 
   bounds(): Rect {
-    if (!isActive(this.active)) return { x: 0, y: 0, w: 0, h: 0 }
+    if (!this.active()) return { x: 0, y: 0, w: 0, h: 0 }
     return this.rect()
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
-    if (!isActive(this.active)) return
+    if (!this.active()) return
     const r = this.rect()
     draw(
       ctx,

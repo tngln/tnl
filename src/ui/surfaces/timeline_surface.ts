@@ -1,7 +1,8 @@
 import { font, theme } from "../../config/theme"
 import { draw, Line, Rect as RectOp, RRect, Text } from "../../core/draw"
+import { clamp } from "../../core/rect"
 import { UIElement, WheelUIEvent, pointInRect, type Rect, type Vec2 } from "../base/ui"
-import { ViewportElement, type Surface, type ViewportContext } from "../base/viewport"
+import { ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "../base/viewport"
 import { Scrollbar } from "../widgets/scrollbar"
 import {
   clampPxPerUnit,
@@ -21,12 +22,6 @@ import {
   type TimelineViewModel,
 } from "../timeline/model"
 
-class SurfaceRoot extends UIElement {
-  bounds(): Rect {
-    return { x: -1e9, y: -1e9, w: 2e9, h: 2e9 }
-  }
-}
-
 type TimelineLayout = {
   rulerHeight: number
   headerWidth: number
@@ -38,10 +33,6 @@ type TimelineLayout = {
   hScrollbarRect: Rect
   vScrollbarRect: Rect
   cornerRect: Rect
-}
-
-function clamp(v: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, v))
 }
 
 function alpha(hex: string, opacity: string) {

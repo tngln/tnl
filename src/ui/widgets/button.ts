@@ -2,15 +2,11 @@ import { draw, RRect, Text } from "../../core/draw"
 import { font, theme } from "../../config/theme"
 import { PointerUIEvent, UIElement, type Rect } from "../base/ui"
 
-function isActive(active: (() => boolean) | undefined) {
-  return active ? active() : true
-}
-
 export class Button extends UIElement {
   private readonly rect: () => Rect
   private readonly text: () => string
   private readonly onClick: (() => void) | undefined
-  private readonly active: (() => boolean) | undefined
+  private readonly active: () => boolean
 
   private hover = false
   private down = false
@@ -25,16 +21,16 @@ export class Button extends UIElement {
       this.text = opts.text
     }
     this.onClick = opts.onClick
-    this.active = opts.active
+    this.active = opts.active ?? (() => true)
   }
 
   bounds(): Rect {
-    if (!isActive(this.active)) return { x: 0, y: 0, w: 0, h: 0 }
+    if (!this.active()) return { x: 0, y: 0, w: 0, h: 0 }
     return this.rect()
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
-    if (!isActive(this.active)) return
+    if (!this.active()) return
     const r = this.rect()
     const bg = this.down
       ? "rgba(233,237,243,0.12)"
@@ -71,7 +67,7 @@ export class Button extends UIElement {
   }
 
   onPointerDown(e: PointerUIEvent) {
-    if (!isActive(this.active)) return
+    if (!this.active()) return
     if (e.button !== 0) return
     this.down = true
     e.capture()

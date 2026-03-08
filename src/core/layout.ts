@@ -1,8 +1,12 @@
-export type Rect = { x: number; y: number; w: number; h: number }
+import { clamp, type Rect } from "./rect"
 
-export type Axis = "row" | "column"
+export type { Rect }
+
+export type Axis = "row" | "column" | "stack"
 export type Justify = "start" | "center" | "end" | "space-between"
 export type Align = "start" | "center" | "end" | "stretch"
+export type PositionMode = "flow" | "overlay"
+export type OverflowMode = "visible" | "clip" | "scroll"
 
 export type Padding = number | { l: number; t: number; r: number; b: number }
 
@@ -12,10 +16,16 @@ export type BasisSpec = number | "auto" | undefined
 export type LayoutStyle = {
   axis?: Axis
   gap?: number
+  rowGap?: number
+  columnGap?: number
   padding?: Padding
+  inset?: Padding
+  margin?: Padding
   justify?: Justify
   align?: Align
   alignSelf?: Align
+  position?: PositionMode
+  overflow?: OverflowMode
 
   w?: SizeSpec
   h?: SizeSpec
@@ -27,6 +37,8 @@ export type LayoutStyle = {
   grow?: number
   shrink?: number
   basis?: BasisSpec
+  fixed?: number
+  fill?: boolean
 }
 
 export type Measure = (max: { w: number; h: number }) => { w: number; h: number }
@@ -41,9 +53,7 @@ export type LayoutNode = {
 
 export type PaddingRect = { l: number; t: number; r: number; b: number }
 
-function clamp(v: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, v))
-}
+type MeasureCache = WeakMap<LayoutNode, Map<string, { w: number; h: number }>>
 
 function safePos(v: number | undefined, fallback: number) {
   if (v === undefined) return fallback
@@ -57,12 +67,18 @@ export function resolvePadding(p: Padding | undefined): PaddingRect {
   return { l: p.l, t: p.t, r: p.r, b: p.b }
 }
 
-function contentBox(outer: Rect, pad: PaddingRect): Rect {
+function shrinkBox(outer: Rect, pad: PaddingRect): Rect {
   const x = outer.x + pad.l
   const y = outer.y + pad.t
   const w = Math.max(0, outer.w - pad.l - pad.r)
   const h = Math.max(0, outer.h - pad.t - pad.b)
   return { x, y, w, h }
+}
+
+function contentBox(outer: Rect, style: LayoutStyle | undefined) {
+  const inset = resolvePadding(style?.inset)
+  const padding = resolvePadding(style?.padding)
+  return shrinkBox(shrinkBox(outer, inset), padding)
 }
 
 function axisOf(style: LayoutStyle | undefined): Axis {
@@ -77,19 +93,26 @@ function alignOf(style: LayoutStyle | undefined): Align {
   return style?.align ?? "stretch"
 }
 
-function gapOf(style: LayoutStyle | undefined) {
-  return Math.max(0, safePos(style?.gap, 0))
+function gapOf(style: LayoutStyle | undefined, axis: Axis) {
+  const mainGap = Math.max(0, safePos(style?.gap, 0))
+  if (axis === "row") return Math.max(mainGap, Math.max(0, safePos(style?.columnGap, 0)))
+  if (axis === "column") return Math.max(mainGap, Math.max(0, safePos(style?.rowGap, 0)))
+  return 0
 }
 
 function growOf(style: LayoutStyle | undefined) {
+  if (style?.fill) return Math.max(1, safePos(style?.grow, 1))
   return Math.max(0, safePos(style?.grow, 0))
 }
 
 function shrinkOf(style: LayoutStyle | undefined) {
+  if (style?.fill) return Math.max(1, safePos(style?.shrink, 1))
   return Math.max(0, safePos(style?.shrink, 1))
 }
 
 function basisOf(style: LayoutStyle | undefined) {
+  if (style?.fixed !== undefined) return style.fixed
+  if (style?.fill) return 0
   return style?.basis ?? "auto"
 }
 
@@ -116,6 +139,7 @@ function maxCrossOf(style: LayoutStyle | undefined, axis: Axis) {
 }
 
 function explicitMain(style: LayoutStyle | undefined, axis: Axis): number | undefined {
+  if (style?.fixed !== undefined) return style.fixed
   const v = axis === "row" ? style?.w : style?.h
   return typeof v === "number" ? v : undefined
 }
@@ -125,13 +149,83 @@ function explicitCross(style: LayoutStyle | undefined, axis: Axis): number | und
   return typeof v === "number" ? v : undefined
 }
 
-function measured(node: LayoutNode, max: { w: number; h: number }) {
-  if (!node.measure) return { w: 0, h: 0 }
-  const out = node.measure(max)
-  return {
+function cacheKey(max: { w: number; h: number }) {
+  return `${Math.max(0, Math.round(max.w * 1000) / 1000)}:${Math.max(0, Math.round(max.h * 1000) / 1000)}`
+}
+
+function intrinsicMeasure(node: LayoutNode, max: { w: number; h: number }, cache: MeasureCache): { w: number; h: number } {
+  const byNode = cache.get(node)
+  const key = cacheKey(max)
+  const hit = byNode?.get(key)
+  if (hit) return hit
+
+  const out = node.measure
+    ? node.measure(max)
+    : node.children?.length
+      ? measureContainer(node, max, cache)
+      : { w: 0, h: 0 }
+
+  const normalized = {
     w: Math.max(0, safePos(out?.w, 0)),
     h: Math.max(0, safePos(out?.h, 0)),
   }
+  let nextByNode = byNode
+  if (!nextByNode) {
+    nextByNode = new Map()
+    cache.set(node, nextByNode)
+  }
+  nextByNode.set(key, normalized)
+  return normalized
+}
+
+function outerSizeFromMeasured(style: LayoutStyle | undefined, measured: { w: number; h: number }) {
+  const margin = resolvePadding(style?.margin)
+  const inset = resolvePadding(style?.inset)
+  const padding = resolvePadding(style?.padding)
+  return {
+    w: measured.w + padding.l + padding.r + inset.l + inset.r + margin.l + margin.r,
+    h: measured.h + padding.t + padding.b + inset.t + inset.b + margin.t + margin.b,
+  }
+}
+
+function measureContainer(node: LayoutNode, max: { w: number; h: number }, cache: MeasureCache) {
+  const style = node.style
+  const axis = axisOf(style)
+  const box = contentBox({ x: 0, y: 0, w: max.w, h: max.h }, style)
+  const children = node.children ?? []
+  if (children.length === 0) return { w: 0, h: 0 }
+  if (axis === "stack") {
+    let maxW = 0
+    let maxH = 0
+    for (const child of children) {
+      const m = intrinsicMeasure(child, { w: box.w, h: box.h }, cache)
+      const withMargin = outerSizeFromMeasured(child.style, m)
+      maxW = Math.max(maxW, withMargin.w)
+      maxH = Math.max(maxH, withMargin.h)
+    }
+    return outerSizeFromMeasured(style, { w: maxW, h: maxH })
+  }
+
+  const gap = gapOf(style, axis)
+  let main = 0
+  let cross = 0
+  let flowCount = 0
+  for (const child of children) {
+    if ((child.style?.position ?? "flow") === "overlay") continue
+    const m = intrinsicMeasure(child, { w: box.w, h: box.h }, cache)
+    const withMargin = outerSizeFromMeasured(child.style, m)
+    if (axis === "row") {
+      main += withMargin.w
+      cross = Math.max(cross, withMargin.h)
+    } else {
+      main += withMargin.h
+      cross = Math.max(cross, withMargin.w)
+    }
+    flowCount++
+  }
+  if (flowCount > 1) main += gap * (flowCount - 1)
+  const inner = axis === "row" ? { w: main, h: cross } : { w: cross, h: main }
+  return outerSizeFromMeasured(style, inner)
 }
 
 function distributeGrow(sizes: number[], weights: number[], maxes: number[], extra: number) {
@@ -182,61 +276,139 @@ function distributeShrink(sizes: number[], weights: number[], mins: number[], de
   }
 }
 
-function placeChildren(container: LayoutNode, box: Rect) {
+function applyMargin(rect: Rect, margin: PaddingRect) {
+  return {
+    x: rect.x + margin.l,
+    y: rect.y + margin.t,
+    w: Math.max(0, rect.w - margin.l - margin.r),
+    h: Math.max(0, rect.h - margin.t - margin.b),
+  }
+}
+
+function placeOverlayChildren(container: LayoutNode, box: Rect, cache: MeasureCache) {
+  const children = container.children ?? []
+  const align = alignOf(container.style)
+  for (const child of children) {
+    if ((child.style?.position ?? "flow") !== "overlay") continue
+    const margin = resolvePadding(child.style?.margin)
+    const measured = intrinsicMeasure(child, { w: box.w, h: box.h }, cache)
+    let w = explicitMain(child.style, "row") ?? child.style?.w === "auto" ? measured.w : undefined
+    let h = explicitMain(child.style, "column") ?? child.style?.h === "auto" ? measured.h : undefined
+    if (typeof child.style?.w === "number") w = child.style.w
+    if (typeof child.style?.h === "number") h = child.style.h
+    const fill = child.style?.fill ?? false
+    const width = clamp(fill ? box.w - margin.l - margin.r : (w ?? measured.w), safePos(child.style?.minW, 0), safePos(child.style?.maxW, Number.POSITIVE_INFINITY))
+    const height = clamp(fill ? box.h - margin.t - margin.b : (h ?? measured.h), safePos(child.style?.minH, 0), safePos(child.style?.maxH, Number.POSITIVE_INFINITY))
+
+    const childAlign = child.style?.alignSelf ?? align
+    let x = box.x + margin.l
+    let y = box.y + margin.t
+    if (childAlign === "center") {
+      x = box.x + (box.w - width) / 2
+      y = box.y + (box.h - height) / 2
+    } else if (childAlign === "end") {
+      x = box.x + box.w - width - margin.r
+      y = box.y + box.h - height - margin.b
+    }
+    layoutInternal(child, { x, y, w: width, h: height }, cache)
+  }
+}
+
+function placeChildren(container: LayoutNode, box: Rect, cache: MeasureCache) {
   const style = container.style
   const axis = axisOf(style)
-  const justify = justifyOf(style)
-  const align = alignOf(style)
-  const gap = gapOf(style)
   const children = container.children ?? []
   if (children.length === 0) return
+
+  if (axis === "stack") {
+    const align = alignOf(style)
+    for (const child of children) {
+      const margin = resolvePadding(child.style?.margin)
+      const inner = applyMargin(box, margin)
+      if ((child.style?.position ?? "flow") === "overlay" || true) {
+        const m = intrinsicMeasure(child, { w: inner.w, h: inner.h }, cache)
+        const width = clamp(
+          typeof child.style?.w === "number" ? child.style.w : child.style?.fill ? inner.w : m.w,
+          safePos(child.style?.minW, 0),
+          safePos(child.style?.maxW, Number.POSITIVE_INFINITY),
+        )
+        const height = clamp(
+          typeof child.style?.h === "number" ? child.style.h : child.style?.fill ? inner.h : m.h,
+          safePos(child.style?.minH, 0),
+          safePos(child.style?.maxH, Number.POSITIVE_INFINITY),
+        )
+        const childAlign = child.style?.alignSelf ?? align
+        let x = inner.x
+        let y = inner.y
+        if (childAlign === "center") {
+          x = inner.x + (inner.w - width) / 2
+          y = inner.y + (inner.h - height) / 2
+        } else if (childAlign === "end") {
+          x = inner.x + inner.w - width
+          y = inner.y + inner.h - height
+        }
+        layoutInternal(child, { x, y, w: width, h: height }, cache)
+      }
+    }
+    return
+  }
+
+  const justify = justifyOf(style)
+  const align = alignOf(style)
+  const gap = gapOf(style, axis)
+  const flow = children.filter((child) => (child.style?.position ?? "flow") === "flow")
+  if (flow.length === 0) {
+    placeOverlayChildren(container, box, cache)
+    return
+  }
 
   const mainAvail = axis === "row" ? box.w : box.h
   const crossAvail = axis === "row" ? box.h : box.w
 
-  const base: number[] = new Array(children.length)
-  const grow: number[] = new Array(children.length)
-  const shrink: number[] = new Array(children.length)
-  const minMain: number[] = new Array(children.length)
-  const maxMain: number[] = new Array(children.length)
-  const cross: number[] = new Array(children.length)
-  const minCross: number[] = new Array(children.length)
-  const maxCross: number[] = new Array(children.length)
-  const alignSelf: Align[] = new Array(children.length)
+  const base: number[] = new Array(flow.length)
+  const grow: number[] = new Array(flow.length)
+  const shrink: number[] = new Array(flow.length)
+  const minMain: number[] = new Array(flow.length)
+  const maxMain: number[] = new Array(flow.length)
+  const cross: number[] = new Array(flow.length)
+  const minCross: number[] = new Array(flow.length)
+  const maxCross: number[] = new Array(flow.length)
+  const alignSelf: Align[] = new Array(flow.length)
+  const margins: PaddingRect[] = new Array(flow.length)
 
   const maxForMeasure = { w: box.w, h: box.h }
 
-  for (let i = 0; i < children.length; i++) {
-    const child = children[i]
+  for (let i = 0; i < flow.length; i++) {
+    const child = flow[i]
     const cs = child.style
+    const margin = resolvePadding(cs?.margin)
+    margins[i] = margin
     const b = basisOf(cs)
     const expMain = explicitMain(cs, axis)
     const expCross = explicitCross(cs, axis)
-    const m = measured(child, maxForMeasure)
-    const intrinsicMain = axis === "row" ? m.w : m.h
-    const intrinsicCross = axis === "row" ? m.h : m.w
+    const m = intrinsicMeasure(child, maxForMeasure, cache)
+    const intrinsicMain = axis === "row" ? m.w + margin.l + margin.r : m.h + margin.t + margin.b
+    const intrinsicCross = axis === "row" ? m.h + margin.t + margin.b : m.w + margin.l + margin.r
 
-    const basis = typeof b === "number" ? b : expMain ?? intrinsicMain
+    const basis = typeof b === "number" ? b + (axis === "row" ? margin.l + margin.r : margin.t + margin.b) : expMain ?? intrinsicMain
     base[i] = Math.max(0, basis)
     grow[i] = growOf(cs)
     shrink[i] = shrinkOf(cs)
-    minMain[i] = minMainOf(cs, axis)
-    maxMain[i] = maxMainOf(cs, axis)
+    minMain[i] = minMainOf(cs, axis) + (axis === "row" ? margin.l + margin.r : margin.t + margin.b)
+    maxMain[i] = maxMainOf(cs, axis) + (axis === "row" ? margin.l + margin.r : margin.t + margin.b)
 
     const al = cs?.alignSelf ?? align
     alignSelf[i] = al
-    const csz = al === "stretch" ? crossAvail : expCross ?? intrinsicCross
+    const csz = cs?.fill || al === "stretch" ? crossAvail : expCross ?? intrinsicCross
     cross[i] = Math.max(0, csz)
-    minCross[i] = minCrossOf(cs, axis)
-    maxCross[i] = maxCrossOf(cs, axis)
+    minCross[i] = minCrossOf(cs, axis) + (axis === "row" ? margin.t + margin.b : margin.l + margin.r)
+    maxCross[i] = maxCrossOf(cs, axis) + (axis === "row" ? margin.t + margin.b : margin.l + margin.r)
   }
 
   const sizes = base.slice()
-
   const baseSum = sizes.reduce((s, v) => s + v, 0)
-  const gapSum = gap * Math.max(0, children.length - 1)
+  const gapSum = gap * Math.max(0, flow.length - 1)
   const totalBase = baseSum + gapSum
-
   const totalGrow = grow.reduce((s, v) => s + v, 0)
   const totalShrink = shrink.reduce((s, v) => s + v, 0)
 
@@ -245,10 +417,10 @@ function placeChildren(container: LayoutNode, box: Rect) {
 
   for (let i = 0; i < sizes.length; i++) sizes[i] = clamp(sizes[i], minMain[i], maxMain[i])
   for (let i = 0; i < cross.length; i++) cross[i] = clamp(cross[i], minCross[i], maxCross[i])
-  for (let i = 0; i < cross.length; i++) if (alignSelf[i] === "stretch") cross[i] = crossAvail
+  for (let i = 0; i < cross.length; i++) if (alignSelf[i] === "stretch" || flow[i].style?.fill) cross[i] = crossAvail
 
   const usedMain = sizes.reduce((s, v) => s + v, 0)
-  const usedGaps = gap * Math.max(0, children.length - 1)
+  const usedGaps = gap * Math.max(0, flow.length - 1)
   const usedTotal = usedMain + usedGaps
 
   let startOffset = 0
@@ -256,8 +428,8 @@ function placeChildren(container: LayoutNode, box: Rect) {
   if (justify === "center") startOffset = (mainAvail - usedTotal) / 2
   else if (justify === "end") startOffset = mainAvail - usedTotal
   else if (justify === "space-between") {
-    if (children.length > 1 && mainAvail > usedMain) {
-      gapActual = (mainAvail - usedMain) / (children.length - 1)
+    if (flow.length > 1 && mainAvail > usedMain) {
+      gapActual = (mainAvail - usedMain) / (flow.length - 1)
       startOffset = 0
     } else {
       gapActual = 0
@@ -267,10 +439,12 @@ function placeChildren(container: LayoutNode, box: Rect) {
   if (!Number.isFinite(startOffset)) startOffset = 0
 
   let cursor = startOffset
-  for (let i = 0; i < children.length; i++) {
+  for (let i = 0; i < flow.length; i++) {
+    const child = flow[i]
     const mainSize = sizes[i]
     const crossSize = cross[i]
     const al = alignSelf[i]
+    const margin = margins[i]
     let crossOffset = 0
     if (al === "center") crossOffset = (crossAvail - crossSize) / 2
     else if (al === "end") crossOffset = crossAvail - crossSize
@@ -278,13 +452,25 @@ function placeChildren(container: LayoutNode, box: Rect) {
 
     let childRect: Rect
     if (axis === "row") {
-      childRect = { x: box.x + cursor, y: box.y + crossOffset, w: mainSize, h: crossSize }
+      childRect = {
+        x: box.x + cursor + margin.l,
+        y: box.y + crossOffset + margin.t,
+        w: Math.max(0, mainSize - margin.l - margin.r),
+        h: Math.max(0, crossSize - margin.t - margin.b),
+      }
     } else {
-      childRect = { x: box.x + crossOffset, y: box.y + cursor, w: crossSize, h: mainSize }
+      childRect = {
+        x: box.x + crossOffset + margin.l,
+        y: box.y + cursor + margin.t,
+        w: Math.max(0, crossSize - margin.l - margin.r),
+        h: Math.max(0, mainSize - margin.t - margin.b),
+      }
     }
-    layout(children[i], childRect)
+    layoutInternal(child, childRect, cache)
     cursor += mainSize + gapActual
   }
+
+  placeOverlayChildren(container, box, cache)
 }
 
 function applyNodeSize(style: LayoutStyle | undefined, outer: Rect): Rect {
@@ -292,6 +478,10 @@ function applyNodeSize(style: LayoutStyle | undefined, outer: Rect): Rect {
   let h = outer.h
   if (typeof style?.w === "number") w = style.w
   if (typeof style?.h === "number") h = style.h
+  if (style?.fill) {
+    w = outer.w
+    h = outer.h
+  }
   const minW = Math.max(0, safePos(style?.minW, 0))
   const minH = Math.max(0, safePos(style?.minH, 0))
   const maxW = safePos(style?.maxW, Number.POSITIVE_INFINITY)
@@ -301,11 +491,18 @@ function applyNodeSize(style: LayoutStyle | undefined, outer: Rect): Rect {
   return { x: outer.x, y: outer.y, w, h }
 }
 
-export function layout(node: LayoutNode, outer: Rect): LayoutNode {
+function layoutInternal(node: LayoutNode, outer: Rect, cache: MeasureCache): LayoutNode {
   const rect = applyNodeSize(node.style, outer)
   node.rect = rect
-  const pad = resolvePadding(node.style?.padding)
-  const box = contentBox(rect, pad)
-  if (node.children && node.children.length) placeChildren(node, box)
+  const box = contentBox(rect, node.style)
+  if (node.children && node.children.length) placeChildren(node, box, cache)
   return node
+}
+
+export function measureLayout(node: LayoutNode, max: { w: number; h: number }) {
+  return intrinsicMeasure(node, max, new WeakMap())
+}
+
+export function layout(node: LayoutNode, outer: Rect): LayoutNode {
+  return layoutInternal(node, outer, new WeakMap())
 }

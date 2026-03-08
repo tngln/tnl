@@ -1,4 +1,10 @@
+export type Vec2 = { x: number; y: number }
+
 export type Rect = { x: number; y: number; w: number; h: number }
+
+export function clamp(v: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, v))
+}
 
 export function normalizeRect(r: Rect): Rect {
   const x0 = Math.min(r.x, r.x + r.w)

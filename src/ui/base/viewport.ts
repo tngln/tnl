@@ -1,6 +1,12 @@
 import { Compositor } from "./compositor"
 import { PointerUIEvent, UIElement, WheelUIEvent, pointInRect, type Rect as BoundsRect, type Vec2 } from "./ui"
 
+export class SurfaceRoot extends UIElement {
+  bounds(): BoundsRect {
+    return { x: -1e9, y: -1e9, w: 2e9, h: 2e9 }
+  }
+}
+
 export type ViewportOptions = {
   clip?: boolean
   padding?: number

@@ -1,16 +1,9 @@
 import { draw, RRect } from "../../core/draw"
+import { clamp } from "../../core/rect"
 import { theme } from "../../config/theme"
 import { PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "../base/ui"
 
 type Axis = "x" | "y"
-
-function clamp(v: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, v))
-}
-
-function isActive(active: (() => boolean) | undefined) {
-  return active ? active() : true
-}
 
 type ThumbMetrics = {
   maxValue: number
@@ -27,7 +20,7 @@ export class Scrollbar extends UIElement {
   private readonly value: () => number
   private readonly onChange: (next: number) => void
   private readonly minThumb: number
-  private readonly active: (() => boolean) | undefined
+  private readonly active: () => boolean
   private readonly autoHide: boolean
 
   private hover = false
@@ -54,7 +47,7 @@ export class Scrollbar extends UIElement {
     this.onChange = opts.onChange
     this.minThumb = Math.max(10, opts.minThumb ?? 20)
     this.autoHide = opts.autoHide ?? true
-    this.active = opts.active
+    this.active = opts.active ?? (() => true)
     this.z = 40
   }
 
@@ -75,7 +68,7 @@ export class Scrollbar extends UIElement {
   }
 
   private hidden() {
-    if (!isActive(this.active)) return true
+    if (!this.active()) return true
     if (!this.autoHide) return false
     return this.metrics().maxValue <= 0
   }

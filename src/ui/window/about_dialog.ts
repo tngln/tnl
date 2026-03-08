@@ -1,12 +1,13 @@
+import { theme } from "../../config/theme"
+import { type RichTextSpan } from "../../core/draw.text"
+import { BuilderTreeSurface, column, richTextNode, spacer, textNode } from "../builder/surface_builder"
 import { ModalWindow } from "./window"
-import { draw, Text } from "../../core/draw"
-import { createRichTextBlock, measureTextLine } from "../../core/draw.text"
-import { font, theme } from "../../config/theme"
-import { layout, type LayoutNode } from "../../core/layout"
 
 export const ABOUT_DIALOG_ID = "Help.About"
 
 export class AboutDialog extends ModalWindow {
+  private readonly bodySurface = new BuilderTreeSurface("About.Body")
+
   constructor() {
     super({
       id: ABOUT_DIALOG_ID,
@@ -23,19 +24,19 @@ export class AboutDialog extends ModalWindow {
   }
 
   protected drawBody(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
-    const headlineText = "tnl - Tung's Non-Linear Editor"
-    const mitText = "MIT License"
-    const headlineFont = font(theme, theme.typography.headline)
-    const bodyFont = font(theme, theme.typography.body)
-    const lh = theme.spacing.lg
-
     const copyStyle = {
       fontFamily: theme.typography.family,
       fontSize: theme.typography.body.size,
       fontWeight: theme.typography.body.weight,
-      lineHeight: lh,
+      lineHeight: theme.spacing.lg,
     }
-    const copySpans = [
+    const headlineStyle = {
+      fontFamily: theme.typography.family,
+      fontSize: theme.typography.headline.size,
+      fontWeight: theme.typography.headline.weight,
+      lineHeight: theme.spacing.lg,
+    }
+    const copySpans: RichTextSpan[] = [
       { text: "Copyright (c) ", color: theme.colors.textMuted },
       { text: "Tung Leen", color: theme.colors.textPrimary, emphasis: { bold: true } },
       { text: " & ", color: theme.colors.textMuted },
@@ -43,79 +44,43 @@ export class AboutDialog extends ModalWindow {
       { text: ". ", color: theme.colors.textMuted },
       { text: "All rights reserved.", color: theme.colors.textMuted, emphasis: { italic: true } },
       { text: " This message is here mostly to fill space.", color: theme.colors.textMuted },
-    ] as const
-    const copyBlock = createRichTextBlock([...copySpans], copyStyle, { align: "start", wrap: "word" })
-
-    const items: {
-      id: string
-      node: LayoutNode
-      draw?: (ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }) => void
-    }[] = [
-      {
-        id: "headline",
-        node: {
-          id: "headline",
-          measure: (max) => {
-            const m = measureTextLine(ctx, headlineText, headlineFont, lh)
-            return { w: Math.min(m.w, max.w), h: m.h }
-          },
-        },
-        draw: (ctx, r) =>
-          draw(
-            ctx,
-            Text({
-              x: r.x,
-              y: r.y,
-              text: headlineText,
-              style: { color: theme.colors.textPrimary, font: headlineFont, baseline: "top" },
-            }),
-          ),
-      },
-      { id: "spacer", node: { id: "spacer", style: { basis: theme.spacing.sm }, measure: () => ({ w: 0, h: theme.spacing.sm }) } },
-      {
-        id: "mit",
-        node: {
-          id: "mit",
-          measure: (max) => {
-            const m = measureTextLine(ctx, mitText, bodyFont, lh)
-            return { w: Math.min(m.w, max.w), h: m.h }
-          },
-        },
-        draw: (ctx, r) =>
-          draw(
-            ctx,
-            Text({
-              x: r.x,
-              y: r.y,
-              text: mitText,
-              style: { color: theme.colors.textMuted, font: bodyFont, baseline: "top" },
-            }),
-          ),
-      },
-      { id: "spacer2", node: { id: "spacer2", style: { basis: theme.spacing.xs }, measure: () => ({ w: 0, h: theme.spacing.xs }) } },
-      {
-        id: "copy",
-        node: {
-          id: "copy",
-          measure: (max) => {
-            const m = copyBlock.measure(ctx, max.w)
-            return { w: max.w, h: m.h }
-          },
-        },
-        draw: (_ctx, r) => copyBlock.draw(ctx, { x: r.x, y: r.y }),
-      },
     ]
 
-    const root: LayoutNode = {
-      style: { axis: "column", padding: theme.spacing.md, gap: 0, align: "start" },
-      children: items.map((it) => it.node),
-    }
+    this.bodySurface.setNode(
+      column(
+        [
+          richTextNode([{ text: "tnl - Tung's Non-Linear Editor", color: theme.colors.textPrimary, emphasis: { bold: true } }], {
+            key: "about.headline",
+            textStyle: headlineStyle,
+          }),
+          spacer({ fixed: theme.spacing.sm }),
+          textNode("MIT License", { key: "about.license", color: theme.colors.textMuted }),
+          spacer({ fixed: theme.spacing.xs }),
+          richTextNode(copySpans, {
+            key: "about.copy",
+            textStyle: copyStyle,
+          }),
+        ],
+        {
+          axis: "column",
+          padding: theme.spacing.md,
+          gap: 0,
+          w: "auto",
+          h: "auto",
+        },
+      ),
+    )
 
-    layout(root, { x, y, w, h })
-    for (const it of items) {
-      const r = it.node.rect
-      if (!r || !it.draw) continue
-      it.draw(ctx, r)
-    }
+    ctx.save()
+    ctx.translate(x, y)
+    this.bodySurface.render(ctx, {
+      rect: { x: 0, y: 0, w, h },
+      contentRect: { x: 0, y: 0, w, h },
+      clip: false,
+      scroll: { x: 0, y: 0 },
+      toSurface: (p) => p,
+      dpr: 1,
+    })
+    ctx.restore()
   }
 }

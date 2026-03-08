@@ -78,10 +78,6 @@ export function signal<T>(initial: T): Signal<T> {
     },
   }
 
-  ;(sig as Signal<unknown>).get = sig.get
-  ;(sig as Signal<unknown>).set = sig.set
-  ;(sig as Signal<unknown>).peek = sig.peek
-
   ;(sig as any)._subs = subs
   const id = nextSignalId++
   ;(sig as any)._id = id

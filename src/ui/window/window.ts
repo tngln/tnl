@@ -1,11 +1,8 @@
 import { signal, type Signal } from "../../core/reactivity"
 import { draw, Line, Rect, Text } from "../../core/draw"
+import { clamp } from "../../core/rect"
 import { font, theme } from "../../config/theme"
 import { pointInRect, type Rect as BoundsRect, type Vec2, PointerUIEvent, UIElement } from "../base/ui"
-
-function clamp(v: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, v))
-}
 
 export class Root extends UIElement {
   bounds(): BoundsRect {

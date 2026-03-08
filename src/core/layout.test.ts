@@ -55,5 +55,54 @@ describe("layout", () => {
     expect(root.children?.[0].rect).toEqual({ x: 45, y: 0, w: 10, h: 20 })
     expect(root.children?.[1].rect).toEqual({ x: 35, y: 20, w: 30, h: 10 })
   })
-})
 
+  it("supports fill and fixed sizing shorthands", () => {
+    const root: LayoutNode = {
+      style: { axis: "row" },
+      children: [
+        leaf("a", 10, 10, { fixed: 24 }),
+        leaf("b", 10, 10, { fill: true }),
+      ],
+    }
+    layout(root, { x: 0, y: 0, w: 100, h: 20 })
+    expect(root.children?.[0].rect).toEqual({ x: 0, y: 0, w: 24, h: 20 })
+    expect(root.children?.[1].rect).toEqual({ x: 24, y: 0, w: 76, h: 20 })
+  })
+
+  it("supports inset and child margin", () => {
+    const root: LayoutNode = {
+      style: { axis: "column", inset: 4 },
+      children: [leaf("a", 20, 10, { margin: { l: 3, t: 2, r: 1, b: 0 } })],
+    }
+    layout(root, { x: 0, y: 0, w: 100, h: 40 })
+    expect(root.children?.[0].rect).toEqual({ x: 7, y: 6, w: 88, h: 10 })
+  })
+
+  it("supports rowGap and overlay children without affecting flow", () => {
+    const root: LayoutNode = {
+      style: { axis: "column", rowGap: 8 },
+      children: [
+        leaf("a", 10, 12),
+        leaf("overlay", 50, 5, { position: "overlay", alignSelf: "end" }),
+        leaf("b", 10, 12),
+      ],
+    }
+    layout(root, { x: 0, y: 0, w: 100, h: 60 })
+    expect(root.children?.[0].rect).toEqual({ x: 0, y: 0, w: 100, h: 12 })
+    expect(root.children?.[2].rect).toEqual({ x: 0, y: 20, w: 100, h: 12 })
+    expect(root.children?.[1].rect?.x).toBe(50)
+  })
+
+  it("supports stack axis", () => {
+    const root: LayoutNode = {
+      style: { axis: "stack" },
+      children: [
+        leaf("base", 40, 20, { alignSelf: "start" }),
+        leaf("overlay", 10, 10, { alignSelf: "end" }),
+      ],
+    }
+    layout(root, { x: 0, y: 0, w: 100, h: 50 })
+    expect(root.children?.[0].rect).toEqual({ x: 0, y: 0, w: 40, h: 20 })
+    expect(root.children?.[1].rect).toEqual({ x: 90, y: 40, w: 10, h: 10 })
+  })
+})

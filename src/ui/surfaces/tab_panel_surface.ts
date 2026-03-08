@@ -1,19 +1,10 @@
 import { signal, type Signal } from "../../core/reactivity"
 import { draw, Line, Rect as RectOp, RRect, Text } from "../../core/draw"
+import { clamp } from "../../core/rect"
 import { theme } from "../../config/theme"
 import { UIElement, type Rect, type Vec2, PointerUIEvent, WheelUIEvent, pointInRect } from "../base/ui"
-import { ViewportElement, type Surface, type ViewportContext } from "../base/viewport"
+import { ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "../base/viewport"
 import { Scrollbar } from "../widgets"
-
-function clamp(v: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, v))
-}
-
-class SurfaceRoot extends UIElement {
-  bounds(): Rect {
-    return { x: -1e9, y: -1e9, w: 2e9, h: 2e9 }
-  }
-}
 
 class TabButton extends UIElement {
   private readonly rect: () => Rect

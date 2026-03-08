@@ -1,3 +1,5 @@
+import { clamp } from "../../core/rect"
+
 export type TimelineSelection = { trackId?: string; itemId?: string }
 
 export type TimelineTrackItemModel = {
@@ -74,10 +76,6 @@ export type TimelineZoomRequest = {
 export type TimelineVisibleTrackRange = {
   first: number
   last: number
-}
-
-function clamp(v: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, v))
 }
 
 function positiveOr(v: number, fallback: number) {

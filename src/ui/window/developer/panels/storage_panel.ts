@@ -1,9 +1,10 @@
 import { draw, Rect as RectOp, RRect, Text } from "../../../../core/draw"
-import { openOpfs, type OpfsEntryV1, OpfsError } from "../../../../core/opfs"
+import { clamp } from "../../../../core/rect"
+import { openOpfs, type OpfsEntryV1 } from "../../../../core/opfs"
 import { theme } from "../../../../config/theme"
 import { signal } from "../../../../core/reactivity"
-import { UIElement, type Rect, type Vec2, WheelUIEvent } from "../../../base/ui"
-import type { Surface, ViewportContext } from "../../../base/viewport"
+import { type Rect, type Vec2, WheelUIEvent } from "../../../base/ui"
+import { SurfaceRoot, type Surface, type ViewportContext } from "../../../base/viewport"
 import { Button, Row, Scrollbar } from "../../../widgets"
 import type { DeveloperPanelSpec } from "../index"
 
@@ -13,16 +14,6 @@ export function createStoragePanel(): DeveloperPanelSpec {
     title: "Storage",
     build: (_ctx) => new StoragePanelSurface(),
   }
-}
-
-class SurfaceRoot extends UIElement {
-  bounds(): Rect {
-    return { x: -1e9, y: -1e9, w: 2e9, h: 2e9 }
-  }
-}
-
-function clamp(v: number, a: number, b: number) {
-  return Math.max(a, Math.min(b, v))
 }
 
 function formatBytes(bytes: number) {
