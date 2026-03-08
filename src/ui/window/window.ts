@@ -6,38 +6,27 @@ import { isSurfaceMountSpec, mountSurface, type SurfaceMountSpec } from "../buil
 import { pointInRect, type Rect as BoundsRect, type Vec2, PointerUIEvent, UIElement } from "../base/ui"
 import { ViewportElement, type Surface } from "../base/viewport"
 
+export type WindowSnapshot = {
+  id: string
+  title: string
+  open: boolean
+  minimized: boolean
+  focused: boolean
+  rect: BoundsRect
+  chrome: "default" | "tool"
+  resizable: boolean
+  minimizable: boolean
+  zOrder: number
+}
+
+type WindowHooks = {
+  onStateChanged?: () => void
+  onFocusRequested?: () => void
+}
+
 export class Root extends UIElement {
   bounds(): BoundsRect {
     return { x: -1e9, y: -1e9, w: 2e9, h: 2e9 }
-  }
-
-  protected onDraw(ctx: CanvasRenderingContext2D) {
-    const t = ctx.getTransform()
-    const dpr = Math.hypot(t.a, t.b) || 1
-    const cssW = ctx.canvas.width / dpr
-    const cssH = ctx.canvas.height / dpr
-
-    const pad = theme.spacing.sm
-    const gap = theme.spacing.xs
-    const tileH = 26
-    const tileW = 220
-
-    const minimized: ModalWindow[] = []
-    for (const child of this.children) {
-      if (child instanceof ModalWindow && child.open.peek() && child.minimized.peek()) minimized.push(child)
-    }
-    minimized.sort((a, b) => a.minimizedOrder - b.minimizedOrder)
-
-    let cx = pad
-    let cy = cssH - pad - tileH
-    for (const win of minimized) {
-      if (cx + tileW > cssW - pad && cx > pad) {
-        cx = pad
-        cy -= tileH + gap
-      }
-      win.setMinimizedRect({ x: cx, y: cy, w: tileW, h: tileH })
-      cx += tileW + gap
-    }
   }
 }
 
@@ -65,6 +54,7 @@ export class ModalWindow extends UIElement {
   private minimizedRect: BoundsRect = { x: 0, y: 0, w: 0, h: 0 }
   private restoreRect: BoundsRect | null = null
   minimizedOrder = 0
+  private hooks: WindowHooks | null = null
 
   private dragging = false
   private dragOffset: Vec2 = { x: 0, y: 0 }
@@ -121,6 +111,10 @@ export class ModalWindow extends UIElement {
     if (this.resizable) this.add(new ResizeHandle(this))
   }
 
+  setHooks(hooks: WindowHooks | null) {
+    this.hooks = hooks
+  }
+
   setBodySurface(surface: Surface | SurfaceMountSpec<unknown> | null, opts: { padding?: number; clip?: boolean } = {}) {
     this.bodySurface = isSurfaceMountSpec(surface) ? mountSurface(surface.definition, surface.props) : surface
     if (opts.padding !== undefined) this.bodyPadding = Math.max(0, opts.padding)
@@ -130,6 +124,21 @@ export class ModalWindow extends UIElement {
 
   protected bodyBounds() {
     return this.bodyRect
+  }
+
+  snapshot(focused = false): WindowSnapshot {
+    return {
+      id: this.id,
+      title: this.title.peek(),
+      open: this.open.peek(),
+      minimized: this.minimized.peek(),
+      focused,
+      rect: this.bounds(),
+      chrome: this.chrome,
+      resizable: this.resizable,
+      minimizable: this.minimizable,
+      zOrder: this.z,
+    }
   }
 
   bounds(): BoundsRect {
@@ -244,11 +253,33 @@ export class ModalWindow extends UIElement {
     this.dragging = false
   }
 
+  openWindow() {
+    if (this.open.peek()) return
+    this.open.set(true)
+    this.hooks?.onStateChanged?.()
+  }
+
+  closeWindow() {
+    if (!this.open.peek()) return
+    this.open.set(false)
+    this.hooks?.onStateChanged?.()
+  }
+
+  toggleOpen() {
+    if (this.open.peek()) this.closeWindow()
+    else this.openWindow()
+  }
+
+  focusWindow() {
+    this.hooks?.onFocusRequested?.()
+  }
+
   minimize() {
     if (this.minimized.peek()) return
     this.restoreRect = { x: this.x.peek(), y: this.y.peek(), w: this.w.peek(), h: this.h.peek() }
     this.minimizedOrder = Date.now()
     this.minimized.set(true)
+    this.hooks?.onStateChanged?.()
   }
 
   restore() {
@@ -260,10 +291,19 @@ export class ModalWindow extends UIElement {
     this.y.set(r.y)
     this.w.set(clamp(r.w, this.minW, this.maxW))
     this.h.set(clamp(r.h, this.minH, this.maxH))
+    this.hooks?.onStateChanged?.()
   }
 
   setMinimizedRect(r: BoundsRect) {
     this.minimizedRect = r
+  }
+
+  setWindowRect(r: BoundsRect) {
+    this.x.set(r.x)
+    this.y.set(r.y)
+    this.w.set(clamp(r.w, this.minW, this.maxW))
+    this.h.set(clamp(r.h, this.minH, this.maxH))
+    this.hooks?.onStateChanged?.()
   }
 }
 
@@ -363,7 +403,7 @@ class CloseButton extends UIElement {
     if (!this.down) return
     this.down = false
     if (!this.hover) return
-    this.win.open.set(false)
+    this.win.closeWindow()
   }
 }
 

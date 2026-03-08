@@ -1,4 +1,5 @@
 import type { Surface } from "../../base/viewport"
+import type { WindowControlApi } from "../window_manager"
 import { createCodecPanel } from "./panels/codec_panel"
 import { createControlPanel } from "./panels/control_panel"
 import { createDataPanel } from "./panels/data_panel"
@@ -11,7 +12,7 @@ import { createWorkerPanel } from "./panels/worker_panel"
 export type DeveloperContext = {
   reactivity?: { list?: () => unknown }
   storage?: { opfs?: FileSystemDirectoryHandle }
-  wm?: { listWindows?: () => { id: string; open: boolean; minimized: boolean }[]; toggle?: (id: string) => void }
+  wm?: WindowControlApi
   workers?: { list?: () => unknown[] }
   codecs?: { info?: () => unknown }
   surface?: { listLayers?: () => unknown[] }

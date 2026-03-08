@@ -218,6 +218,7 @@ export class CanvasUI {
   private dirtyFull = true
   private frameId = 0
   private compositor = new Compositor()
+  private readonly onTopLevelPointerDown?: (top: UIElement, target: UIElement) => void
 
   get sizeCss(): Vec2 {
     return { x: this.cssW, y: this.cssH }
@@ -227,12 +228,13 @@ export class CanvasUI {
     return this.dpr
   }
 
-  constructor(canvas: HTMLCanvasElement, root: UIElement) {
+  constructor(canvas: HTMLCanvasElement, root: UIElement, opts: { onTopLevelPointerDown?: (top: UIElement, target: UIElement) => void } = {}) {
     this.canvas = canvas
     const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true })
     if (!ctx) throw new Error("2D context not available")
     this.ctx = ctx
     this.root = root
+    this.onTopLevelPointerDown = opts.onTopLevelPointerDown
 
     this.resize()
     window.addEventListener("resize", this.resize)
@@ -352,7 +354,8 @@ export class CanvasUI {
     if (!target) return
     let top: UIElement = target
     while (top.parent && top.parent !== this.root) top = top.parent
-    top.bringToFront()
+    if (this.onTopLevelPointerDown) this.onTopLevelPointerDown(top, target)
+    else top.bringToFront()
     const ev = new PointerUIEvent({
       pointerId: e.pointerId,
       x: p.x,
