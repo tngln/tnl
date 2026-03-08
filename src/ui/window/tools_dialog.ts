@@ -7,11 +7,10 @@ import { SurfaceWindow } from "./window"
 
 export const TOOLS_DIALOG_ID = "Tools.Dialog"
 
-export class ToolsDialog extends SurfaceWindow {
-  constructor() {
-    const tabs = new TabPanelSurface({
-      id: "Tools.Tabs",
-      tabs: [
+export function createToolsDialog() {
+  const tabs = new TabPanelSurface({
+    id: "Tools.Tabs",
+    tabs: [
         {
           id: "scroll",
           title: "Scroll",
@@ -59,7 +58,7 @@ export class ToolsDialog extends SurfaceWindow {
       selectedId: "scroll",
       scrollbar: true,
     })
-    super({
+    return new SurfaceWindow({
       id: TOOLS_DIALOG_ID,
       x: 20,
       y: 520,
@@ -74,5 +73,4 @@ export class ToolsDialog extends SurfaceWindow {
       minimizable: false,
       body: tabs,
     })
-  }
 }

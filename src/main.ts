@@ -4,11 +4,11 @@ import { theme } from "./config/theme"
 import { ModalWindow, Root } from "./ui/window/window"
 import { WindowManager } from "./ui/window/window_manager"
 import { CanvasUI } from "./ui/base/ui"
-import { ABOUT_DIALOG_ID, AboutDialog } from "./ui/window/about_dialog"
-import { DEVELOPER_WINDOW_ID, DeveloperToolsWindow } from "./ui/window/developer/developer_tools_window"
+import { ABOUT_DIALOG_ID, createAboutDialog } from "./ui/window/about_dialog"
+import { DEVELOPER_WINDOW_ID, createDeveloperToolsWindow } from "./ui/window/developer/developer_tools_window"
 import { unionRect } from "./core/rect"
-import { TOOLS_DIALOG_ID, ToolsDialog } from "./ui/window/tools_dialog"
-import { TIMELINE_TOOL_WINDOW_ID, TimelineToolWindow } from "./ui/window/timeline_tool_window"
+import { TOOLS_DIALOG_ID, createToolsDialog } from "./ui/window/tools_dialog"
+import { TIMELINE_TOOL_WINDOW_ID, createTimelineToolWindow } from "./ui/window/timeline_tool_window"
 import { addWindowLoadListener, addWindowResizeListener, applyDocumentTheme, getRootCanvas, registerServiceWorker, scheduleAnimationFrame } from "./platform/web"
 
 const canvas = getRootCanvas("#app")
@@ -20,10 +20,10 @@ const root = new Root()
 const windows = new WindowManager(root)
 const codecs = new CodecRuntimeRegistry()
 
-const about = new AboutDialog()
+const about = createAboutDialog()
 windows.register(about)
 
-const developer = new DeveloperToolsWindow({
+const developer = createDeveloperToolsWindow({
   wm: windows,
   codecs: {
     info: () => codecs.summary(),
@@ -32,10 +32,10 @@ const developer = new DeveloperToolsWindow({
 })
 windows.register(developer)
 
-const tools = new ToolsDialog()
+const tools = createToolsDialog()
 windows.register(tools)
 
-const timeline = new TimelineToolWindow()
+const timeline = createTimelineToolWindow()
 windows.register(timeline)
 
 const ui = new CanvasUI(canvas, root, {

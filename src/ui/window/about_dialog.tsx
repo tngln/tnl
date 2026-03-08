@@ -32,20 +32,18 @@ const AboutBodySurface = defineSurface({
   },
 })
 
-export class AboutDialog extends SurfaceWindow {
-  constructor() {
-    super({
-      id: ABOUT_DIALOG_ID,
-      x: 80,
-      y: 80,
-      w: 480,
-      h: 260,
-      minW: 320,
-      minH: 220,
-      title: "About",
-      open: true,
-      resizable: true,
-      body: surfaceMount(AboutBodySurface, {}),
-    })
-  }
+export function createAboutDialog() {
+  return new SurfaceWindow({
+    id: ABOUT_DIALOG_ID,
+    x: 80,
+    y: 80,
+    w: 480,
+    h: 260,
+    minW: 320,
+    minH: 220,
+    title: "About",
+    open: true,
+    resizable: true,
+    body: surfaceMount(AboutBodySurface, {}),
+  })
 }
