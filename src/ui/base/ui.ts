@@ -440,6 +440,7 @@ export class CanvasUI {
   }
 
   private onWheel = (e: WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) e.preventDefault()
     const p = this.toCanvasPoint(e)
     const target = this.root.hitTest(p, this.ctx)
     if (!target) return

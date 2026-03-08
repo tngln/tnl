@@ -4,7 +4,7 @@ import { PointerUIEvent, UIElement, WheelUIEvent, pointInRect, type Rect as Boun
 export type ViewportOptions = {
   clip?: boolean
   padding?: number
-  scroll?: Vec2
+  scroll?: Vec2 | (() => Vec2)
   active?: () => boolean
 }
 
@@ -74,11 +74,14 @@ export class ViewportElement extends UIElement {
 
   constructor(opts: { rect: () => BoundsRect; target?: Surface | null; options?: ViewportOptions }) {
     super()
+    const scrollOpt = opts.options?.scroll
     this.rect = opts.rect
     this.target = opts.target ?? null
     this.clip = opts.options?.clip ?? true
     this.padding = Math.max(0, opts.options?.padding ?? 0)
-    this.scroll = opts.options?.scroll ? () => opts.options!.scroll! : () => ({ x: 0, y: 0 })
+    if (typeof scrollOpt === "function") this.scroll = scrollOpt
+    else if (scrollOpt) this.scroll = () => scrollOpt
+    else this.scroll = () => ({ x: 0, y: 0 })
     this.active = opts.options?.active ?? (() => true)
   }
 
