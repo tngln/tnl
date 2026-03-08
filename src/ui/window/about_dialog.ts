@@ -4,12 +4,12 @@ import { createRichTextBlock, measureTextLine } from "../../core/draw.text"
 import { font, theme } from "../../config/theme"
 import { layout, type LayoutNode } from "../../core/layout"
 
-export const ABOUT_WINDOW_ID = "Help.About"
+export const ABOUT_DIALOG_ID = "Help.About"
 
-export class AboutWindow extends ModalWindow {
+export class AboutDialog extends ModalWindow {
   constructor() {
     super({
-      id: ABOUT_WINDOW_ID,
+      id: ABOUT_DIALOG_ID,
       x: 80,
       y: 80,
       w: 480,
@@ -119,4 +119,3 @@ export class AboutWindow extends ModalWindow {
     }
   }
 }
-

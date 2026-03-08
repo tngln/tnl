@@ -3,4 +3,5 @@ export { Label } from "./label"
 export { Paragraph } from "./paragraph"
 export { Checkbox } from "./checkbox"
 export { Radio } from "./radio"
-
+export { Scrollbar } from "./scrollbar"
+export { Row } from "./row"

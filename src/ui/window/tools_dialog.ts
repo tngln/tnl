@@ -3,11 +3,11 @@ import { DividerSurface } from "../surfaces/divider_surface"
 import { TabPanelSurface } from "../surfaces/tab_panel_surface"
 import { TextSurface } from "../surfaces/text_surface"
 import { ViewportElement } from "../base/viewport"
-import { ToolDialog } from "./tool_dialog"
+import { ModalWindow } from "./window"
 
 export const TOOLS_DIALOG_ID = "Tools.Dialog"
 
-export class ToolsDialog extends ToolDialog {
+export class ToolsDialog extends ModalWindow {
   private body = { x: 0, y: 0, w: 0, h: 0 }
   private readonly viewport: ViewportElement
 
@@ -23,11 +23,29 @@ export class ToolsDialog extends ToolDialog {
       resizable: true,
       minW: 240,
       minH: 160,
+      chrome: "tool",
+      minimizable: false,
     })
 
     const tabs = new TabPanelSurface({
       id: "Tools.Tabs",
       tabs: [
+        {
+          id: "scroll",
+          title: "Scroll",
+          surface: new TextSurface({
+            id: "Tools.Scroll.Demo",
+            title: "Wheel Scroll Demo",
+            body:
+              "Use the mouse wheel while the cursor is inside this content area. This panel is intentionally long so vertical scrolling is obvious. " +
+              "Try slow wheel ticks and fast flicks, then resize this window to make the viewport shorter and verify that the scroll range grows. " +
+              "You can also drag the scrollbar thumb on the right edge and then continue with wheel input; both paths should stay synchronized. " +
+              "Expected behavior: scrolling is clamped at top and bottom, tab bar remains fixed, and switching tabs resets the panel scroll position. " +
+              "Regression checks: Controls tab should remain interactive, Split tab divider should still drag correctly, and opening Developer window should keep its own scroll state independent from this dialog. " +
+              "This text block repeats to force overflow. This text block repeats to force overflow. This text block repeats to force overflow. " +
+              "This text block repeats to force overflow. This text block repeats to force overflow. This text block repeats to force overflow.",
+          }),
+        },
         { id: "controls", title: "Controls", surface: new ControlsSurface() },
         {
           id: "split",
@@ -56,7 +74,8 @@ export class ToolsDialog extends ToolDialog {
           }),
         },
       ],
-      selectedId: "controls",
+      selectedId: "scroll",
+      scrollbar: true,
     })
 
     this.viewport = new ViewportElement({
@@ -72,4 +91,3 @@ export class ToolsDialog extends ToolDialog {
     this.body = { x, y, w: _w, h: _h }
   }
 }
-

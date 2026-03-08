@@ -62,6 +62,18 @@ export type PointerLike = {
   metaKey: boolean
 }
 
+export type WheelLike = {
+  x: number
+  y: number
+  deltaX: number
+  deltaY: number
+  deltaZ: number
+  altKey: boolean
+  ctrlKey: boolean
+  shiftKey: boolean
+  metaKey: boolean
+}
+
 export class PointerUIEvent {
   readonly pointerId: number
   readonly x: number
@@ -92,6 +104,39 @@ export class PointerUIEvent {
 
   get didCapture() {
     return this.captured
+  }
+}
+
+export class WheelUIEvent {
+  readonly x: number
+  readonly y: number
+  readonly deltaX: number
+  readonly deltaY: number
+  readonly deltaZ: number
+  readonly altKey: boolean
+  readonly ctrlKey: boolean
+  readonly shiftKey: boolean
+  readonly metaKey: boolean
+  private handled = false
+
+  constructor(e: WheelLike) {
+    this.x = e.x
+    this.y = e.y
+    this.deltaX = e.deltaX
+    this.deltaY = e.deltaY
+    this.deltaZ = e.deltaZ
+    this.altKey = e.altKey
+    this.ctrlKey = e.ctrlKey
+    this.shiftKey = e.shiftKey
+    this.metaKey = e.metaKey
+  }
+
+  handle() {
+    this.handled = true
+  }
+
+  get didHandle() {
+    return this.handled
   }
 }
 
@@ -158,6 +203,7 @@ export abstract class UIElement {
   onPointerDown(_e: PointerUIEvent) {}
   onPointerMove(_e: PointerUIEvent) {}
   onPointerUp(_e: PointerUIEvent) {}
+  onWheel(_e: WheelUIEvent) {}
   onPointerEnter() {}
   onPointerLeave() {}
 }
@@ -199,6 +245,7 @@ export class CanvasUI {
     canvas.addEventListener("pointermove", this.onPointerMove)
     canvas.addEventListener("pointerup", this.onPointerUp)
     canvas.addEventListener("pointercancel", this.onPointerUp)
+    canvas.addEventListener("wheel", this.onWheel, { passive: false })
     canvas.addEventListener("contextmenu", (e) => e.preventDefault())
   }
 
@@ -208,6 +255,7 @@ export class CanvasUI {
     this.canvas.removeEventListener("pointermove", this.onPointerMove)
     this.canvas.removeEventListener("pointerup", this.onPointerUp)
     this.canvas.removeEventListener("pointercancel", this.onPointerUp)
+    this.canvas.removeEventListener("wheel", this.onWheel)
   }
 
   invalidate() {
@@ -265,9 +313,16 @@ export class CanvasUI {
     this.invalidate()
   }
 
-  private toCanvasPoint(e: PointerEvent): Vec2 {
+  private toCanvasPoint(e: { clientX: number; clientY: number }): Vec2 {
     const r = this.canvas.getBoundingClientRect()
     return { x: e.clientX - r.left, y: e.clientY - r.top }
+  }
+
+  private toCssWheelDelta(e: WheelEvent): Vec2 {
+    let factor = 1
+    if (e.deltaMode === 1) factor = 16
+    else if (e.deltaMode === 2) factor = Math.max(this.cssH, 1)
+    return { x: e.deltaX * factor, y: e.deltaY * factor }
   }
 
   private render() {
@@ -383,5 +438,28 @@ export class CanvasUI {
     const after = top ? top.bounds() : before
     this.invalidateRect(unionRect(before, after), { pad: 24 })
   }
-}
 
+  private onWheel = (e: WheelEvent) => {
+    const p = this.toCanvasPoint(e)
+    const target = this.root.hitTest(p, this.ctx)
+    if (!target) return
+    const d = this.toCssWheelDelta(e)
+    const ev = new WheelUIEvent({
+      x: p.x,
+      y: p.y,
+      deltaX: d.x,
+      deltaY: d.y,
+      deltaZ: e.deltaZ,
+      altKey: e.altKey,
+      ctrlKey: e.ctrlKey,
+      shiftKey: e.shiftKey,
+      metaKey: e.metaKey,
+    })
+    target.onWheel(ev)
+    if (!ev.didHandle) return
+    e.preventDefault()
+    let top: UIElement | null = target
+    while (top && top.parent && top.parent !== this.root) top = top.parent
+    if (top) this.invalidateRect(top.bounds(), { pad: 24 })
+  }
+}

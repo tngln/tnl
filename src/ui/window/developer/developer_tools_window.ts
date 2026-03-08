@@ -28,6 +28,7 @@ export class DeveloperToolsWindow extends ModalWindow {
       id: "Developer.Tools.Tabs",
       tabs: panels.map((p) => ({ id: p.id, title: p.title, surface: p.build(ctx) })),
       selectedId: "Developer.Control",
+      scrollbar: true,
     })
 
     this.viewport = new ViewportElement({
@@ -43,4 +44,3 @@ export class DeveloperToolsWindow extends ModalWindow {
     this.body = { x, y, w, h }
   }
 }
-

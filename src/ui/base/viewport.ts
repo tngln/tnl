@@ -1,5 +1,5 @@
 import { Compositor } from "./compositor"
-import { PointerUIEvent, UIElement, pointInRect, type Rect as BoundsRect, type Vec2 } from "./ui"
+import { PointerUIEvent, UIElement, WheelUIEvent, pointInRect, type Rect as BoundsRect, type Vec2 } from "./ui"
 
 export type ViewportOptions = {
   clip?: boolean
@@ -22,6 +22,7 @@ type Any2DContext = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 export type Surface = {
   id: string
   render: (ctx: Any2DContext, viewport: ViewportContext) => void
+  contentSize?: (viewportSize: Vec2) => Vec2
   blendMode?: GlobalCompositeOperation
   opacity?: number
   compose?: (compositor: Compositor, viewport: ViewportContext) => void
@@ -29,6 +30,7 @@ export type Surface = {
   onPointerDown?: (e: PointerUIEvent, viewport: ViewportContext) => void
   onPointerMove?: (e: PointerUIEvent, viewport: ViewportContext) => void
   onPointerUp?: (e: PointerUIEvent, viewport: ViewportContext) => void
+  onWheel?: (e: WheelUIEvent, viewport: ViewportContext) => void
 }
 
 function toLocalEvent(e: PointerUIEvent, p: Vec2) {
@@ -38,6 +40,20 @@ function toLocalEvent(e: PointerUIEvent, p: Vec2) {
     y: p.y,
     button: e.button,
     buttons: e.buttons,
+    altKey: e.altKey,
+    ctrlKey: e.ctrlKey,
+    shiftKey: e.shiftKey,
+    metaKey: e.metaKey,
+  })
+}
+
+function toLocalWheelEvent(e: WheelUIEvent, p: Vec2) {
+  return new WheelUIEvent({
+    x: p.x,
+    y: p.y,
+    deltaX: e.deltaX,
+    deltaY: e.deltaY,
+    deltaZ: e.deltaZ,
     altKey: e.altKey,
     ctrlKey: e.ctrlKey,
     shiftKey: e.shiftKey,
@@ -214,5 +230,18 @@ export class ViewportElement extends UIElement {
     else s.onPointerUp?.(le, vp)
     this.capture = null
   }
-}
 
+  onWheel(e: WheelUIEvent) {
+    if (!this.active()) return
+    const s = this.target
+    if (!s) return
+    if (!pointInRect({ x: e.x, y: e.y }, this.rect())) return
+    const vp = this.viewportCtx()
+    const local = vp.toSurface({ x: e.x, y: e.y })
+    const le = toLocalWheelEvent(e, local)
+    const target = s.hitTest?.(local, vp)
+    if (target) target.onWheel(le)
+    if (!le.didHandle) s.onWheel?.(le, vp)
+    if (le.didHandle) e.handle()
+  }
+}

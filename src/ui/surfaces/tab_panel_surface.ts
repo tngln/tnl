@@ -1,8 +1,13 @@
 import { signal, type Signal } from "../../core/reactivity"
 import { draw, Line, Rect as RectOp, RRect, Text } from "../../core/draw"
 import { theme } from "../../config/theme"
-import { UIElement, type Rect, type Vec2, PointerUIEvent } from "../base/ui"
+import { UIElement, type Rect, type Vec2, PointerUIEvent, WheelUIEvent, pointInRect } from "../base/ui"
 import { ViewportElement, type Surface, type ViewportContext } from "../base/viewport"
+import { Scrollbar } from "../widgets"
+
+function clamp(v: number, a: number, b: number) {
+  return Math.max(a, Math.min(b, v))
+}
 
 class SurfaceRoot extends UIElement {
   bounds(): Rect {
@@ -90,12 +95,17 @@ export class TabPanelSurface implements Surface {
   readonly id: string
   private readonly root = new SurfaceRoot()
   private size: Vec2 = { x: 0, y: 0 }
+  private readonly contentScroll: Vec2 = { x: 0, y: 0 }
+  private contentExtent: Vec2 = { x: 0, y: 0 }
   private readonly tabs: TabSpec[]
   private readonly selectedId: Signal<string>
   private readonly contentViewport: ViewportElement
+  private readonly contentPadding = theme.spacing.sm
+  private readonly scrollbar: Scrollbar | null
+  private lastSurface: Surface | null = null
   private readonly tabBarH = 24
 
-  constructor(opts: { id: string; tabs: TabSpec[]; selectedId?: string }) {
+  constructor(opts: { id: string; tabs: TabSpec[]; selectedId?: string; scrollbar?: boolean }) {
     this.id = opts.id
     this.tabs = opts.tabs
     this.selectedId = signal(opts.selectedId ?? (opts.tabs[0]?.id ?? ""))
@@ -135,15 +145,52 @@ export class TabPanelSurface implements Surface {
     this.contentViewport = new ViewportElement({
       rect: () => ({ x: 0, y: contentY(), w: this.size.x, h: Math.max(0, this.size.y - contentY()) }),
       target: this.currentSurface(),
-      options: { clip: true, padding: theme.spacing.sm },
+      options: { clip: true, padding: this.contentPadding, scroll: this.contentScroll },
     })
     this.contentViewport.z = 1
     this.root.add(this.contentViewport)
+
+    if (opts.scrollbar) {
+      this.scrollbar = new Scrollbar({
+        rect: () => ({ x: Math.max(0, this.size.x - 10 - 2), y: contentY() + 2, w: 10, h: Math.max(0, this.size.y - contentY() - 4) }),
+        axis: "y",
+        viewportSize: () => this.contentViewportSize().y,
+        contentSize: () => this.contentExtent.y,
+        value: () => this.contentScroll.y,
+        onChange: (next) => {
+          this.contentScroll.y = next
+        },
+      })
+      this.root.add(this.scrollbar)
+    } else {
+      this.scrollbar = null
+    }
   }
 
   private currentSurface(): Surface | null {
     const id = this.selectedId.peek()
     return this.tabs.find((t) => t.id === id)?.surface ?? this.tabs[0]?.surface ?? null
+  }
+
+  private contentViewportSize(): Vec2 {
+    const outerH = Math.max(0, this.size.y - this.tabBarH)
+    return {
+      x: Math.max(0, this.size.x - this.contentPadding * 2),
+      y: Math.max(0, outerH - this.contentPadding * 2),
+    }
+  }
+
+  private maxScrollY() {
+    const view = this.contentViewportSize()
+    return Math.max(0, this.contentExtent.y - view.y)
+  }
+
+  private scrollBy(dy: number) {
+    const maxY = this.maxScrollY()
+    const next = clamp(this.contentScroll.y + dy, 0, maxY)
+    if (next === this.contentScroll.y) return false
+    this.contentScroll.y = next
+    return true
   }
 
   render(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, viewport: ViewportContext) {
@@ -153,16 +200,35 @@ export class TabPanelSurface implements Surface {
     draw(ctx as any, RectOp({ x: 0, y: 0, w: this.size.x, h: this.tabBarH }, { fill: { color: "rgba(255,255,255,0.015)" } }))
 
     const s = this.currentSurface()
-    if (s !== (this as any)._lastSurface) {
-      ;(this as any)._lastSurface = s
+    if (s !== this.lastSurface) {
+      this.lastSurface = s
       this.contentViewport.setTarget(s)
+      this.contentScroll.y = 0
     }
+
+    const viewSize = this.contentViewportSize()
+    const measured = s?.contentSize?.(viewSize) ?? viewSize
+    this.contentExtent = {
+      x: Math.max(viewSize.x, measured.x),
+      y: Math.max(viewSize.y, measured.y),
+    }
+    const maxY = this.maxScrollY()
+    this.contentScroll.y = clamp(this.contentScroll.y, 0, maxY)
 
     this.root.draw(ctx as any)
   }
 
   hitTest(pSurface: Vec2) {
     return this.root.hitTest(pSurface)
+  }
+
+  onWheel(e: WheelUIEvent) {
+    const contentRect = { x: 0, y: this.tabBarH, w: this.size.x, h: Math.max(0, this.size.y - this.tabBarH) }
+    if (!pointInRect({ x: e.x, y: e.y }, contentRect)) return
+    const delta = Math.abs(e.deltaY) > 0.001 ? e.deltaY : e.deltaX
+    if (Math.abs(delta) <= 0.001) return
+    if (!this.scrollBy(delta)) return
+    e.handle()
   }
 }
 

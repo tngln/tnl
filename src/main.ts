@@ -2,7 +2,7 @@ import { effect } from "./core/reactivity"
 import { theme } from "./config/theme"
 import { Root, type ModalWindow } from "./ui/window/window"
 import { CanvasUI } from "./ui/base/ui"
-import { ABOUT_WINDOW_ID, AboutWindow } from "./ui/window/windows"
+import { ABOUT_DIALOG_ID, AboutDialog } from "./ui/window/about_dialog"
 import { DEVELOPER_WINDOW_ID, DeveloperToolsWindow } from "./ui/window/developer/developer_tools_window"
 import { unionRect } from "./core/rect"
 import { TOOLS_DIALOG_ID, ToolsDialog } from "./ui/window/tools_dialog"
@@ -17,7 +17,7 @@ if (themeMeta) themeMeta.content = theme.colors.appBg
 const root = new Root()
 const windows = new Map<string, ModalWindow>()
 
-const about = new AboutWindow()
+const about = new AboutDialog()
 windows.set(about.id, about)
 root.add(about)
 
@@ -30,6 +30,8 @@ windows.set(tools.id, tools)
 root.add(tools)
 
 const ui = new CanvasUI(canvas, root)
+;(globalThis as any).__TNL_DEVTOOLS__ ??= {}
+;(globalThis as any).__TNL_DEVTOOLS__.invalidate = () => ui.invalidate()
 const lastRects = new Map<string, { x: number; y: number; w: number; h: number }>()
 
 effect(() => {
@@ -53,7 +55,7 @@ effect(() => {
 canvas.addEventListener("keydown", (e) => {
   if (e.key !== "F1" && e.key !== "F2" && e.key !== "F3") return
   e.preventDefault()
-  const id = e.key === "F1" ? ABOUT_WINDOW_ID : e.key === "F2" ? DEVELOPER_WINDOW_ID : TOOLS_DIALOG_ID
+  const id = e.key === "F1" ? ABOUT_DIALOG_ID : e.key === "F2" ? DEVELOPER_WINDOW_ID : TOOLS_DIALOG_ID
   const win = windows.get(id)
   if (!win) return
   win.open.set((v) => !v)

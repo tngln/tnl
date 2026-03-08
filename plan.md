@@ -1,7 +1,8 @@
----
+﻿﻿
 project: tnl (Tung's Non-Linear Editor)
 mode: plan
 target: Chromium (PC/Mac), Canvas UI, no framework
+
 ---
 
 # 目标与范围
@@ -21,85 +22,91 @@ target: Chromium (PC/Mac), Canvas UI, no framework
 
 # 阶段性路线图（迭代顺序）
 
-## Phase 0：仓库与工程骨架
+## Phase 0：基础设施与 UI 框架（已完成）
 
-- 建立基础目录结构（core、ui、media、timeline、renderer、export、tests、docs）。
-- 统一编码规范与构建流程（TypeScript + bundler，ESM，最小依赖）。
-- 本地开发：静态 server、热更新（可选）、基础 logging 与错误面板。
-- 基础资产：图标、字体、主题色、可缩放 UI 度量体系。
-- 简易 Flexbox-like 布局系统（core/layout.ts），用于 Canvas UI 自动排版。
+我们已经构建了一个高性能、类原生的 Canvas UI 框架，为后续的非编应用提供了坚实基础。
 
-交付物：
-- 可以启动应用，显示 Canvas UI Shell（空工程）。
+### 核心架构
+- **构建环境**：初始化 Bun + TypeScript 项目，配置 High-DPI Canvas 上下文。
+- **响应式系统**：实现了细粒度的 Reactivity 系统（Signal/Effect），作为状态管理核心；并提供全局可调试信号注册表（供 DevTools 读取）。
+- **渲染循环**：`CanvasUI` 负责主循环，实现了**脏矩形（Dirty Rect）**与局部重绘机制，大幅优化性能。
+- **图层合成**：引入 `Compositor` 与 `OffscreenCanvas`，支持多图层混合（Blend Mode）与独立渲染上下文。
 
-## Phase 1：工程模型与时间轴 MVP
+### UI 组件系统
+- **Surface/Viewport**：实现了内容（Surface）与视口（Viewport）分离的架构，支持裁剪、坐标变换与滚动。
+- **窗口管理**：`WindowManager` 支持多窗口（`ModalWindow`）管理，实现了拖拽、缩放、最小化、层级堆叠。
+- **基础控件**：`Button`, `Checkbox`, `Radio`, `Label`, `Paragraph` 等基础交互组件。
+- **列表基础控件**：`Row`（行渲染与 hover/selected/click 交互）、`Scrollbar`（滚动条）。
+- **布局容器**：
+  - `TabPanelSurface`：支持多标签页切换的容器。
+  - `DividerSurface`：支持拖拽调整比例的分栏容器。
+- **无边框窗口**：`ToolDialog` 支持工具类悬浮窗。
 
-- 工程（Project）数据结构：素材库（Media）、序列（Sequence）、轨道（Track）、片段（Clip）、关键帧（Keyframe）。
-- 时间单位规范：内部以 rational time（分数帧或纳秒）表示；统一帧率/采样率换算。
-- 片段属性：in/out、start、duration、source reference、变换（position/scale/rotation/opacity）。
-- 撤销重做：命令式操作（Command pattern），支持合并与事务。
-- 保存/加载：JSON schema + 版本号迁移策略（最小可行）。
+### 开发者工具
+- **DeveloperToolsWindow**：重构了开发者工具，采用模块化面板设计。
+- **面板骨架**：预置了 Data, Storage, Control, WM, Timeline, Worker, Codec, Surface, Inspector 等 9 大面板的扩展点。
+- **Data 面板（已落地）**：展示全量 signals，按 scope 分组，支持展开/折叠与滚动浏览。
+- **Storage 面板（已落地）**：接入 OPFS 文件系统，支持浏览/上传/下载/删除，并可编辑元数据与查看 quota/usage。
+- **Control 面板**：集成了组件库展示与交互测试。
 
-交付物：
-- 时间轴上可创建/移动/剪切简单片段（不需要真实媒体解码）。
+---
 
-## Phase 2：媒体导入与解码管线（WebCodecs）
+## Phase 1：数据模型与时间轴 UI（进行中）
 
-- 文件导入：File/DragDrop；建立 MediaItem（视频/音频/图片）元数据。
-- 解封装：优先选择“浏览器可直接解码的容器/编码”；必要时采用最小化 demux 方案（待调研）。
-- 视频解码：VideoDecoder → VideoFrame；帧缓存策略（窗口缓存、LRU、seek 预热）。
-- 音频解码：AudioDecoder → AudioData；PCM 缓存与分段管理。
-- 代理/预览：当源素材过重时的降分辨率预览策略（后续增强）。
+本阶段将重点构建非编系统的核心数据结构，并利用 Phase 0 的 UI 能力实现可视化的时间轴。
 
-交付物：
-- 导入一段视频后可在预览窗口播放（无时间轴编辑也可）。
+- **工程模型**：定义 `Project`, `Sequence`, `Track`, `Clip` 的数据结构，接入 Reactivity 系统。
+- **时间轴 Surface**：
+  - 利用 `DividerSurface` 实现左侧“轨道头”与右侧“时间线”的分栏。
+  - 实现 `TrackSurface`，支持虚拟滚动（Virtual Scrolling）以承载大量片段。
+  - 实现时间刻度尺（Ruler）与播放头（Playhead）绘制。
+- **命令系统**：实现基于 Command Pattern 的 Undo/Redo 架构。
+- **DevTools 集成**：
+  - 完善 `Data` 面板：实时展示工程数据树。
+  - 完善 `WM` 面板：可视化管理窗口层级与状态。
 
-## Phase 3：实时预览渲染（Canvas + GPU）
+## Phase 2：媒体引擎与资源管理
 
-- 渲染架构：渲染线程/主线程职责划分（可选 Worker + OffscreenCanvas）。
-- 合成：多图层（轨道）叠加、alpha、变换；图像缩放与色彩空间处理（最小可行）。
-- GPU 路径：优先 WebGL2（成熟）；WebGPU 作为可选增强。
-- 字幕/文本：基础文本渲染（Canvas2D 或 SDF 字体方案，待定）。
-- 播放控制：时间线驱动的渲染时钟，与音频时钟同步策略。
+本阶段接入 WebCodecs 能力，打通从文件到内存的链路。
 
-交付物：
-- 时间轴片段驱动预览窗口逐帧渲染（视频 + 静态图片）。
+- **存储层（VFS）**：基于 OPFS (Origin Private File System) 封装文件访问接口与元数据数据库（JSON DB，支持 CRUD 与 usage 汇总）。
+  - *DevTools*: `Storage` 面板用于分析/整理/清理 OPFS 数据（已具备基本浏览与管理能力，后续扩展统计/批量清理）。
+- **解码管线**：封装 `VideoDecoder` / `AudioDecoder`，实现 `Clip` 到 `VideoFrame` 的异步获取。
+  - *DevTools*: 实现 `Codec` 面板，监控解码器状态与缓冲。
+  - *DevTools*: 实现 `Worker` 面板，监控后台解码线程。
+- **资源管理**：实现 LRU 缓存策略，管理高内存占用的 VideoFrame。
+- **导入流程**：实现文件拖拽导入，解析容器格式（Demux），提取元数据。
 
-## Phase 4：编辑交互与专业化 UI（Canvas）
+## Phase 3：渲染引擎与实时预览
 
-- 轨道/片段交互：选择、框选、多选、拖拽、吸附、滚轮缩放、快捷键体系。
-- 标尺与时间刻度：可变缩放、帧对齐显示、playhead、in/out 标记。
-- 属性面板：变换、裁剪、透明度、速度（基础）。
-- 素材库：缩略图、搜索/分组、拖入时间轴。
-- 事件系统：统一 pointer/keyboard/focus 管理，避免“交互粘连”。
+本阶段将利用 Compositor 实现视频流的实时合成与播放。
 
-交付物：
-- 达到“专业软件基本可用”的剪辑体验（基本快捷键 + 面板）。
+- **高级合成**：扩展 `Compositor`，支持视频帧纹理上传、仿射变换（Transform）、透明度合成。
+- **渲染时钟**：实现与音频上下文（AudioContext）同步的渲染主时钟。
+- **预览窗口**：实现 `PreviewSurface`，支持 1:1 像素渲染与缩放查看。
+- **DevTools 集成**：
+  - 完善 `Surface` 面板：可视化调试 Compositor 图层树与绘制指令。
+  - 完善 `Timeline` 面板：监控渲染帧率与掉帧情况。
 
-## Phase 5：导出（编码 + 封装）
+## Phase 4：编辑器交互与工作台组装
 
-- 视频编码：VideoEncoder（H.264/VP9/AV1 视浏览器支持）。
-- 音频编码：AudioEncoder（AAC/Opus）。
-- 封装：MP4/WebM（按浏览器支持与实现复杂度择一优先）。
-- 导出 UI：进度、取消、预估、错误报告。
+本阶段将零散的 Surface 组装成完整的非编工作台。
 
-交付物：
-- 完整闭环：导入 → 剪辑 → 导出一个可播放文件。
+- **主界面布局**：使用 `Divider` 与 `TabPanel` 组合出经典的非编布局（资源库、预览、属性、时间轴）。
+- **交互编辑**：
+  - 实现时间轴片段的拖拽移动、边缘修剪（Trim）、吸附（Snap）。
+  - 实现多选与框选交互。
+- **属性面板**：实现 `Inspector` 面板，支持对选中 Clip 的属性（位置、缩放、音量等）进行编辑。
+- **脚本能力**：*DevTools* `Inspector` 面板支持执行简单脚本查询/修改编辑器状态。
 
-# 关键技术决策（待定项与默认假设）
+## Phase 5：导出与交付
 
-- 默认假设：TypeScript + Vite/Esbuild 类 bundler；WebGL2 作为首选渲染后端。
-- Demux 策略：先限制支持格式（如 mp4/h264+aac, webm/vp9+opus），后续再扩展。
-- Worker：优先把解码与渲染拆分到 Worker（如果收益明显且实现成本可控），否则先主线程打通。
+- **编码与封装**：接入 `VideoEncoder` / `AudioEncoder` 与 Muxer。
+- **导出任务**：实现非阻塞的后台导出流程。
+- **交付 UI**：导出设置、进度条与结果预览。
 
 # 风险与缓解
 
-- 容器/解封装复杂：先做“受限格式集”，再扩展；必要时引入轻量 demux。
-- 同步与性能：明确时钟主导（音频优先/视频优先），实现 backpressure 与帧丢弃策略。
-- Canvas UI 复杂度：建立 UI 基建（布局、命中测试、焦点管理）后再做大功能。
-
-# 下一步（进入实现前的首批任务建议）
-
-- 初始化 repo 与构建脚手架（TS、dev server、基础 Canvas shell）。
-- 落地 Project/Timeline 数据模型 + undo/redo + JSON schema。
-- 定义“最小支持格式”与解码/渲染链路验证用素材集。
+- **WebCodecs 兼容性**：持续关注标准变化，保持解码器封装的抽象层，以便替换 polyfill。
+- **Canvas 性能瓶颈**：若 2D Context 遇到瓶颈，评估迁移至 WebGL/WebGPU 渲染后端的成本（架构上已通过 Surface/Compositor 隔离）。
+- **内存管理**：VideoFrame 的显存占用极高，需严格执行生命周期管理与引用计数。

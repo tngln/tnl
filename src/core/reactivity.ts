@@ -4,11 +4,47 @@ type EffectFn = (() => EffectCleanup) & { deps?: Set<Signal<unknown>>; cleanup?:
 
 let activeEffect: EffectFn | null = null
 const effectStack: EffectFn[] = []
+let nextSignalId = 1
+const debugSignals = new Map<number, Signal<unknown>>()
+const debugMeta = new Map<number, { name?: string; scope?: string; createdAt: number }>()
 
 export type Signal<T> = {
   get(): T
   set(next: T | ((prev: T) => T)): void
   peek(): T
+}
+
+export type DebugSignalRecord = {
+  id: number
+  name?: string
+  scope?: string
+  createdAt: number
+  subscribers: number
+  peek: () => unknown
+}
+
+export function listSignals(): DebugSignalRecord[] {
+  const out: DebugSignalRecord[] = []
+  for (const [id, sig] of debugSignals) {
+    const meta = debugMeta.get(id)
+    const subs: Set<EffectFn> | undefined = (sig as any)._subs
+    out.push({
+      id,
+      name: meta?.name,
+      scope: meta?.scope,
+      createdAt: meta?.createdAt ?? 0,
+      subscribers: subs?.size ?? 0,
+      peek: () => sig.peek(),
+    })
+  }
+  return out
+}
+
+export function setSignalMeta(sig: Signal<unknown>, meta: { name?: string; scope?: string }) {
+  const id: number | undefined = (sig as any)._id
+  if (!id) return
+  const cur = debugMeta.get(id) ?? { createdAt: Date.now() }
+  debugMeta.set(id, { createdAt: cur.createdAt, name: meta.name ?? cur.name, scope: meta.scope ?? cur.scope })
 }
 
 export function signal<T>(initial: T): Signal<T> {
@@ -47,6 +83,10 @@ export function signal<T>(initial: T): Signal<T> {
   ;(sig as Signal<unknown>).peek = sig.peek
 
   ;(sig as any)._subs = subs
+  const id = nextSignalId++
+  ;(sig as any)._id = id
+  debugSignals.set(id, sig as Signal<unknown>)
+  debugMeta.set(id, { createdAt: Date.now() })
 
   return sig
 }
@@ -89,4 +129,8 @@ export function computed<T>(fn: () => T): Signal<T> {
   })
   return out
 }
+
+const g = globalThis as any
+g.__TNL_DEVTOOLS__ ??= {}
+g.__TNL_DEVTOOLS__.reactivity = { listSignals, setSignalMeta }
 
