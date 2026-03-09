@@ -1,9 +1,9 @@
 import { signal, type Signal } from "../../core/reactivity"
 import { draw, RRect } from "../../core/draw"
-import { createEventStream, dragSession } from "../../core/event_stream"
+import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "../../core/event_stream"
 import { clamp } from "../../core/rect"
 import { theme } from "../../config/theme"
-import { UIElement, type Rect, type Vec2, PointerUIEvent, pointInRect } from "../base/ui"
+import { CursorRegion, UIElement, type Rect, type Vec2, PointerUIEvent, pointInRect } from "../base/ui"
 import { ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "../base/viewport"
 
 type Axis = "x" | "y"
@@ -31,6 +31,7 @@ class DividerHandle extends UIElement {
   private readonly downEvents = createEventStream<PointerUIEvent>()
   private readonly moveEvents = createEventStream<PointerUIEvent>()
   private readonly upEvents = createEventStream<PointerUIEvent>()
+  private readonly cancelEvents = createEventStream<string>()
 
   constructor(opts: { rect: () => Rect; axis: Axis; position: Signal<number>; minA: () => number; minB: () => number; total: () => number }) {
     super()
@@ -41,6 +42,12 @@ class DividerHandle extends UIElement {
     this.minB = opts.minB
     this.total = opts.total
     this.z = 50
+    this.add(
+      new CursorRegion({
+        rect: () => this.rect(),
+        cursor: this.axis === "x" ? "ew-resize" : "ns-resize",
+      }),
+    )
     this.setupGestures()
   }
 
@@ -107,10 +114,18 @@ class DividerHandle extends UIElement {
   }
 
   private setupGestures() {
+    const dragMoves = this.moveEvents.stream.filter((event) => (event.buttons & 1) !== 0)
+    const cancel = interactionCancelStream({
+      cancel: this.cancelEvents.stream,
+      move: this.moveEvents.stream,
+      buttons: (event) => event.buttons,
+    })
+
     dragSession({
       down: this.downEvents.stream,
-      move: this.moveEvents.stream,
+      move: dragMoves,
       up: this.upEvents.stream,
+      cancel,
       point: (event) => ({ x: event.x, y: event.y }),
       thresholdSq: 0,
     }).subscribe((event) => {
@@ -118,7 +133,10 @@ class DividerHandle extends UIElement {
         this.startPos = this.position.peek()
         return
       }
-      if (event.kind !== "move") return
+      if (event.kind === "end" || event.kind === "cancel") {
+        this.down = false
+        return
+      }
       const start = this.axis === "x" ? event.down.x : event.down.y
       const cur = this.axis === "x" ? event.current.x : event.current.y
       const delta = cur - start
@@ -130,13 +148,16 @@ class DividerHandle extends UIElement {
     })
   }
 
+  captureCursor() {
+    return this.axis === "x" ? "ew-resize" : "ns-resize"
+  }
+
   onPointerEnter() {
     this.hover = true
   }
 
   onPointerLeave() {
     this.hover = false
-    this.down = false
   }
 
   onPointerDown(e: PointerUIEvent) {
@@ -154,6 +175,12 @@ class DividerHandle extends UIElement {
   onPointerUp(e: PointerUIEvent) {
     this.upEvents.emit(e)
     this.down = false
+  }
+
+  onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
+    this.cancelEvents.emit(reason)
+    this.down = false
+    this.hover = false
   }
 }
 

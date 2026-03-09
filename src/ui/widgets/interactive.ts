@@ -1,4 +1,5 @@
 import { ZERO_RECT, type Rect } from "../../core/rect"
+import type { InteractionCancelReason } from "../../core/event_stream"
 import { createPressMachine } from "../../core/fsm"
 import { PointerUIEvent, UIElement, pointInRect, type Vec2 } from "../base/ui"
 
@@ -60,6 +61,12 @@ export class InteractiveElement extends UIElement {
     this.press.send({ type: "RELEASE", point: { x: e.x, y: e.y } })
     if (!this.hover) return
     this.onActivate()
+  }
+
+  onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
+    this.hover = false
+    if (!this.press.matches("pressed")) return
+    this.press.send({ type: "CANCEL", reason })
   }
 
   protected pressed() {

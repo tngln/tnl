@@ -3,10 +3,12 @@ import { draw, RRect, Text } from "../../core/draw"
 import { measureTextWidth } from "../../core/draw.text"
 import { measureLayout, type LayoutStyle } from "../../core/layout"
 import { ZERO_RECT } from "../../core/rect"
+import { TREE_ROW_HEIGHT } from "../widgets"
 import { textFont } from "./text"
 import { inheritedTextToRichTextStyle, resolveTextColor, resolveTextEmphasis, resolveTextStyle } from "./styles"
 import type { BuilderEngine } from "./engine"
-import type { AstNode, BuilderNode, ButtonNode, CheckboxNode, ContainerNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SpacerNode, TextNode } from "./types"
+import type { AstNode, BuilderNode, ButtonNode, CheckboxNode, ContainerNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SpacerNode, TextNode, TreeViewNode } from "./types"
+import { flattenTreeItems } from "./runtime"
 
 export type MeasureSize = { w: number; h: number }
 
@@ -144,6 +146,17 @@ const rowItemHandler: BuilderNodeHandler<RowNode> = {
   },
 }
 
+const treeViewHandler: BuilderNodeHandler<TreeViewNode> = {
+  kind: "treeView",
+  measure: (_engine, _ctx, node, max) => {
+    const rows = flattenTreeItems(node.items, node.expanded)
+    return { w: max.w, h: rows.length * TREE_ROW_HEIGHT }
+  },
+  mount: (engine, _ctx, node, ast, path, active) => {
+    engine.runtime.mountTreeView(path, ast.rect ?? ZERO_RECT, node, active)
+  },
+}
+
 const scrollAreaHandler: BuilderNodeHandler<ScrollAreaNode> = {
   kind: "scrollArea",
   measure: (engine, ctx, node, max, path, ast) => {
@@ -172,6 +185,7 @@ export function createDefaultBuilderRegistry() {
   registry.register(checkboxHandler)
   registry.register(radioHandler)
   registry.register(rowItemHandler)
+  registry.register(treeViewHandler)
   registry.register(scrollAreaHandler)
   registry.register(spacerHandler)
   return registry

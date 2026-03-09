@@ -20,6 +20,8 @@ export type DockingContainerSnapshot = {
 export type DockingControlApi = {
   listPanes(): DockingPaneSnapshot[]
   listContainers(): DockingContainerSnapshot[]
+  getActivePaneId(): string | null
+  getActiveContainerId(): string | null
   activatePane(id: string): void
   hidePane(id: string): void
   floatPane(id: string, rect?: Rect): void
@@ -134,6 +136,8 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
   private nextNodeId = 1
   private mainContainerId: string | null = null
   private dragSession: DragSession | null = null
+  private activePaneId: string | null = null
+  private activeContainerId: string | null = null
   private readonly windowListener = {
     onBeforeFocus: (nextId: string) => this.cancelDragForFocusChange(nextId),
     onBeforeClose: (id: string) => this.cancelDragForWindowInterruption(id),
@@ -203,10 +207,20 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
     return [...this.containers.values()].map((container) => ({ id: container.id, title: container.title }))
   }
 
+  getActivePaneId() {
+    return this.activePaneId
+  }
+
+  getActiveContainerId() {
+    return this.activeContainerId
+  }
+
   activatePane(id: string) {
     const pane = this.panes.get(id)
     if (!pane) return
     if (pane.state === "floating" && pane.floatingWindowId) {
+      this.activePaneId = pane.id
+      this.activeContainerId = null
       this.windows.focus(pane.floatingWindowId)
       this.invalidate?.()
       return
@@ -242,6 +256,10 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
     pane.state = "hidden"
     pane.hostContainerId = null
     pane.leafId = null
+    if (this.activePaneId === id) {
+      this.activePaneId = null
+      this.activeContainerId = null
+    }
     this.invalidate?.()
   }
 
@@ -264,6 +282,8 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
     pane.state = "floating"
     pane.hostContainerId = null
     pane.leafId = null
+    this.activePaneId = pane.id
+    this.activeContainerId = null
     pane.floatingRect = rect ?? pane.floatingRect
     this.materializeFloatingWindow(pane, opts)
     this.invalidate?.()
@@ -291,6 +311,8 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
     pane.leafId = findLeafByPane(container.root, pane.id)?.id ?? null
     pane.lastDockContainerId = containerId
     pane.lastDockLeafId = pane.leafId
+    this.activePaneId = pane.id
+    this.activeContainerId = containerId
     this.selectPane(containerId, pane.id)
     this.invalidate?.()
   }
@@ -330,6 +352,8 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
       pane.lastDockContainerId = containerId
       pane.lastDockLeafId = pane.leafId
     }
+    this.activePaneId = paneId
+    this.activeContainerId = containerId
     this.invalidate?.()
   }
 

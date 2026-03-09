@@ -14,6 +14,7 @@ import {
   section,
   spacer,
   stack,
+  treeViewNode,
   textNode,
   toolbarRow,
   type BoxStyle,
@@ -21,6 +22,7 @@ import {
   type CommonNodeProps,
   type InheritedStyle,
   type RowVariant,
+  type TreeItem,
 } from "./surface_builder"
 import { normalizeChildren, resolveChildren, resolveTextContent, type BuilderChild, type JSXNodeProps } from "../jsx"
 import type { RichTextSpan, RichTextStyle, TextEmphasis } from "../../core/draw.text"
@@ -77,6 +79,14 @@ type RowItemProps = JSXNodeProps & {
 }
 
 type ScrollAreaProps = JSXNodeProps
+
+type TreeViewProps = Omit<JSXNodeProps, "children"> & {
+  items: TreeItem[]
+  expanded: ReadonlySet<string>
+  selectedId?: string | null
+  onToggle?: (id: string) => void
+  onSelect?: (id: string) => void
+}
 
 type SectionProps = JSXNodeProps & {
   title: string
@@ -238,6 +248,17 @@ export function ScrollArea(props: ScrollAreaProps) {
   const children = resolveChildren(props)
   const child = children.length <= 1 ? (children[0] ?? spacer()) : column(children, { axis: "column", gap: 0, w: "auto", h: "auto" })
   return scrollAreaNode(child, common(props))
+}
+
+export function TreeView(props: TreeViewProps) {
+  return treeViewNode({
+    ...common(props),
+    items: props.items,
+    expanded: props.expanded,
+    selectedId: props.selectedId,
+    onToggle: props.onToggle,
+    onSelect: props.onSelect,
+  })
 }
 
 export function Section(props: SectionProps) {

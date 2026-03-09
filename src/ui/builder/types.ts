@@ -103,6 +103,23 @@ export type RowNode = NodeBase & {
   onClick?: () => void
 }
 
+export type TreeItem = {
+  id: string
+  label: string
+  meta?: string
+  variant?: RowVariant
+  children?: TreeItem[]
+}
+
+export type TreeViewNode = NodeBase & {
+  kind: "treeView"
+  items: TreeItem[]
+  expanded: ReadonlySet<string>
+  selectedId?: string | null
+  onToggle?: (id: string) => void
+  onSelect?: (id: string) => void
+}
+
 export type ScrollAreaNode = NodeBase & {
   kind: "scrollArea"
   child: BuilderNode
@@ -117,6 +134,7 @@ export type BuilderNode =
   | CheckboxNode
   | RadioNode
   | RowNode
+  | TreeViewNode
   | ScrollAreaNode
 
 export type AstNode = LayoutNode & {

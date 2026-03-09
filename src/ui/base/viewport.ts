@@ -1,5 +1,6 @@
+import type { InteractionCancelReason } from "../../core/event_stream"
 import { Compositor } from "./compositor"
-import { PointerUIEvent, UIElement, WheelUIEvent, pointInRect, type Rect as BoundsRect, type Vec2 } from "./ui"
+import { PointerUIEvent, UIElement, WheelUIEvent, dispatchPointerCancelEvent, dispatchPointerEvent, dispatchWheelEvent, pointInRect, type DebugTreeNodeSnapshot, type Rect as BoundsRect, type UIEventTargetNode, type Vec2 } from "./ui"
 
 export class SurfaceRoot extends UIElement {
   bounds(): BoundsRect {
@@ -36,7 +37,24 @@ export type Surface = {
   onPointerDown?: (e: PointerUIEvent, viewport: ViewportContext) => void
   onPointerMove?: (e: PointerUIEvent, viewport: ViewportContext) => void
   onPointerUp?: (e: PointerUIEvent, viewport: ViewportContext) => void
+  onPointerCancel?: (e: PointerUIEvent | null, reason: InteractionCancelReason, viewport: ViewportContext) => void
   onWheel?: (e: WheelUIEvent, viewport: ViewportContext) => void
+  debugSnapshot?: (viewport: ViewportContext) => DebugTreeNodeSnapshot
+}
+
+export function surfaceDebugSnapshot(surface: Surface, viewport: ViewportContext): DebugTreeNodeSnapshot {
+  return (
+    surface.debugSnapshot?.(viewport) ?? {
+      kind: "surface",
+      type: (surface as object).constructor?.name || "Surface",
+      label: surface.id,
+      id: surface.id,
+      bounds: viewport.rect,
+      visible: true,
+      meta: `${Math.round(viewport.contentRect.w)}x${Math.round(viewport.contentRect.h)}`,
+      children: [],
+    }
+  )
 }
 
 function toLocalEvent(e: PointerUIEvent, p: Vec2) {
@@ -75,8 +93,9 @@ export class ViewportElement extends UIElement {
   private readonly scroll: () => Vec2
   private readonly active: () => boolean
 
-  private capture: UIElement | null = null
+  private capture: UIEventTargetNode | null = null
   private hover: UIElement | null = null
+  private readonly surfaceBridge: SurfaceEventBridge
 
   constructor(opts: { rect: () => BoundsRect; target?: Surface | null; options?: ViewportOptions }) {
     super()
@@ -89,10 +108,31 @@ export class ViewportElement extends UIElement {
     else if (scrollOpt) this.scroll = () => scrollOpt
     else this.scroll = () => ({ x: 0, y: 0 })
     this.active = opts.options?.active ?? (() => true)
+    this.surfaceBridge = new SurfaceEventBridge(this)
   }
 
   setTarget(s: Surface | null) {
     this.target = s
+  }
+
+  protected debugDescribe() {
+    const rect = this.bounds()
+    return {
+      kind: "element" as const,
+      type: "ViewportElement",
+      label: this.target ? `Viewport -> ${this.target.id}` : "Viewport",
+      bounds: rect,
+      z: this.z,
+      visible: this.visible,
+      meta: `${Math.round(rect.w)}x${Math.round(rect.h)}`,
+    }
+  }
+
+  protected debugChildren(): DebugTreeNodeSnapshot[] {
+    const children = super.debugChildren()
+    if (!this.active() || !this.target) return children
+    children.push(surfaceDebugSnapshot(this.target, this.viewportCtx()))
+    return children
   }
 
   bounds(): BoundsRect {
@@ -115,6 +155,14 @@ export class ViewportElement extends UIElement {
       toSurface: (pViewport) => ({ x: pViewport.x - contentRect.x + scroll.x, y: pViewport.y - contentRect.y + scroll.y }),
       dpr,
     }
+  }
+
+  eventSurface() {
+    return this.target
+  }
+
+  eventViewportContext() {
+    return this.viewportCtx()
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
@@ -177,67 +225,104 @@ export class ViewportElement extends UIElement {
     this.hover = null
   }
 
+  private localPointFromPointer(e: PointerUIEvent) {
+    const vp = this.viewportCtx()
+    return { viewport: vp, local: vp.toSurface({ x: e.x, y: e.y }) }
+  }
+
+  private localPointFromWheel(e: WheelUIEvent) {
+    const vp = this.viewportCtx()
+    return { viewport: vp, local: vp.toSurface({ x: e.x, y: e.y }) }
+  }
+
+  private surfacePathTarget(local: Vec2, vp: ViewportContext) {
+    const s = this.target
+    if (!s) return null
+    return this.capture ?? s.hitTest?.(local, vp) ?? this.surfaceBridge
+  }
+
+  private surfacePointForTarget(local: Vec2) {
+    return () => local
+  }
+
   onPointerDown(e: PointerUIEvent) {
     if (!this.active()) return
     const s = this.target
     if (!s) return
-    const vp = this.viewportCtx()
-    const local = vp.toSurface({ x: e.x, y: e.y })
-    const le = toLocalEvent(e, local)
-
-    const hit = s.hitTest?.(local, vp)
-    if (hit) {
-      if (hit !== this.hover) {
-        this.hover?.onPointerLeave()
-        hit.onPointerEnter()
-        this.hover = hit
-      }
-      this.capture = null
-      hit.onPointerDown(le)
-      if (le.didCapture) {
-        this.capture = hit
-        e.capture()
-      }
-      return
+    const { viewport: vp, local } = this.localPointFromPointer(e)
+    const hit = s.hitTest?.(local, vp) ?? null
+    if (hit && hit !== this.hover) {
+      this.hover?.onPointerLeave()
+      hit.onPointerEnter()
+      this.hover = hit
+    } else if (!hit && this.hover) {
+      this.hover.onPointerLeave()
+      this.hover = null
     }
 
-    s.onPointerDown?.(le, vp)
+    const target = hit ?? this.surfaceBridge
+    const le = toLocalEvent(e, local)
+    dispatchPointerEvent(target, le, "down", this.surfacePointForTarget(local))
+    if (le.didCapture) {
+      this.capture = target
+      e.capturePointer()
+    }
+    e.adoptOutcome(le)
   }
 
   onPointerMove(e: PointerUIEvent) {
     if (!this.active()) return
     const s = this.target
     if (!s) return
-    const vp = this.viewportCtx()
-    const local = vp.toSurface({ x: e.x, y: e.y })
-    const le = toLocalEvent(e, local)
-
-    const target = this.capture ?? s.hitTest?.(local, vp)
-    if (target && target !== this.hover) {
+    const { viewport: vp, local } = this.localPointFromPointer(e)
+    const hit = s.hitTest?.(local, vp) ?? null
+    const hoverTarget = hit instanceof UIElement ? hit : null
+    if (hoverTarget && hoverTarget !== this.hover) {
       this.hover?.onPointerLeave()
-      target.onPointerEnter()
-      this.hover = target
-    } else if (!target && this.hover) {
+      hoverTarget.onPointerEnter()
+      this.hover = hoverTarget
+    } else if (!hoverTarget && this.hover) {
       this.hover.onPointerLeave()
       this.hover = null
     }
 
-    if (target) target.onPointerMove(le)
-    else s.onPointerMove?.(le, vp)
+    const target = this.surfacePathTarget(local, vp)
+    if (!target) return
+    const le = toLocalEvent(e, local)
+    dispatchPointerEvent(target, le, "move", this.surfacePointForTarget(local))
+    e.adoptOutcome(le)
   }
 
   onPointerUp(e: PointerUIEvent) {
     if (!this.active()) return
     const s = this.target
     if (!s) return
-    const vp = this.viewportCtx()
-    const local = vp.toSurface({ x: e.x, y: e.y })
-    const le = toLocalEvent(e, local)
-
-    const target = this.capture ?? s.hitTest?.(local, vp)
-    if (target) target.onPointerUp(le)
-    else s.onPointerUp?.(le, vp)
+    const { viewport: vp, local } = this.localPointFromPointer(e)
+    const target = this.surfacePathTarget(local, vp)
+    if (target) {
+      const le = toLocalEvent(e, local)
+      dispatchPointerEvent(target, le, "up", this.surfacePointForTarget(local))
+      e.adoptOutcome(le)
+    }
     this.capture = null
+  }
+
+  onPointerCancel(e: PointerUIEvent | null, reason: InteractionCancelReason) {
+    if (!this.active()) return
+    const s = this.target
+    if (!s) return
+    const target = this.capture ?? this.surfaceBridge
+    if (e) {
+      const { viewport: _vp, local } = this.localPointFromPointer(e)
+      const le = toLocalEvent(e, local)
+      dispatchPointerCancelEvent(target, le, reason, this.surfacePointForTarget(local))
+      e.adoptOutcome(le)
+    } else {
+      dispatchPointerCancelEvent(target, null, reason)
+    }
+    this.capture = null
+    if (this.hover) this.hover.onPointerLeave()
+    this.hover = null
   }
 
   onWheel(e: WheelUIEvent) {
@@ -245,12 +330,50 @@ export class ViewportElement extends UIElement {
     const s = this.target
     if (!s) return
     if (!pointInRect({ x: e.x, y: e.y }, this.rect())) return
-    const vp = this.viewportCtx()
-    const local = vp.toSurface({ x: e.x, y: e.y })
+    const { viewport: vp, local } = this.localPointFromWheel(e)
     const le = toLocalWheelEvent(e, local)
-    const target = s.hitTest?.(local, vp)
-    if (target) target.onWheel(le)
-    if (!le.didHandle) s.onWheel?.(le, vp)
-    if (le.didHandle) e.handle()
+    const target = s.hitTest?.(local, vp) ?? this.surfaceBridge
+    dispatchWheelEvent(target, le, this.surfacePointForTarget(local))
+    e.adoptOutcome(le)
+  }
+}
+
+class SurfaceEventBridge implements UIEventTargetNode {
+  constructor(private readonly viewport: ViewportElement) {}
+
+  eventParentTarget() {
+    return null
+  }
+
+  private targetSurface() {
+    return this.viewport.eventSurface()
+  }
+
+  private viewportCtx() {
+    return this.viewport.eventViewportContext()
+  }
+
+  onPointerDown(e: PointerUIEvent) {
+    if (e.target !== this) return
+    this.targetSurface()?.onPointerDown?.(e, this.viewportCtx())
+  }
+
+  onPointerMove(e: PointerUIEvent) {
+    if (e.target !== this) return
+    this.targetSurface()?.onPointerMove?.(e, this.viewportCtx())
+  }
+
+  onPointerUp(e: PointerUIEvent) {
+    if (e.target !== this) return
+    this.targetSurface()?.onPointerUp?.(e, this.viewportCtx())
+  }
+
+  onPointerCancel(e: PointerUIEvent | null, reason: InteractionCancelReason) {
+    this.targetSurface()?.onPointerCancel?.(e, reason, this.viewportCtx())
+  }
+
+  onWheel(e: WheelUIEvent) {
+    if (e.target !== this && e.didHandle) return
+    this.targetSurface()?.onWheel?.(e, this.viewportCtx())
   }
 }

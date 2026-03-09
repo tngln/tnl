@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import { createMachine, createPressMachine } from "./fsm"
+import { listSignals } from "./reactivity"
 import { classifyClicks, createEventStream, dragSession } from "./event_stream"
 
 type DragEvent =
@@ -195,6 +196,7 @@ describe("fsm", () => {
   })
 
   it("provides a reusable press machine helper", () => {
+    const before = new Set(listSignals().map((record) => record.id))
     const machine = createPressMachine()
 
     expect(machine.matches("idle")).toBe(true)
@@ -209,5 +211,8 @@ describe("fsm", () => {
     machine.send({ type: "RELEASE", point: { x: 16, y: 18 } })
     expect(machine.matches("idle")).toBe(true)
     expect(machine.snapshot().context.lastPointer).toEqual({ x: 16, y: 18 })
+
+    const after = new Set(listSignals().map((record) => record.id))
+    expect(after).toEqual(before)
   })
 })

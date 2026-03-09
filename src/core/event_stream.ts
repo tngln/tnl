@@ -1,6 +1,24 @@
 export type Unsubscribe = () => void
 export type EventListener<T> = (value: T) => void
 export type TimerHandle = unknown
+export type InteractionCancelReason =
+  | "leave"
+  | "blur"
+  | "visibility-hidden"
+  | "pagehide"
+  | "pointercancel"
+  | "lost-capture"
+  | "buttons-released"
+  | "inactive"
+  | "close"
+  | "minimize"
+  | "maximize"
+  | "unmaximize"
+  | "left-half"
+  | "right-half"
+  | "restore-screen-usage"
+  | "set-rect"
+  | (string & {})
 
 export class EventStream<T> {
   private readonly subscribeImpl: (listener: EventListener<T>) => Unsubscribe | void
@@ -228,6 +246,26 @@ export function dragSession<TDown, TMove = TDown, TUp = TMove, TCancel = unknown
       active = null
     }
   })
+}
+
+export function interactionCancelStream<TMove>(opts: {
+  cancel?: EventStream<InteractionCancelReason>
+  interrupted?: EventStream<InteractionCancelReason>
+  move?: EventStream<TMove>
+  buttons?: (value: TMove) => number
+  primaryButtonMask?: number
+}) {
+  let out: EventStream<InteractionCancelReason> | null = null
+  if (opts.cancel) out = opts.cancel
+  if (opts.interrupted) out = out ? out.merge(opts.interrupted) : opts.interrupted
+  if (opts.move && opts.buttons) {
+    const primaryButtonMask = opts.primaryButtonMask ?? 1
+    const released = opts.move
+      .filter((value) => (((opts.buttons?.(value) ?? 0) & primaryButtonMask) === 0))
+      .map(() => "buttons-released" as InteractionCancelReason)
+    out = out ? out.merge(released) : released
+  }
+  return out ?? createEventStream<InteractionCancelReason>().stream
 }
 
 export function untilAbort(signalLike: { subscribe(listener: () => void): { unsubscribe(): void } }) {

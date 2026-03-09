@@ -1,5 +1,5 @@
 import { draw, RRect } from "../../core/draw"
-import { createEventStream, dragSession } from "../../core/event_stream"
+import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "../../core/event_stream"
 import { createMachine, type Machine } from "../../core/fsm"
 import { clamp } from "../../core/rect"
 import { theme } from "../../config/theme"
@@ -164,11 +164,18 @@ export class Scrollbar extends UIElement {
   }
 
   private setupGestures() {
+    const dragMoves = this.moveEvents.stream.filter((event) => (event.buttons & 1) !== 0)
+    const cancel = interactionCancelStream({
+      cancel: this.cancelEvents.stream,
+      move: this.moveEvents.stream,
+      buttons: (event) => event.buttons,
+    })
+
     dragSession({
       down: this.downEvents.stream,
-      move: this.moveEvents.stream,
+      move: dragMoves,
       up: this.upEvents.stream,
-      cancel: this.cancelEvents.stream,
+      cancel,
       point: (event) => ({ x: event.x, y: event.y }),
       thresholdSq: 0,
     }).subscribe((event) => {
@@ -249,5 +256,10 @@ export class Scrollbar extends UIElement {
   onPointerUp(e: PointerUIEvent) {
     if (this.machine.matches("idle")) return
     this.upEvents.emit(e)
+  }
+
+  onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
+    this.hover = false
+    this.cancelEvents.emit(reason)
   }
 }

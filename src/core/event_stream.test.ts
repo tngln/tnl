@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { classifyClicks, createEventStream, dragSession, mergeStreams } from "./event_stream"
+import { classifyClicks, createEventStream, dragSession, interactionCancelStream, mergeStreams } from "./event_stream"
 
 function createFakeClock() {
   let now = 0
@@ -127,6 +127,30 @@ describe("event stream", () => {
     down.emit({ x: 0, y: 0 })
     cancel.emit("blur")
     expect(events).toEqual(["start:20,20", "move:20,20", "move:24,24", "end:28,28", "cancel:blur:false"])
+
+    sub.unsubscribe()
+  })
+
+  it("combines interaction cancel sources including buttons-released", () => {
+    const localCancel = createEventStream<"leave">()
+    const interrupted = createEventStream<"blur" | "pagehide">()
+    const move = createEventStream<{ buttons: number }>()
+    const reasons: string[] = []
+
+    const sub = interactionCancelStream({
+      cancel: localCancel.stream,
+      interrupted: interrupted.stream,
+      move: move.stream,
+      buttons: (value) => value.buttons,
+    }).subscribe((reason) => reasons.push(reason))
+
+    move.emit({ buttons: 1 })
+    localCancel.emit("leave")
+    interrupted.emit("blur")
+    move.emit({ buttons: 0 })
+    interrupted.emit("pagehide")
+
+    expect(reasons).toEqual(["leave", "blur", "buttons-released", "pagehide"])
 
     sub.unsubscribe()
   })

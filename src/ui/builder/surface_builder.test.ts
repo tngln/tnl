@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test"
 import { signal } from "../../core/reactivity"
 import { theme } from "../../config/theme"
-import { BuilderSurface, buttonNode, checkboxNode, column, defineSurface, mountSurface, richTextNode, rowItemNode, scrollAreaNode, textNode } from "./surface_builder"
+import { BuilderSurface, buttonNode, checkboxNode, column, defineSurface, flattenTreeItems, mountSurface, richTextNode, rowItemNode, scrollAreaNode, textNode, treeItem, treeViewNode } from "./surface_builder"
+import { PointerUIEvent } from "../base/ui"
 
 function fakeCtx() {
   let font = "400 12px system-ui"
@@ -264,5 +265,162 @@ describe("surface builder", () => {
       expect(size.y).toBeGreaterThanOrEqual(20)
       expect(size.x).toBeGreaterThanOrEqual(180)
     })
+  })
+
+  it("flattens tree items according to expanded state", () => {
+    const items = [
+      treeItem("root", "Root", {
+        children: [
+          treeItem("a", "A"),
+          treeItem("b", "B", {
+            children: [treeItem("b.1", "B1")],
+          }),
+        ],
+      }),
+    ]
+
+    expect(flattenTreeItems(items, new Set(["root"])).map((row) => row.id)).toEqual(["root", "a", "b"])
+    expect(flattenTreeItems(items, new Set(["root", "b"])).map((row) => row.id)).toEqual(["root", "a", "b", "b.1"])
+  })
+
+  it("reuses mounted tree rows and hides collapsed descendants", () => {
+    const expanded = new Set<string>(["root", "branch"])
+    const surface = new BuilderSurface({
+      id: "Builder.TreeView",
+      build: () =>
+        treeViewNode({
+          key: "tree",
+          items: [
+            treeItem("root", "Root", {
+              children: [
+                treeItem("branch", "Branch", {
+                  children: [treeItem("leaf", "Leaf")],
+                }),
+              ],
+            }),
+          ],
+          expanded,
+          selectedId: "leaf",
+        }),
+    })
+
+    const ctx = fakeCtx()
+    const viewport = {
+      rect: { x: 0, y: 0, w: 240, h: 180 },
+      contentRect: { x: 0, y: 0, w: 240, h: 180 },
+      clip: false,
+      scroll: { x: 0, y: 0 },
+      toSurface: (p: { x: number; y: number }) => p,
+      dpr: 1,
+    }
+
+    surface.render(ctx, viewport)
+    const first = surface.debugCounts()
+    expect(first.treeRows).toBe(3)
+
+    expanded.delete("branch")
+    surface.render(ctx, viewport)
+    const second = surface.debugCounts()
+    expect(second.treeRows).toBe(3)
+
+    const hiddenLeaf = surface.hitTest({ x: 40, y: 54 })
+    expect(hiddenLeaf?.constructor.name).toBe("SurfaceRoot")
+  })
+
+  it("routes tree toggle and select through tree row hit areas", () => {
+    const expanded = new Set<string>(["root"])
+    const events: string[] = []
+    const surface = new BuilderSurface({
+      id: "Builder.TreeView.Events",
+      build: () =>
+        treeViewNode({
+          key: "tree",
+          items: [
+            treeItem("root", "Root", {
+              children: [treeItem("child", "Child")],
+            }),
+          ],
+          expanded,
+          onToggle: (id) => {
+            events.push(`toggle:${id}`)
+          },
+          onSelect: (id) => {
+            events.push(`select:${id}`)
+          },
+        }),
+    })
+
+    const ctx = fakeCtx()
+    const viewport = {
+      rect: { x: 0, y: 0, w: 240, h: 180 },
+      contentRect: { x: 0, y: 0, w: 240, h: 180 },
+      clip: false,
+      scroll: { x: 0, y: 0 },
+      toSurface: (p: { x: number; y: number }) => p,
+      dpr: 1,
+    }
+
+    surface.render(ctx, viewport)
+    const toggleTarget = surface.hitTest({ x: 12, y: 10 })
+    expect(toggleTarget).toBeTruthy()
+    toggleTarget?.onPointerEnter()
+    toggleTarget?.onPointerDown(
+      new PointerUIEvent({
+        pointerId: 1,
+        x: 12,
+        y: 10,
+        button: 0,
+        buttons: 1,
+        altKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        metaKey: false,
+      }),
+    )
+    toggleTarget?.onPointerUp(
+      new PointerUIEvent({
+        pointerId: 1,
+        x: 12,
+        y: 10,
+        button: 0,
+        buttons: 0,
+        altKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        metaKey: false,
+      }),
+    )
+
+    const selectTarget = surface.hitTest({ x: 32, y: 10 })
+    expect(selectTarget).toBeTruthy()
+    selectTarget?.onPointerEnter()
+    selectTarget?.onPointerDown(
+      new PointerUIEvent({
+        pointerId: 1,
+        x: 32,
+        y: 10,
+        button: 0,
+        buttons: 1,
+        altKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        metaKey: false,
+      }),
+    )
+    selectTarget?.onPointerUp(
+      new PointerUIEvent({
+        pointerId: 1,
+        x: 32,
+        y: 10,
+        button: 0,
+        buttons: 0,
+        altKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        metaKey: false,
+      }),
+    )
+
+    expect(events).toEqual(["toggle:root", "select:root"])
   })
 })

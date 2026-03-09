@@ -2,7 +2,7 @@ import { theme } from "../../config/theme"
 import type { Signal } from "../../core/reactivity"
 import type { RichTextSpan } from "../../core/draw.text"
 import type { LayoutStyle } from "../../core/layout"
-import type { BuilderNode, ButtonNode, CheckboxNode, CommonNodeProps, RadioNode, RichTextNode, RowNode, ScrollAreaNode, TextNode } from "./types"
+import type { BuilderNode, ButtonNode, CheckboxNode, CommonNodeProps, RadioNode, RichTextNode, RowNode, ScrollAreaNode, TextNode, TreeItem, TreeViewNode } from "./types"
 
 type NodeBase = Omit<CommonNodeProps, "style">
 
@@ -44,6 +44,14 @@ export function radioNode(label: string, value: string, selected: Signal<string>
 
 export function rowItemNode(opts: Omit<RowNode, "kind">): BuilderNode {
   return { kind: "rowItem", ...opts }
+}
+
+export function treeItem(id: string, label: string, opts: Omit<TreeItem, "id" | "label"> = {}): TreeItem {
+  return { id, label, ...opts }
+}
+
+export function treeViewNode(opts: Omit<TreeViewNode, "kind">): BuilderNode {
+  return { kind: "treeView", ...opts }
 }
 
 export function scrollAreaNode(child: BuilderNode, opts: Omit<ScrollAreaNode, "kind" | "child"> = {}): BuilderNode {

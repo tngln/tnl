@@ -1,10 +1,10 @@
 import { draw, Line, Rect as RectOp, RRect, Text } from "../../core/draw"
 import { measureTextWidth } from "../../core/draw.text"
-import { createEventStream, dragSession } from "../../core/event_stream"
+import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "../../core/event_stream"
 import { createMachine, type Machine } from "../../core/fsm"
 import { clamp } from "../../core/rect"
 import { font, theme } from "../../config/theme"
-import { PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "../base/ui"
+import { CursorRegion, PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "../base/ui"
 import { SurfaceRoot, ViewportElement, type Surface, type ViewportContext } from "../base/viewport"
 import { clampRatio, type DockDropPlacement, type DockNode } from "./model"
 
@@ -73,6 +73,7 @@ type SplitHandleEvent =
   | { type: "DRAG_START"; point: Vec2 }
   | { type: "DRAG_MOVE"; point: Vec2 }
   | { type: "RELEASE"; point: Vec2 }
+  | { type: "CANCEL" }
 
 class DockTabHandle extends UIElement {
   private readonly rect: () => Rect
@@ -207,11 +208,18 @@ class DockTabHandle extends UIElement {
   }
 
   private setupGestures() {
+    const dragMoves = this.moveEvents.stream.filter((event) => (event.buttons & 1) !== 0)
+    const cancel = interactionCancelStream({
+      cancel: this.cancelEvents.stream.map(() => "inactive" as InteractionCancelReason),
+      move: this.moveEvents.stream,
+      buttons: (event) => event.buttons,
+    })
+
     dragSession({
       down: this.downEvents.stream,
-      move: this.moveEvents.stream,
+      move: dragMoves,
       up: this.upEvents.stream,
-      cancel: this.cancelEvents.stream,
+      cancel,
       point: (event) => ({ x: event.x, y: event.y }),
       thresholdSq: 36,
     }).subscribe((event) => {
@@ -262,6 +270,11 @@ class DockTabHandle extends UIElement {
     if (wasDragging) return
     if (this.hover) this.onSelect()
   }
+
+  onPointerCancel() {
+    this.hover = false
+    this.cancelEvents.emit()
+  }
 }
 
 class DockSplitHandle extends UIElement {
@@ -272,6 +285,7 @@ class DockSplitHandle extends UIElement {
   private readonly downEvents = createEventStream<PointerUIEvent>()
   private readonly moveEvents = createEventStream<PointerUIEvent>()
   private readonly upEvents = createEventStream<PointerUIEvent>()
+  private readonly cancelEvents = createEventStream<void>()
   private readonly machine: Machine<HandleState, SplitHandleEvent, HandleContext>
 
   constructor(opts: { rect: () => Rect; axis: () => "x" | "y"; onDrag: (point: Vec2) => void }) {
@@ -280,6 +294,12 @@ class DockSplitHandle extends UIElement {
     this.axis = opts.axis
     this.onDrag = opts.onDrag
     this.z = 15
+    this.add(
+      new CursorRegion({
+        rect: () => this.rect(),
+        cursor: () => (this.axis() === "x" ? "ew-resize" : "ns-resize"),
+      }),
+    )
     this.machine = createMachine<HandleState, SplitHandleEvent, HandleContext>({
       initial: "idle",
       context: { originPointer: { x: 0, y: 0 }, lastPointer: { x: 0, y: 0 } },
@@ -305,6 +325,9 @@ class DockSplitHandle extends UIElement {
               target: "idle",
               reduce: (_snapshot: { state: HandleState; context: HandleContext }, event: Extract<SplitHandleEvent, { type: "RELEASE" }>) => ({ lastPointer: event.point }),
             },
+            CANCEL: {
+              target: "idle",
+            },
           },
         },
         dragging: {
@@ -318,6 +341,9 @@ class DockSplitHandle extends UIElement {
             RELEASE: {
               target: "idle",
               reduce: (_snapshot: { state: HandleState; context: HandleContext }, event: Extract<SplitHandleEvent, { type: "RELEASE" }>) => ({ lastPointer: event.point }),
+            },
+            CANCEL: {
+              target: "idle",
             },
           },
         },
@@ -354,11 +380,23 @@ class DockSplitHandle extends UIElement {
     )
   }
 
+  captureCursor() {
+    return this.axis() === "x" ? "ew-resize" : "ns-resize"
+  }
+
   private setupGestures() {
+    const dragMoves = this.moveEvents.stream.filter((event) => (event.buttons & 1) !== 0)
+    const cancel = interactionCancelStream({
+      cancel: this.cancelEvents.stream.map(() => "inactive" as InteractionCancelReason),
+      move: this.moveEvents.stream,
+      buttons: (event) => event.buttons,
+    })
+
     dragSession({
       down: this.downEvents.stream,
-      move: this.moveEvents.stream,
+      move: dragMoves,
       up: this.upEvents.stream,
+      cancel,
       point: (event) => ({ x: event.x, y: event.y }),
       thresholdSq: 0,
     }).subscribe((event) => {
@@ -366,8 +404,15 @@ class DockSplitHandle extends UIElement {
         this.machine.send({ type: "DRAG_START", point: { x: event.current.x, y: event.current.y } })
         return
       }
-      if (event.kind === "move") this.machine.send({ type: "DRAG_MOVE", point: { x: event.current.x, y: event.current.y } })
-      if (event.kind === "end") this.machine.send({ type: "RELEASE", point: { x: event.up.x, y: event.up.y } })
+      if (event.kind === "move") {
+        this.machine.send({ type: "DRAG_MOVE", point: { x: event.current.x, y: event.current.y } })
+        return
+      }
+      if (event.kind === "end") {
+        this.machine.send({ type: "RELEASE", point: { x: event.up.x, y: event.up.y } })
+        return
+      }
+      this.machine.send({ type: "CANCEL" })
     })
   }
 
@@ -394,6 +439,11 @@ class DockSplitHandle extends UIElement {
   onPointerUp(e: PointerUIEvent) {
     if (this.machine.matches("idle")) return
     this.upEvents.emit(e)
+  }
+
+  onPointerCancel() {
+    this.hover = false
+    this.cancelEvents.emit()
   }
 }
 

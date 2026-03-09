@@ -5,6 +5,7 @@ import { ModalWindow, type Root, type WindowSnapshot } from "./window"
 
 export type WindowControlApi = {
   listWindows(): WindowSnapshot[]
+  getActiveWindowId(): string | null
   focus(id: string): void
   toggle(id: string): void
   open(id: string): void
@@ -135,6 +136,10 @@ export class WindowManager implements WindowControlApi {
   listWindows(): WindowSnapshot[] {
     const ordered = [...this.windows.values()].sort((a, b) => a.z - b.z)
     return ordered.map((win) => win.snapshot(win.id === this.activeWindowId))
+  }
+
+  getActiveWindowId() {
+    return this.activeWindowId
   }
 
   getSnapPreviewRect() {

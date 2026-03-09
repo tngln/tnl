@@ -1,11 +1,13 @@
 import { theme } from "../../config/theme"
 import type { Shape } from "../../core/draw"
+import type { InteractionCancelReason } from "../../core/event_stream"
 import { clampRect, inflateRect, intersects, mergeRectInto, normalizeRect, rectArea, unionRect, clamp } from "../../core/rect"
 import type { Vec2, Rect } from "../../core/rect"
-import { addWindowResizeListener, getClampedDevicePixelRatio, scheduleAnimationFrame } from "../../platform/web"
+import { addBrowserInteractionCancelListener, addLostPointerCaptureListener, addWindowResizeListener, getClampedDevicePixelRatio, releaseElementPointerCapture, resetElementCursor, scheduleAnimationFrame, setElementCursor, setElementPointerCapture, type CursorKind } from "../../platform/web"
 import { Compositor } from "./compositor"
 
 export type { Vec2, Rect }
+export type { CursorKind }
 export type RRect = { x: number; y: number; w: number; h: number; r: number }
 export type Circle = { x: number; y: number; r: number }
 
@@ -71,6 +73,25 @@ export type WheelLike = {
   metaKey: boolean
 }
 
+export type UIEventPhase = "target" | "bubble"
+
+export interface UIEventTargetNode {
+  eventParentTarget(): UIEventTargetNode | null
+  onPointerDown?(e: PointerUIEvent): void
+  onPointerMove?(e: PointerUIEvent): void
+  onPointerUp?(e: PointerUIEvent): void
+  onPointerCancel?(e: PointerUIEvent | null, reason: InteractionCancelReason): void
+  onWheel?(e: WheelUIEvent): void
+}
+
+class UIEventState {
+  target: UIEventTargetNode | null = null
+  currentTarget: UIEventTargetNode | null = null
+  phase: UIEventPhase = "target"
+  propagationStopped = false
+  defaultPrevented = false
+}
+
 export class PointerUIEvent {
   readonly pointerId: number
   readonly x: number
@@ -81,7 +102,12 @@ export class PointerUIEvent {
   readonly ctrlKey: boolean
   readonly shiftKey: boolean
   readonly metaKey: boolean
+  target: UIEventTargetNode | null = null
+  currentTarget: UIEventTargetNode | null = null
+  phase: UIEventPhase = "target"
   private captured = false
+  private stopped = false
+  private handled = false
 
   constructor(e: PointerLike) {
     this.pointerId = e.pointerId
@@ -99,8 +125,49 @@ export class PointerUIEvent {
     this.captured = true
   }
 
+  capturePointer() {
+    this.captured = true
+  }
+
+  stopPropagation() {
+    this.stopped = true
+  }
+
+  handle() {
+    this.handled = true
+  }
+
+  preventDefault() {
+    this.handled = true
+  }
+
   get didCapture() {
     return this.captured
+  }
+
+  get didHandle() {
+    return this.handled
+  }
+
+  get propagationStopped() {
+    return this.stopped
+  }
+
+  withDispatch(target: UIEventTargetNode, currentTarget: UIEventTargetNode, phase: UIEventPhase, point?: Vec2) {
+    this.target = target
+    this.currentTarget = currentTarget
+    this.phase = phase
+    if (point) {
+      ;(this as { x: number; y: number }).x = point.x
+      ;(this as { y: number }).y = point.y
+    }
+  }
+
+  adoptOutcome(other: PointerUIEvent) {
+    if (other.target) this.target = other.target
+    if (other.didCapture) this.capturePointer()
+    if (other.didHandle) this.handle()
+    if (other.propagationStopped) this.stopPropagation()
   }
 }
 
@@ -114,7 +181,11 @@ export class WheelUIEvent {
   readonly ctrlKey: boolean
   readonly shiftKey: boolean
   readonly metaKey: boolean
+  target: UIEventTargetNode | null = null
+  currentTarget: UIEventTargetNode | null = null
+  phase: UIEventPhase = "target"
   private handled = false
+  private stopped = false
 
   constructor(e: WheelLike) {
     this.x = e.x
@@ -132,9 +203,107 @@ export class WheelUIEvent {
     this.handled = true
   }
 
+  preventDefault() {
+    this.handled = true
+  }
+
+  stopPropagation() {
+    this.stopped = true
+  }
+
   get didHandle() {
     return this.handled
   }
+
+  get propagationStopped() {
+    return this.stopped
+  }
+
+  withDispatch(target: UIEventTargetNode, currentTarget: UIEventTargetNode, phase: UIEventPhase, point?: Vec2) {
+    this.target = target
+    this.currentTarget = currentTarget
+    this.phase = phase
+    if (point) {
+      ;(this as { x: number; y: number }).x = point.x
+      ;(this as { y: number }).y = point.y
+    }
+  }
+
+  adoptOutcome(other: WheelUIEvent) {
+    if (other.target) this.target = other.target
+    if (other.didHandle) this.handle()
+    if (other.propagationStopped) this.stopPropagation()
+  }
+}
+
+function buildEventPath(target: UIEventTargetNode | null) {
+  const path: UIEventTargetNode[] = []
+  let current = target
+  while (current) {
+    path.push(current)
+    current = current.eventParentTarget()
+  }
+  return path
+}
+
+export function dispatchPointerEvent(
+  target: UIEventTargetNode | null,
+  event: PointerUIEvent,
+  kind: "down" | "move" | "up",
+  pointForTarget?: (node: UIEventTargetNode) => Vec2 | undefined,
+) {
+  if (!target) return
+  const path = buildEventPath(target)
+  const originalTarget = path[0]
+  for (let i = 0; i < path.length; i++) {
+    const current = path[i]
+    event.withDispatch(originalTarget, current, i === 0 ? "target" : "bubble", pointForTarget?.(current))
+    if (kind === "down") current.onPointerDown?.(event)
+    else if (kind === "move") current.onPointerMove?.(event)
+    else current.onPointerUp?.(event)
+    if (event.propagationStopped) break
+  }
+}
+
+export function dispatchWheelEvent(target: UIEventTargetNode | null, event: WheelUIEvent, pointForTarget?: (node: UIEventTargetNode) => Vec2 | undefined) {
+  if (!target) return
+  const path = buildEventPath(target)
+  const originalTarget = path[0]
+  for (let i = 0; i < path.length; i++) {
+    const current = path[i]
+    event.withDispatch(originalTarget, current, i === 0 ? "target" : "bubble", pointForTarget?.(current))
+    current.onWheel?.(event)
+    if (event.propagationStopped) break
+  }
+}
+
+export function dispatchPointerCancelEvent(
+  target: UIEventTargetNode | null,
+  event: PointerUIEvent | null,
+  reason: InteractionCancelReason,
+  pointForTarget?: (node: UIEventTargetNode) => Vec2 | undefined,
+) {
+  if (!target) return
+  const path = buildEventPath(target)
+  const originalTarget = path[0]
+  for (let i = 0; i < path.length; i++) {
+    const current = path[i]
+    if (event) event.withDispatch(originalTarget, current, i === 0 ? "target" : "bubble", pointForTarget?.(current))
+    current.onPointerCancel?.(event, reason)
+    if (event?.propagationStopped) break
+  }
+}
+
+export type DebugTreeNodeSnapshot = {
+  kind: "element" | "surface"
+  type: string
+  label: string
+  id?: string
+  bounds?: Rect
+  z?: number
+  visible?: boolean
+  meta?: string
+  children: DebugTreeNodeSnapshot[]
 }
 
 export abstract class UIElement {
@@ -161,6 +330,10 @@ export abstract class UIElement {
     child.parent = null
   }
 
+  eventParentTarget(): UIEventTargetNode | null {
+    return this.parent
+  }
+
   hitTest(p: Vec2, ctx?: CanvasRenderingContext2D): UIElement | null {
     if (!this.visible) return null
     if (!this.containsPoint(p, ctx)) return null
@@ -169,6 +342,16 @@ export abstract class UIElement {
       if (hit) return hit
     }
     return this
+  }
+
+  cursorAt(p: Vec2, ctx?: CanvasRenderingContext2D): CursorKind | null {
+    if (!this.visible) return null
+    if (!this.containsPoint(p, ctx)) return null
+    for (let i = this.children.length - 1; i >= 0; i--) {
+      const cursor = this.children[i].cursorAt(p, ctx)
+      if (cursor) return cursor
+    }
+    return null
   }
 
   bringToFront() {
@@ -181,6 +364,37 @@ export abstract class UIElement {
 
   protected renderRuntime() {
     return this.rt
+  }
+
+  protected debugDescribe(): Omit<DebugTreeNodeSnapshot, "children"> | null {
+    return {
+      kind: "element",
+      type: this.constructor.name || "UIElement",
+      label: this.constructor.name || "UIElement",
+      bounds: this.bounds(),
+      z: this.z,
+      visible: this.visible,
+    }
+  }
+
+  protected debugChildren(): DebugTreeNodeSnapshot[] {
+    return this.children.map((child) => child.debugSnapshot())
+  }
+
+  debugSnapshot(): DebugTreeNodeSnapshot {
+    const described = this.debugDescribe()
+    if (!described) {
+      return {
+        kind: "element",
+        type: this.constructor.name || "UIElement",
+        label: this.constructor.name || "UIElement",
+        children: this.debugChildren(),
+      }
+    }
+    return {
+      ...described,
+      children: this.debugChildren(),
+    }
   }
 
   draw(ctx: CanvasRenderingContext2D, rt?: { clip?: Rect; compositor?: Compositor; frameId: number; dpr: number }) {
@@ -196,13 +410,56 @@ export abstract class UIElement {
   }
 
   protected onDraw(_ctx: CanvasRenderingContext2D) {}
+  captureCursor(): CursorKind | null {
+    for (let i = this.children.length - 1; i >= 0; i--) {
+      const child = this.children[i]
+      if (!(child instanceof CursorRegion)) continue
+      const bounds = child.bounds()
+      const cursor = child.cursorAt({ x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h / 2 })
+      if (cursor) return cursor
+    }
+    return null
+  }
 
   onPointerDown(_e: PointerUIEvent) {}
   onPointerMove(_e: PointerUIEvent) {}
   onPointerUp(_e: PointerUIEvent) {}
+  onPointerCancel(_e: PointerUIEvent | null, _reason: InteractionCancelReason) {}
   onWheel(_e: WheelUIEvent) {}
   onPointerEnter() {}
   onPointerLeave() {}
+}
+
+export class CursorRegion extends UIElement {
+  private readonly rect: () => Rect
+  private readonly cursor: () => CursorKind
+  private readonly active: () => boolean
+
+  constructor(opts: { rect: () => Rect; cursor: CursorKind | (() => CursorKind); active?: () => boolean }) {
+    super()
+    this.rect = opts.rect
+    const cursor = opts.cursor
+    this.cursor = typeof cursor === "function" ? () => cursor() : () => cursor
+    this.active = opts.active ?? (() => true)
+  }
+
+  bounds(): Rect {
+    if (!this.active()) return { x: 0, y: 0, w: 0, h: 0 }
+    return this.rect()
+  }
+
+  protected containsPoint(p: Vec2) {
+    return this.active() && pointInRect(p, this.rect())
+  }
+
+  hitTest(_p: Vec2, _ctx?: CanvasRenderingContext2D): UIElement | null {
+    return null
+  }
+
+  cursorAt(p: Vec2, _ctx?: CanvasRenderingContext2D): CursorKind | null {
+    if (!this.active() || !pointInRect(p, this.rect())) return null
+    return this.cursor()
+  }
 }
 
 export class CanvasUI {
@@ -212,6 +469,7 @@ export class CanvasUI {
   private rafPending = false
   private capture: UIElement | null = null
   private hover: UIElement | null = null
+  private activePointerId: number | null = null
   private dpr = 1
   private cssW = 1
   private cssH = 1
@@ -221,6 +479,9 @@ export class CanvasUI {
   private compositor = new Compositor()
   private readonly onTopLevelPointerDown?: (top: UIElement, target: UIElement) => void
   private readonly removeResizeListener: () => void
+  private readonly removeLostPointerCaptureListener: () => void
+  private readonly removeBrowserInteractionCancelListener: () => void
+  private cursor: CursorKind = "default"
 
   get sizeCss(): Vec2 {
     return { x: this.cssW, y: this.cssH }
@@ -228,6 +489,22 @@ export class CanvasUI {
 
   get devicePixelRatio(): number {
     return this.dpr
+  }
+
+  get hoverTarget() {
+    return this.hover
+  }
+
+  get captureTarget() {
+    return this.capture
+  }
+
+  get hoverTopLevelTarget() {
+    return this.hover ? this.topLevelTargetOf(this.hover) : null
+  }
+
+  get captureTopLevelTarget() {
+    return this.capture ? this.topLevelTargetOf(this.capture) : null
   }
 
   constructor(canvas: HTMLCanvasElement, root: UIElement, opts: { onTopLevelPointerDown?: (top: UIElement, target: UIElement) => void } = {}) {
@@ -240,22 +517,33 @@ export class CanvasUI {
 
     this.resize()
     this.removeResizeListener = addWindowResizeListener(this.resize)
+    this.removeLostPointerCaptureListener = addLostPointerCaptureListener(canvas, (pointerId) => {
+      if (this.activePointerId !== pointerId) return
+      this.cancelPointerSession("lost-capture")
+    })
+    this.removeBrowserInteractionCancelListener = addBrowserInteractionCancelListener((reason) => {
+      this.cancelPointerSession(reason)
+    })
 
     canvas.addEventListener("pointerdown", this.onPointerDown)
     canvas.addEventListener("pointermove", this.onPointerMove)
     canvas.addEventListener("pointerup", this.onPointerUp)
-    canvas.addEventListener("pointercancel", this.onPointerUp)
+    canvas.addEventListener("pointercancel", this.onPointerCancel)
     canvas.addEventListener("wheel", this.onWheel, { passive: false })
     canvas.addEventListener("contextmenu", (e) => e.preventDefault())
   }
 
   destroy() {
     this.removeResizeListener()
+    this.removeLostPointerCaptureListener()
+    this.removeBrowserInteractionCancelListener()
     this.canvas.removeEventListener("pointerdown", this.onPointerDown)
     this.canvas.removeEventListener("pointermove", this.onPointerMove)
     this.canvas.removeEventListener("pointerup", this.onPointerUp)
-    this.canvas.removeEventListener("pointercancel", this.onPointerUp)
+    this.canvas.removeEventListener("pointercancel", this.onPointerCancel)
     this.canvas.removeEventListener("wheel", this.onWheel)
+    this.releasePointerCapture()
+    this.applyCursor("default")
   }
 
   invalidate() {
@@ -349,13 +637,59 @@ export class CanvasUI {
     }
   }
 
+  private releasePointerCapture() {
+    if (this.activePointerId === null) return
+    releaseElementPointerCapture(this.canvas, this.activePointerId)
+    this.activePointerId = null
+  }
+
+  private pointerUiEventFromNative(e: PointerEvent): PointerUIEvent {
+    const p = this.toCanvasPoint(e)
+    return new PointerUIEvent({
+      pointerId: e.pointerId,
+      x: p.x,
+      y: p.y,
+      button: e.button,
+      buttons: e.buttons,
+      altKey: e.altKey,
+      ctrlKey: e.ctrlKey,
+      shiftKey: e.shiftKey,
+      metaKey: e.metaKey,
+    })
+  }
+
+  private cancelPointerSession(reason: InteractionCancelReason, nativeEvent?: PointerEvent | null) {
+    const target = this.capture
+    const oldHover = this.hover
+    const topBefore = target ? this.topLevelTargetOf(target) : oldHover ? this.topLevelTargetOf(oldHover) : null
+    const before = topBefore?.bounds() ?? null
+
+    if (this.hover) {
+      this.hover.onPointerLeave()
+      this.hover = null
+    }
+
+    if (target) {
+      dispatchPointerCancelEvent(target, nativeEvent ? this.pointerUiEventFromNative(nativeEvent) : null, reason)
+      this.capture = null
+    }
+
+    this.releasePointerCapture()
+    this.applyResolvedCursor(nativeEvent ? this.toCanvasPoint(nativeEvent) : null)
+
+    const after = topBefore?.bounds() ?? before
+    if (before && after) this.invalidateRect(unionRect(before, after), { pad: 24 })
+    else if (before) this.invalidateRect(before, { pad: 24 })
+  }
+
   private onPointerDown = (e: PointerEvent) => {
-    this.canvas.setPointerCapture(e.pointerId)
     const p = this.toCanvasPoint(e)
     const target = this.root.hitTest(p, this.ctx)
     if (!target) return
+    this.activePointerId = e.pointerId
+    setElementPointerCapture(this.canvas, e.pointerId)
     let top: UIElement = target
-    while (top.parent && top.parent !== this.root) top = top.parent
+    top = this.topLevelTargetOf(top)
     if (this.onTopLevelPointerDown) this.onTopLevelPointerDown(top, target)
     else top.bringToFront()
     const ev = new PointerUIEvent({
@@ -370,25 +704,26 @@ export class CanvasUI {
       metaKey: e.metaKey,
     })
     const before = top.bounds()
-    target.onPointerDown(ev)
+    dispatchPointerEvent(target, ev, "down")
     if (ev.didCapture) this.capture = target
+    this.applyResolvedCursor(p, this.capture ?? target)
     const after = top.bounds()
     this.invalidateRect(unionRect(before, after), { pad: 24 })
   }
 
   private onPointerMove = (e: PointerEvent) => {
+    if (this.capture && this.activePointerId === e.pointerId && (e.buttons & 1) === 0) {
+      this.cancelPointerSession("buttons-released", e)
+      return
+    }
     const p = this.toCanvasPoint(e)
     const over = this.root.hitTest(p, this.ctx)
     if (over !== this.hover) {
       const oldTop = this.hover ? (() => {
-        let t: UIElement = this.hover as UIElement
-        while (t.parent && t.parent !== this.root) t = t.parent
-        return t
+        return this.topLevelTargetOf(this.hover as UIElement)
       })() : null
       const newTop = over ? (() => {
-        let t: UIElement = over as UIElement
-        while (t.parent && t.parent !== this.root) t = t.parent
-        return t
+        return this.topLevelTargetOf(over as UIElement)
       })() : null
       this.hover?.onPointerLeave()
       over?.onPointerEnter()
@@ -397,6 +732,7 @@ export class CanvasUI {
       else if (oldTop) this.invalidateRect(oldTop.bounds(), { pad: 8 })
       else if (newTop) this.invalidateRect(newTop.bounds(), { pad: 8 })
     }
+    this.applyResolvedCursor(p)
     const target = this.capture ?? over
     if (!target) return
     const ev = new PointerUIEvent({
@@ -411,11 +747,11 @@ export class CanvasUI {
       metaKey: e.metaKey,
     })
     let topBefore: UIElement | null = target
-    while (topBefore && topBefore.parent && topBefore.parent !== this.root) topBefore = topBefore.parent
+    if (topBefore) topBefore = this.topLevelTargetOf(topBefore)
     const before = topBefore ? topBefore.bounds() : null
-    target.onPointerMove(ev)
+    dispatchPointerEvent(target, ev, "move")
     let topAfter: UIElement | null = target
-    while (topAfter && topAfter.parent && topAfter.parent !== this.root) topAfter = topAfter.parent
+    if (topAfter) topAfter = this.topLevelTargetOf(topAfter)
     const after = topAfter ? topAfter.bounds() : before
     if (before && after) this.invalidateRect(unionRect(before, after), { pad: 24 })
     else if (after) this.invalidateRect(after, { pad: 24 })
@@ -424,25 +760,58 @@ export class CanvasUI {
   private onPointerUp = (e: PointerEvent) => {
     const p = this.toCanvasPoint(e)
     const target = this.capture ?? this.root.hitTest(p, this.ctx)
-    if (!target) return
-    const ev = new PointerUIEvent({
-      pointerId: e.pointerId,
-      x: p.x,
-      y: p.y,
-      button: e.button,
-      buttons: e.buttons,
-      altKey: e.altKey,
-      ctrlKey: e.ctrlKey,
-      shiftKey: e.shiftKey,
-      metaKey: e.metaKey,
-    })
+    if (!target) {
+      this.capture = null
+      this.releasePointerCapture()
+      return
+    }
+    const ev = this.pointerUiEventFromNative(e)
     let top: UIElement | null = target
-    while (top && top.parent && top.parent !== this.root) top = top.parent
+    if (top) top = this.topLevelTargetOf(top)
     const before = top ? top.bounds() : { x: 0, y: 0, w: 0, h: 0 }
-    target.onPointerUp(ev)
+    dispatchPointerEvent(target, ev, "up")
     this.capture = null
+    this.releasePointerCapture()
+    this.applyResolvedCursor(p)
     const after = top ? top.bounds() : before
     this.invalidateRect(unionRect(before, after), { pad: 24 })
+  }
+
+  private onPointerCancel = (e: PointerEvent) => {
+    this.cancelPointerSession("pointercancel", e)
+  }
+
+  private applyCursor(next: CursorKind) {
+    if (this.cursor === next) return
+    this.cursor = next
+    if (next === "default") resetElementCursor(this.canvas)
+    else setElementCursor(this.canvas, next)
+  }
+
+  private resolveCursor(p: Vec2 | null, targetOverride?: UIElement | null): CursorKind {
+    const target = targetOverride ?? this.capture ?? this.hover
+    if (target) {
+      let top: UIElement = target
+      top = this.topLevelTargetOf(top)
+      const cursor = p ? top.cursorAt(p, this.ctx) : null
+      if (cursor) return cursor
+      if (this.capture && targetOverride === undefined) return this.capture.captureCursor() ?? "default"
+    }
+    if (p) {
+      const cursor = this.root.cursorAt(p, this.ctx)
+      if (cursor) return cursor
+    }
+    return "default"
+  }
+
+  private topLevelTargetOf(target: UIElement) {
+    let top = target
+    while (top.parent && top.parent !== this.root) top = top.parent
+    return top
+  }
+
+  private applyResolvedCursor(p: Vec2 | null, targetOverride?: UIElement | null) {
+    this.applyCursor(this.resolveCursor(p, targetOverride))
   }
 
   private onWheel = (e: WheelEvent) => {
@@ -462,7 +831,7 @@ export class CanvasUI {
       shiftKey: e.shiftKey,
       metaKey: e.metaKey,
     })
-    target.onWheel(ev)
+    dispatchWheelEvent(target, ev)
     if (!ev.didHandle) return
     e.preventDefault()
     let top: UIElement | null = target

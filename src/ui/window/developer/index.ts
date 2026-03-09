@@ -1,4 +1,5 @@
 import type { Surface } from "../../base/viewport"
+import type { DebugTreeNodeSnapshot } from "../../base/ui"
 import type { CodecRuntimeEntry } from "../../../core/codecs"
 import type { DockingControlApi } from "../../docking/manager"
 import type { WindowControlApi } from "../window_manager"
@@ -18,7 +19,7 @@ export type DeveloperContext = {
   workers?: { list?: () => unknown[] }
   codecs?: { info?: () => unknown; list?: () => CodecRuntimeEntry[] }
   surface?: { listLayers?: () => unknown[] }
-  inspector?: { eval?: (code: string) => unknown }
+  inspector?: { tree?: () => DebugTreeNodeSnapshot; eval?: (code: string) => unknown }
   docking?: DockingControlApi
 }
 

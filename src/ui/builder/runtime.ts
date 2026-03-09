@@ -4,9 +4,9 @@ import { ZERO_RECT } from "../../core/rect"
 import { createMeasureContext } from "../../platform/web/canvas"
 import { SurfaceRoot, ViewportElement, type Surface } from "../base/viewport"
 import { UIElement, WheelUIEvent, type Rect, type Vec2 } from "../base/ui"
-import { Button, Checkbox, Radio, Row, Scrollbar } from "../widgets"
+import { Button, Checkbox, Radio, Row, Scrollbar, TreeRow, TREE_ROW_HEIGHT } from "../widgets"
 import { clamp } from "./utils"
-import type { BuilderNode } from "./types"
+import type { BuilderNode, TreeItem, TreeViewNode } from "./types"
 
 export type BuilderTreeSurfaceLike = Surface & {
   setNode(node: BuilderNode | null): void
@@ -57,6 +57,22 @@ type RowCell = {
   selected: boolean
   active: boolean
   onClick?: () => void
+  used: boolean
+}
+
+type TreeRowCell = {
+  widget: TreeRow
+  rect: Rect
+  depth: number
+  expandable: boolean
+  expanded: boolean
+  leftText: string
+  rightText?: string
+  variant: "group" | "item"
+  selected: boolean
+  active: boolean
+  onSelect?: () => void
+  onToggle?: () => void
   used: boolean
 }
 
@@ -136,6 +152,7 @@ export class BuilderRuntime {
   private readonly checkboxes = new Map<string, CheckboxCell>()
   private readonly radios = new Map<string, RadioCell>()
   private readonly rows = new Map<string, RowCell>()
+  private readonly treeRows = new Map<string, TreeRowCell>()
   private readonly scrollAreas = new Map<string, BuilderScrollAreaElement>()
   private readonly richBlocks = new Map<string, ReturnType<typeof createRichTextBlock>>()
   private readonly usedScrollAreas = new Set<string>()
@@ -148,6 +165,7 @@ export class BuilderRuntime {
       checkboxes: this.checkboxes.size,
       radios: this.radios.size,
       rows: this.rows.size,
+      treeRows: this.treeRows.size,
       scrollAreas: this.scrollAreas.size,
     }
   }
@@ -161,6 +179,7 @@ export class BuilderRuntime {
     for (const cell of this.checkboxes.values()) cell.used = false
     for (const cell of this.radios.values()) cell.used = false
     for (const cell of this.rows.values()) cell.used = false
+    for (const cell of this.treeRows.values()) cell.used = false
     this.usedScrollAreas.clear()
   }
 
@@ -172,6 +191,17 @@ export class BuilderRuntime {
       if (cell.used) continue
       cell.active = false
       cell.widget.set({ rect: ZERO_RECT, leftText: "" })
+    }
+    for (const cell of this.treeRows.values()) {
+      if (cell.used) continue
+      cell.active = false
+      cell.widget.set({
+        rect: ZERO_RECT,
+        depth: 0,
+        expandable: false,
+        expanded: false,
+        leftText: "",
+      })
     }
     for (const [key, area] of this.scrollAreas) {
       if (this.usedScrollAreas.has(key)) continue
@@ -326,6 +356,108 @@ export class BuilderRuntime {
     )
   }
 
+  mountTreeView(key: string, rect: Rect, node: TreeViewNode, active: boolean) {
+    const rows = flattenTreeItems(node.items, node.expanded)
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]
+      const rowKey = `${key}.${row.id}`
+      const rowRect = {
+        x: rect.x,
+        y: rect.y + i * TREE_ROW_HEIGHT,
+        w: rect.w,
+        h: TREE_ROW_HEIGHT,
+      }
+      this.mountTreeRow(
+        rowKey,
+        rowRect,
+        {
+          depth: row.depth,
+          expandable: row.expandable,
+          expanded: row.expanded,
+          leftText: row.item.label,
+          rightText: row.item.meta,
+          variant: row.item.variant ?? "item",
+          selected: node.selectedId === row.item.id,
+          onSelect: node.onSelect ? () => node.onSelect?.(row.item.id) : undefined,
+          onToggle: row.expandable && node.onToggle ? () => node.onToggle?.(row.item.id) : undefined,
+        },
+        active,
+      )
+    }
+  }
+
+  mountTreeRow(
+    key: string,
+    rect: Rect,
+    node: {
+      depth: number
+      expandable: boolean
+      expanded: boolean
+      leftText: string
+      rightText?: string
+      variant?: "group" | "item"
+      selected?: boolean
+      onSelect?: () => void
+      onToggle?: () => void
+    },
+    active: boolean,
+  ) {
+    let cell = this.treeRows.get(key)
+    if (!cell) {
+      cell = {
+        rect,
+        depth: node.depth,
+        expandable: node.expandable,
+        expanded: node.expanded,
+        leftText: node.leftText,
+        rightText: node.rightText,
+        variant: node.variant ?? "item",
+        selected: node.selected ?? false,
+        active,
+        onSelect: node.onSelect,
+        onToggle: node.onToggle,
+        used: true,
+        widget: new TreeRow(),
+      }
+      cell.widget.z = 10
+      this.treeRows.set(key, cell)
+      this.root.add(cell.widget)
+    }
+    cell.rect = rect
+    cell.depth = node.depth
+    cell.expandable = node.expandable
+    cell.expanded = node.expanded
+    cell.leftText = node.leftText
+    cell.rightText = node.rightText
+    cell.variant = node.variant ?? "item"
+    cell.selected = node.selected ?? false
+    cell.active = active
+    cell.onSelect = node.onSelect
+    cell.onToggle = node.onToggle
+    cell.used = true
+    cell.widget.set(
+      active
+        ? {
+            rect,
+            depth: node.depth,
+            expandable: node.expandable,
+            expanded: node.expanded,
+            leftText: node.leftText,
+            rightText: node.rightText,
+            variant: node.variant ?? "item",
+            selected: node.selected,
+          }
+        : {
+            rect: ZERO_RECT,
+            depth: 0,
+            expandable: false,
+            expanded: false,
+            leftText: "",
+          },
+      active ? { onSelect: node.onSelect, onToggle: node.onToggle } : undefined,
+    )
+  }
+
   mountScrollArea(key: string, rect: Rect, node: { child: BuilderNode }, active: boolean, ctx: CanvasRenderingContext2D) {
     let area = this.scrollAreas.get(key)
     if (!area) {
@@ -337,4 +469,32 @@ export class BuilderRuntime {
     this.usedScrollAreas.add(key)
     area.set({ rect, active, child: node.child }, ctx)
   }
+}
+
+type VisibleTreeRow = {
+  id: string
+  depth: number
+  item: TreeItem
+  expandable: boolean
+  expanded: boolean
+}
+
+export function flattenTreeItems(items: TreeItem[], expanded: ReadonlySet<string>) {
+  const rows: VisibleTreeRow[] = []
+  const visit = (item: TreeItem, depth: number) => {
+    const children = item.children ?? []
+    const expandable = children.length > 0
+    const isExpanded = expandable && expanded.has(item.id)
+    rows.push({
+      id: item.id,
+      depth,
+      item,
+      expandable,
+      expanded: isExpanded,
+    })
+    if (!isExpanded) return
+    for (const child of children) visit(child, depth + 1)
+  }
+  for (const item of items) visit(item, 0)
+  return rows
 }

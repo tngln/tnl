@@ -6,7 +6,7 @@ let activeEffect: EffectFn | null = null
 const effectStack: EffectFn[] = []
 let nextSignalId = 1
 const debugSignals = new Map<number, Signal<unknown>>()
-const debugMeta = new Map<number, { name?: string; scope?: string; createdAt: number }>()
+const debugMeta = new Map<number, { name?: string; scope?: string; hidden?: boolean; createdAt: number }>()
 
 export type Signal<T> = {
   get(): T
@@ -27,6 +27,7 @@ export function listSignals(): DebugSignalRecord[] {
   const out: DebugSignalRecord[] = []
   for (const [id, sig] of debugSignals) {
     const meta = debugMeta.get(id)
+    if (meta?.hidden) continue
     const subs: Set<EffectFn> | undefined = (sig as any)._subs
     out.push({
       id,
@@ -40,11 +41,16 @@ export function listSignals(): DebugSignalRecord[] {
   return out
 }
 
-export function setSignalMeta(sig: Signal<unknown>, meta: { name?: string; scope?: string }) {
+export function setSignalMeta(sig: Signal<unknown>, meta: { name?: string; scope?: string; hidden?: boolean }) {
   const id: number | undefined = (sig as any)._id
   if (!id) return
   const cur = debugMeta.get(id) ?? { createdAt: Date.now() }
-  debugMeta.set(id, { createdAt: cur.createdAt, name: meta.name ?? cur.name, scope: meta.scope ?? cur.scope })
+  debugMeta.set(id, {
+    createdAt: cur.createdAt,
+    name: meta.name ?? cur.name,
+    scope: meta.scope ?? cur.scope,
+    hidden: meta.hidden ?? cur.hidden,
+  })
 }
 
 export function signal<T>(initial: T): Signal<T> {
@@ -129,4 +135,3 @@ export function computed<T>(fn: () => T): Signal<T> {
 const g = globalThis as any
 g.__TNL_DEVTOOLS__ ??= {}
 g.__TNL_DEVTOOLS__.reactivity = { listSignals, setSignalMeta }
-

@@ -1,11 +1,11 @@
 import { signal, type Signal } from "../../core/reactivity"
-import { classifyClicks, createEventStream, dragSession } from "../../core/event_stream"
+import { classifyClicks, createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "../../core/event_stream"
 import { createMachine, type Machine } from "../../core/fsm"
 import { draw, Line, Rect, Text } from "../../core/draw"
 import { clamp } from "../../core/rect"
 import { font, theme } from "../../config/theme"
 import { isSurfaceMountSpec, mountSurface, type SurfaceMountSpec } from "../builder/surface_builder"
-import { pointInRect, type Rect as BoundsRect, type Vec2, PointerUIEvent, UIElement } from "../base/ui"
+import { CursorRegion, pointInRect, type Rect as BoundsRect, type Vec2, PointerUIEvent, UIElement } from "../base/ui"
 import { ViewportElement, type Surface } from "../base/viewport"
 
 export type WindowSnapshot = {
@@ -79,6 +79,18 @@ function titleButtonRect(win: ModalWindow, slotFromRight: number): BoundsRect {
 export class Root extends UIElement {
   bounds(): BoundsRect {
     return { x: -1e9, y: -1e9, w: 2e9, h: 2e9 }
+  }
+
+  protected debugDescribe() {
+    return {
+      kind: "element" as const,
+      type: "Root",
+      label: "Root",
+      bounds: this.bounds(),
+      z: this.z,
+      visible: this.visible,
+      meta: `${this.children.length} children`,
+    }
   }
 }
 
@@ -220,6 +232,24 @@ export class ModalWindow extends UIElement {
     if (!this.open.get()) return { x: 0, y: 0, w: 0, h: 0 }
     if (this.minimized.get()) return this.minimizedRect
     return { x: this.x.get(), y: this.y.get(), w: this.w.get(), h: this.h.get() }
+  }
+
+  protected debugDescribe() {
+    const rect = this.bounds()
+    const parts: string[] = []
+    if (this.open.peek()) parts.push(this.minimized.peek() ? "minimized" : this.maximized.peek() ? "maximized" : "open")
+    else parts.push("closed")
+    if (this.screenUsage.peek() !== "none") parts.push(this.screenUsage.peek())
+    return {
+      kind: "element" as const,
+      type: this.constructor.name || "ModalWindow",
+      label: this.title.peek() || this.id,
+      id: this.id,
+      bounds: rect,
+      z: this.z,
+      visible: this.visible,
+      meta: parts.join(" · "),
+    }
   }
 
   private titleBarRect(): BoundsRect {
@@ -366,11 +396,18 @@ export class ModalWindow extends UIElement {
         this.titleMachine.send({ type: "DOUBLE_CLICK" })
       })
 
+    const titleDragMoves = this.titleMoveEvents.stream.filter((event) => (event.buttons & 1) !== 0)
+    const titleCancel = interactionCancelStream({
+      cancel: this.titleCancelEvents.stream,
+      move: this.titleMoveEvents.stream,
+      buttons: (event) => event.buttons,
+    })
+
     const titleDrag = dragSession({
       down: this.titleDownEvents.stream,
-      move: this.titleMoveEvents.stream,
+      move: titleDragMoves,
       up: this.titleUpEvents.stream,
-      cancel: this.titleCancelEvents.stream,
+      cancel: titleCancel,
       point: (event) => ({ x: event.x, y: event.y }),
       thresholdSq: 16,
     })
@@ -514,6 +551,10 @@ export class ModalWindow extends UIElement {
       this.titleMachine.send({ type: "RELEASE", pointer: { x: e.x, y: e.y } })
       this.titleClickEvents.emit({ x: e.x, y: e.y })
     }
+  }
+
+  onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
+    this.cancelTitleInteraction(reason)
   }
 
   openWindow() {
@@ -721,6 +762,11 @@ class CloseButton extends UIElement {
     if (!this.hover) return
     this.win.closeWindow()
   }
+
+  onPointerCancel() {
+    this.hover = false
+    this.down = false
+  }
 }
 
 class MinimizeButton extends UIElement {
@@ -770,6 +816,11 @@ class MinimizeButton extends UIElement {
     this.down = false
     if (!this.hover) return
     this.win.minimize()
+  }
+
+  onPointerCancel() {
+    this.hover = false
+    this.down = false
   }
 }
 
@@ -830,6 +881,11 @@ class MaximizeButton extends UIElement {
     if (this.win.maximized.peek() || this.win.screenUsage.peek() !== "none") this.win.restoreScreenUsage()
     else this.win.toggleMaximize()
   }
+
+  onPointerCancel() {
+    this.hover = false
+    this.down = false
+  }
 }
 
 class ResizeHandle extends UIElement {
@@ -844,6 +900,12 @@ class ResizeHandle extends UIElement {
     super()
     this.win = win
     this.z = 100
+    this.add(
+      new CursorRegion({
+        rect: () => this.bounds(),
+        cursor: "nwse-resize",
+      }),
+    )
     this.machine = createMachine<ResizeState, ResizeEvent, ResizeContext>({
       initial: "idle",
       context: { originPointer: { x: 0, y: 0 }, lastPointer: { x: 0, y: 0 }, startSize: { x: 0, y: 0 } },
@@ -921,12 +983,23 @@ class ResizeHandle extends UIElement {
     )
   }
 
+  captureCursor() {
+    return "nwse-resize" as const
+  }
+
   private setupGestures() {
+    const resizeMoves = this.moveEvents.stream.filter((event) => (event.buttons & 1) !== 0)
+    const resizeCancel = interactionCancelStream({
+      cancel: this.cancelEvents.stream,
+      move: this.moveEvents.stream,
+      buttons: (event) => event.buttons,
+    })
+
     dragSession({
       down: this.downEvents.stream,
-      move: this.moveEvents.stream,
+      move: resizeMoves,
       up: this.upEvents.stream,
-      cancel: this.cancelEvents.stream,
+      cancel: resizeCancel,
       point: (event) => ({ x: event.x, y: event.y }),
       thresholdSq: 0,
     }).subscribe((event) => {
@@ -962,6 +1035,10 @@ class ResizeHandle extends UIElement {
   onPointerUp(e: PointerUIEvent) {
     if (this.machine.matches("idle")) return
     this.upEvents.emit(e)
+  }
+
+  onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
+    this.cancelEvents.emit(reason)
   }
 }
 

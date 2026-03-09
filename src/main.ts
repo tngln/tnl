@@ -1,5 +1,6 @@
 import { effect } from "./core/reactivity"
 import { createCodecRegistry } from "./core/codecs"
+import { ShortcutManager, type ShortcutContextResolver, type ShortcutExecutionContext } from "./core/shortcuts"
 import { theme } from "./config/theme"
 import { ModalWindow, Root } from "./ui/window/window"
 import { WindowManager } from "./ui/window/window_manager"
@@ -9,7 +10,7 @@ import { DEVELOPER_WINDOW_ID } from "./ui/window/developer/developer_tools_windo
 import { unionRect } from "./core/rect"
 import { TOOLS_DIALOG_ID } from "./ui/window/tools_dialog"
 import { TIMELINE_TOOL_WINDOW_ID } from "./ui/window/timeline_tool_window"
-import { addWindowLoadListener, addWindowResizeListener, applyDocumentTheme, getRootCanvas, registerServiceWorker, scheduleAnimationFrame } from "./platform/web"
+import { addBrowserInteractionCancelListener, addWindowKeyDownListener, addWindowKeyUpListener, addWindowLoadListener, addWindowResizeListener, applyDocumentTheme, getRootCanvas, registerServiceWorker, scheduleAnimationFrame } from "./platform/web"
 import { DockingManager } from "./ui/docking/manager"
 import { createDefaultDockablePanes } from "./ui/docking/default_panes"
 import { firstLeaf } from "./ui/docking/model"
@@ -42,7 +43,96 @@ const developerContext = {
     info: () => codecs.summary(),
     list: () => codecs.list(),
   },
+  inspector: {
+    tree: () => root.debugSnapshot(),
+  },
 }
+
+type AppShortcutContext = ShortcutExecutionContext & {
+  wm: WindowManager
+  docking: DockingManager
+  codecs: typeof developerContext.codecs
+  inspector: NonNullable<typeof developerContext.inspector>
+  ui: CanvasUI
+}
+
+function targetContextId(target: unknown) {
+  if (!target || typeof target !== "object") return null
+  const value = (target as { id?: unknown }).id
+  return typeof value === "string" && value.length ? value : null
+}
+
+const shortcutResolver: ShortcutContextResolver<AppShortcutContext> = {
+  resolve(ctx) {
+    const contexts: string[] = []
+    const captureId = targetContextId(ctx.captureTopLevelTarget)
+    const hoverId = targetContextId(ctx.hoverTopLevelTarget)
+    if (captureId) contexts.push(`capture:${captureId}`)
+    if (hoverId) contexts.push(`hover:${hoverId}`)
+    if (ctx.activeWindowId) contexts.push(`window:${ctx.activeWindowId}`)
+    if (ctx.activePaneId) contexts.push(`pane:${ctx.activePaneId}`)
+    if (ctx.activeContainerId) contexts.push(`container:${ctx.activeContainerId}`)
+    contexts.push("global")
+    return contexts
+  },
+}
+
+const shortcuts = new ShortcutManager<AppShortcutContext>({
+  resolver: shortcutResolver,
+  getExecutionContext: () => ({
+    wm: windows,
+    docking,
+    codecs: developerContext.codecs,
+    inspector: developerContext.inspector,
+    ui,
+    activeWindowId: windows.getActiveWindowId(),
+    activePaneId: docking.getActivePaneId(),
+    activeContainerId: docking.getActiveContainerId(),
+    hoverTarget: ui.hoverTarget,
+    captureTarget: ui.captureTarget,
+    hoverTopLevelTarget: ui.hoverTopLevelTarget,
+    captureTopLevelTarget: ui.captureTopLevelTarget,
+  }),
+})
+
+shortcuts.registerCommand({
+  id: "app.toggleAbout",
+  run(ctx) {
+    ctx.wm.toggle(ABOUT_DIALOG_ID)
+    const snap = ctx.wm.listWindows().find((entry) => entry.id === ABOUT_DIALOG_ID)
+    if (snap?.open && !snap.minimized) ctx.wm.focus(ABOUT_DIALOG_ID)
+    ctx.ui.invalidate()
+  },
+})
+
+shortcuts.registerCommand({
+  id: "workspace.activateDeveloper",
+  run(ctx) {
+    ctx.docking.activatePane(DEVELOPER_WINDOW_ID)
+    ctx.ui.invalidate()
+  },
+})
+
+shortcuts.registerCommand({
+  id: "workspace.activateTools",
+  run(ctx) {
+    ctx.docking.activatePane(TOOLS_DIALOG_ID)
+    ctx.ui.invalidate()
+  },
+})
+
+shortcuts.registerCommand({
+  id: "workspace.activateTimeline",
+  run(ctx) {
+    ctx.docking.activatePane(TIMELINE_TOOL_WINDOW_ID)
+    ctx.ui.invalidate()
+  },
+})
+
+shortcuts.registerBinding({ command: "app.toggleAbout", context: "global", trigger: { kind: "key-down", code: "F1" } })
+shortcuts.registerBinding({ command: "workspace.activateDeveloper", context: "global", trigger: { kind: "key-down", code: "F2" } })
+shortcuts.registerBinding({ command: "workspace.activateTools", context: "global", trigger: { kind: "key-down", code: "F3" } })
+shortcuts.registerBinding({ command: "workspace.activateTimeline", context: "global", trigger: { kind: "key-down", code: "F4" } })
 
 for (const pane of createDefaultDockablePanes(developerContext)) docking.registerPane(pane)
 const workspaceId = docking.createContainer()
@@ -77,20 +167,66 @@ addWindowResizeListener(() => {
   })
 })
 
-canvas.addEventListener("keydown", (e) => {
-  if (e.key !== "F1" && e.key !== "F2" && e.key !== "F3" && e.key !== "F4") return
-  e.preventDefault()
-  if (e.key === "F1") {
-    windows.toggle(ABOUT_DIALOG_ID)
-    const snap = windows.listWindows().find((entry) => entry.id === ABOUT_DIALOG_ID)
-    if (snap?.open && !snap.minimized) windows.focus(ABOUT_DIALOG_ID)
-    ui.invalidate()
-    return
-  }
-  const paneId = e.key === "F2" ? DEVELOPER_WINDOW_ID : e.key === "F3" ? TOOLS_DIALOG_ID : TIMELINE_TOOL_WINDOW_ID
-  docking.activatePane(paneId)
-  ui.invalidate()
+const removeKeyDownListener = addWindowKeyDownListener((event) => {
+  shortcuts.handleKeyDown(event)
 })
+
+const removeKeyUpListener = addWindowKeyUpListener((event) => {
+  shortcuts.handleKeyUp(event)
+})
+
+const removeShortcutCancelListener = addBrowserInteractionCancelListener(() => {
+  shortcuts.resetInputState()
+})
+;(globalThis as any).__TNL_DEVTOOLS__.disposeShortcuts = () => {
+  removeKeyDownListener()
+  removeKeyUpListener()
+  removeShortcutCancelListener()
+}
+
+canvas.addEventListener("pointerdown", (event) => {
+  shortcuts.handlePointerDown({
+    button: event.button,
+    buttons: event.buttons,
+    x: event.clientX,
+    y: event.clientY,
+    altKey: event.altKey,
+    ctrlKey: event.ctrlKey,
+    shiftKey: event.shiftKey,
+    metaKey: event.metaKey,
+  })
+})
+
+canvas.addEventListener("pointerup", (event) => {
+  shortcuts.handlePointerUp({
+    button: event.button,
+    buttons: event.buttons,
+    x: event.clientX,
+    y: event.clientY,
+    altKey: event.altKey,
+    ctrlKey: event.ctrlKey,
+    shiftKey: event.shiftKey,
+    metaKey: event.metaKey,
+  })
+})
+
+canvas.addEventListener(
+  "wheel",
+  (event) => {
+    shortcuts.handleWheel({
+      deltaX: event.deltaX,
+      deltaY: event.deltaY,
+      x: event.clientX,
+      y: event.clientY,
+      altKey: event.altKey,
+      ctrlKey: event.ctrlKey,
+      shiftKey: event.shiftKey,
+      metaKey: event.metaKey,
+      preventDefault: () => event.preventDefault(),
+    })
+  },
+  { passive: false },
+)
 
 addWindowLoadListener(() => {
   void registerServiceWorker("./sw.js", "./").catch(() => {})

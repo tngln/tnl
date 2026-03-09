@@ -334,6 +334,59 @@ describe("window manager", () => {
     expect(a.bounds().y).toBeLessThan(64)
   })
 
+  it("cancels title-bar dragging when pointer interaction is interrupted", () => {
+    const root = new Root()
+    const coordinator = new WindowManager(root)
+    const a = makeWindow("A")
+
+    coordinator.register(a)
+
+    a.onPointerDown(
+      new PointerUIEvent({
+        pointerId: 1,
+        x: 40,
+        y: 24,
+        button: 0,
+        buttons: 1,
+        altKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        metaKey: false,
+      }),
+    )
+    a.onPointerMove(
+      new PointerUIEvent({
+        pointerId: 1,
+        x: 90,
+        y: 54,
+        button: 0,
+        buttons: 1,
+        altKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        metaKey: false,
+      }),
+    )
+    const moved = a.bounds()
+
+    a.onPointerCancel(null, "blur")
+    a.onPointerMove(
+      new PointerUIEvent({
+        pointerId: 1,
+        x: 140,
+        y: 90,
+        button: 0,
+        buttons: 1,
+        altKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        metaKey: false,
+      }),
+    )
+
+    expect(a.bounds()).toEqual(moved)
+  })
+
   it("snaps to the left half when released near the left screen edge", () => {
     const root = new Root()
     const coordinator = new WindowManager(root)

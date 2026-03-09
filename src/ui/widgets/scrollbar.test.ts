@@ -42,4 +42,53 @@ describe("scrollbar", () => {
     scrollbar.onPointerMove(pointer(6, 10))
     expect(value).toBe(finalValue)
   })
+
+  it("cancels dragging when the primary button is already released on re-entry", () => {
+    let value = 0
+    const scrollbar = new Scrollbar({
+      rect: () => ({ x: 0, y: 0, w: 12, h: 100 }),
+      viewportSize: () => 100,
+      contentSize: () => 300,
+      value: () => value,
+      onChange: (next) => {
+        value = next
+      },
+      autoHide: false,
+    })
+
+    scrollbar.onPointerEnter()
+    scrollbar.onPointerDown(pointer(6, 80))
+    scrollbar.onPointerMove(pointer(6, 90))
+    const finalValue = value
+
+    scrollbar.onPointerLeave()
+    scrollbar.onPointerMove(pointer(6, 20, 0))
+    scrollbar.onPointerMove(pointer(6, 10, 0))
+
+    expect(value).toBe(finalValue)
+  })
+
+  it("cancels dragging on pointer cancel", () => {
+    let value = 0
+    const scrollbar = new Scrollbar({
+      rect: () => ({ x: 0, y: 0, w: 12, h: 100 }),
+      viewportSize: () => 100,
+      contentSize: () => 300,
+      value: () => value,
+      onChange: (next) => {
+        value = next
+      },
+      autoHide: false,
+    })
+
+    scrollbar.onPointerEnter()
+    scrollbar.onPointerDown(pointer(6, 80))
+    scrollbar.onPointerMove(pointer(6, 90))
+    const finalValue = value
+
+    scrollbar.onPointerCancel(null, "blur")
+    scrollbar.onPointerMove(pointer(6, 10))
+
+    expect(value).toBe(finalValue)
+  })
 })

@@ -1,6 +1,6 @@
 import { createMeasureContext } from "../../platform/web/canvas"
 import { SurfaceRoot, type Surface, type ViewportContext } from "../base/viewport"
-import { WheelUIEvent, type Vec2 } from "../base/ui"
+import { WheelUIEvent, type DebugTreeNodeSnapshot, type Vec2 } from "../base/ui"
 import { BuilderEngine } from "./engine"
 import type { BuilderNode, MountedSurface, SurfaceDefinition, SurfaceMountSpec, SurfaceSetup } from "./types"
 
@@ -47,6 +47,17 @@ export class BuilderTreeSurface implements Surface {
   onWheel(e: WheelUIEvent) {
     this.wheelFallback?.(e)
   }
+
+  debugSnapshot(): DebugTreeNodeSnapshot {
+    return {
+      kind: "surface",
+      type: "BuilderTreeSurface",
+      label: this.id,
+      id: this.id,
+      visible: true,
+      children: [this.engine.runtime.root.debugSnapshot()],
+    }
+  }
 }
 
 export class BuilderSurface implements Surface {
@@ -81,6 +92,10 @@ export class BuilderSurface implements Surface {
 
   debugCounts() {
     return this.tree.engine.debugCounts()
+  }
+
+  debugSnapshot() {
+    return this.tree.debugSnapshot()
   }
 }
 
@@ -127,6 +142,10 @@ export class FunctionalBuilderSurface<P> implements MountedSurface<P> {
 
   debugCounts() {
     return this.tree.engine.debugCounts()
+  }
+
+  debugSnapshot() {
+    return this.tree.debugSnapshot()
   }
 }
 

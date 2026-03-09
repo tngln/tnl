@@ -1,4 +1,4 @@
-import { effect, signal, type Signal } from "./reactivity"
+import { effect, setSignalMeta, signal, type Signal } from "./reactivity"
 
 export type MachineSnapshot<State extends string, Context> = {
   state: State
@@ -28,6 +28,11 @@ export type MachineConfig<State extends string, Event extends MachineEvent, Cont
   initial: State
   context: Context
   states: Record<State, { on?: Partial<MachineTransitionMap<State, Event, Context>> }>
+  debug?: {
+    name?: string
+    scope?: string
+    hidden?: boolean
+  }
 }
 
 export type Machine<State extends string, Event extends MachineEvent, Context> = {
@@ -69,6 +74,7 @@ export function createMachine<State extends string, Event extends MachineEvent, 
     context: cloneContext(config.context),
   }
   const stateSignal = signal<MachineSnapshot<State, Context>>(initialSnapshot)
+  if (config.debug) setSignalMeta(stateSignal as Signal<unknown>, config.debug)
 
   function resolveTransition(snapshot: MachineSnapshot<State, Context>, event: Event) {
     const transitions = config.states[snapshot.state]?.on
@@ -149,6 +155,11 @@ export function createPressMachine() {
     context: {
       originPointer: { x: 0, y: 0 },
       lastPointer: { x: 0, y: 0 },
+    },
+    debug: {
+      name: "press",
+      scope: "ui.internal",
+      hidden: true,
     },
     states: {
       idle: {

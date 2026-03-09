@@ -2,7 +2,7 @@ import { signal, type Signal } from "../../core/reactivity"
 import { draw, Line, Rect as RectOp, RRect, Text } from "../../core/draw"
 import { clamp } from "../../core/rect"
 import { theme } from "../../config/theme"
-import { UIElement, type Rect, type Vec2, WheelUIEvent, pointInRect } from "../base/ui"
+import { UIElement, type DebugTreeNodeSnapshot, type Rect, type Vec2, WheelUIEvent, pointInRect } from "../base/ui"
 import { ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "../base/viewport"
 import { InteractiveElement } from "../widgets/interactive"
 import { Scrollbar } from "../widgets"
@@ -195,6 +195,19 @@ export class TabPanelSurface implements Surface {
     if (Math.abs(delta) <= 0.001) return
     if (!this.scrollBy(delta)) return
     e.handle()
+  }
+
+  debugSnapshot(): DebugTreeNodeSnapshot {
+    return {
+      kind: "surface",
+      type: "TabPanelSurface",
+      label: this.id,
+      id: this.id,
+      bounds: { x: 0, y: 0, w: this.size.x, h: this.size.y },
+      visible: true,
+      meta: `selected=${this.selectedId.peek() || "-"}`,
+      children: [this.root.debugSnapshot()],
+    }
   }
 }
 
