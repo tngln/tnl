@@ -45,17 +45,18 @@ describe("draw.text", () => {
 
   it("wraps text by maxWidth", () => {
     const { ctx } = fakeCtx()
-    const base = { fontFamily: "system-ui", fontSize: 10, fontWeight: 400, lineHeight: 12 }
-    const spans = [{ text: "hello world", color: "#fff" }]
+    const base = { fontFamily: "system-ui", fontSize: 10, fontWeight: 400, lineHeight: 12, color: "#fff" }
+    const spans = [{ text: "hello world" }]
     const layout = layoutRichText(ctx, spans, base, { maxWidth: 40, align: "start" })
     expect(layout.lines.length).toBeGreaterThan(1)
     for (const line of layout.lines) expect(line.w).toBeLessThanOrEqual(40 + 1e-6)
+    expect(layout.lines[0]?.runs[0]?.color).toBe("#fff")
   })
 
   it("splits long tokens when they exceed maxWidth", () => {
     const { ctx } = fakeCtx()
-    const base = { fontFamily: "system-ui", fontSize: 10, fontWeight: 400, lineHeight: 12 }
-    const spans = [{ text: "AAAAAAAAAA", color: "#fff" }]
+    const base = { fontFamily: "system-ui", fontSize: 10, fontWeight: 400, lineHeight: 12, color: "#fff" }
+    const spans = [{ text: "AAAAAAAAAA" }]
     const layout = layoutRichText(ctx, spans, base, { maxWidth: 18, align: "start" })
     expect(layout.lines.length).toBeGreaterThan(1)
     for (const line of layout.lines) expect(line.w).toBeLessThanOrEqual(18 + 1e-6)

@@ -250,7 +250,7 @@ describe("surface builder", () => {
       build: () =>
         column(
           [
-            richTextNode([{ text: "Hello world", color: theme.colors.textMuted }], {
+            richTextNode([{ text: "Hello world" }], {
               key: "copy",
             }),
           ],

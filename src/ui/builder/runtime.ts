@@ -1,0 +1,340 @@
+import { theme } from "../../config/theme"
+import { createRichTextBlock } from "../../core/draw.text"
+import { ZERO_RECT } from "../../core/rect"
+import { createMeasureContext } from "../../platform/web/canvas"
+import { SurfaceRoot, ViewportElement, type Surface } from "../base/viewport"
+import { UIElement, WheelUIEvent, type Rect, type Vec2 } from "../base/ui"
+import { Button, Checkbox, Radio, Row, Scrollbar } from "../widgets"
+import { clamp } from "./utils"
+import type { BuilderNode } from "./types"
+
+export type BuilderTreeSurfaceLike = Surface & {
+  setNode(node: BuilderNode | null): void
+  setWheelFallback(fn: ((e: WheelUIEvent) => void) | null): void
+  contentSize(viewportSize: Vec2): Vec2
+  measureWithContext(ctx: CanvasRenderingContext2D, viewportSize: Vec2): Vec2
+}
+
+type ButtonCell = {
+  widget: Button
+  rect: Rect
+  text: string
+  title?: string
+  active: boolean
+  disabled: boolean
+  onClick?: () => void
+  used: boolean
+}
+
+type CheckboxCell = {
+  widget: Checkbox
+  rect: Rect
+  label: string
+  checked: any
+  active: boolean
+  disabled: boolean
+  used: boolean
+}
+
+type RadioCell = {
+  widget: Radio
+  rect: Rect
+  label: string
+  value: string
+  selected: any
+  active: boolean
+  disabled: boolean
+  used: boolean
+}
+
+type RowCell = {
+  widget: Row
+  rect: Rect
+  leftText: string
+  rightText?: string
+  indent: number
+  variant: "group" | "item"
+  selected: boolean
+  active: boolean
+  onClick?: () => void
+  used: boolean
+}
+
+export type DrawOp = (ctx: CanvasRenderingContext2D) => void
+
+class BuilderScrollAreaElement extends UIElement {
+  private rect: Rect = ZERO_RECT
+  private active = false
+  private readonly contentSurface: BuilderTreeSurfaceLike
+  private readonly viewport: ViewportElement
+  private readonly scrollbar: Scrollbar
+  private scrollY = 0
+  private contentH = 0
+
+  constructor(id: string, createTreeSurface: (id: string) => BuilderTreeSurfaceLike) {
+    super()
+    this.contentSurface = createTreeSurface(`${id}.Content`)
+    this.contentSurface.setWheelFallback((e) => this.onContentWheel(e))
+    this.viewport = new ViewportElement({
+      rect: () => this.rect,
+      target: this.contentSurface,
+      options: { clip: true, scroll: () => ({ x: 0, y: this.scrollY }), active: () => this.active },
+    })
+    this.viewport.z = 1
+    this.scrollbar = new Scrollbar({
+      rect: () => ({
+        x: this.rect.x + Math.max(0, this.rect.w - 12),
+        y: this.rect.y + 2,
+        w: 10,
+        h: Math.max(0, this.rect.h - 4),
+      }),
+      axis: "y",
+      viewportSize: () => Math.max(0, this.rect.h),
+      contentSize: () => this.contentH,
+      value: () => this.scrollY,
+      onChange: (next) => {
+        this.scrollY = clamp(next, 0, this.maxScroll())
+      },
+      active: () => this.active,
+    })
+    this.scrollbar.z = 10
+    this.add(this.viewport)
+    this.add(this.scrollbar)
+  }
+
+  private maxScroll() {
+    return Math.max(0, this.contentH - this.rect.h)
+  }
+
+  private onContentWheel(e: WheelUIEvent) {
+    const next = clamp(this.scrollY + e.deltaY, 0, this.maxScroll())
+    if (next === this.scrollY) return
+    this.scrollY = next
+    e.handle()
+  }
+
+  set(next: { rect: Rect; active: boolean; child: BuilderNode }, measureCtx?: CanvasRenderingContext2D) {
+    this.rect = next.rect
+    this.active = next.active && next.rect.w > 0 && next.rect.h > 0
+    this.contentSurface.setNode(next.child)
+    const content = measureCtx
+      ? this.contentSurface.measureWithContext(measureCtx, { x: Math.max(0, next.rect.w - 14), y: next.rect.h })
+      : this.contentSurface.contentSize({ x: Math.max(0, next.rect.w - 14), y: next.rect.h })
+    this.contentH = Math.max(next.rect.h, content.y)
+    this.scrollY = clamp(this.scrollY, 0, this.maxScroll())
+  }
+
+  bounds() {
+    if (!this.active) return ZERO_RECT
+    return this.rect
+  }
+}
+
+export class BuilderRuntime {
+  readonly root = new SurfaceRoot()
+  private readonly buttons = new Map<string, ButtonCell>()
+  private readonly checkboxes = new Map<string, CheckboxCell>()
+  private readonly radios = new Map<string, RadioCell>()
+  private readonly rows = new Map<string, RowCell>()
+  private readonly scrollAreas = new Map<string, BuilderScrollAreaElement>()
+  private readonly richBlocks = new Map<string, ReturnType<typeof createRichTextBlock>>()
+  private readonly usedScrollAreas = new Set<string>()
+
+  constructor(private readonly createTreeSurface: (id: string) => BuilderTreeSurfaceLike) {}
+
+  debugCounts() {
+    return {
+      buttons: this.buttons.size,
+      checkboxes: this.checkboxes.size,
+      radios: this.radios.size,
+      rows: this.rows.size,
+      scrollAreas: this.scrollAreas.size,
+    }
+  }
+
+  hitTest(pSurface: Vec2) {
+    return this.root.hitTest(pSurface)
+  }
+
+  beginFrame() {
+    for (const cell of this.buttons.values()) cell.used = false
+    for (const cell of this.checkboxes.values()) cell.used = false
+    for (const cell of this.radios.values()) cell.used = false
+    for (const cell of this.rows.values()) cell.used = false
+    this.usedScrollAreas.clear()
+  }
+
+  endFrame() {
+    for (const cell of this.buttons.values()) if (!cell.used) cell.active = false
+    for (const cell of this.checkboxes.values()) if (!cell.used) cell.active = false
+    for (const cell of this.radios.values()) if (!cell.used) cell.active = false
+    for (const cell of this.rows.values()) {
+      if (cell.used) continue
+      cell.active = false
+      cell.widget.set({ rect: ZERO_RECT, leftText: "" })
+    }
+    for (const [key, area] of this.scrollAreas) {
+      if (this.usedScrollAreas.has(key)) continue
+      area.set({ rect: ZERO_RECT, active: false, child: { kind: "spacer" } })
+    }
+  }
+
+  ensureRichBlock(key: string, spans: Parameters<typeof createRichTextBlock>[0], style: Parameters<typeof createRichTextBlock>[1], align?: "start" | "center" | "end") {
+    const hit = this.richBlocks.get(key)
+    if (hit) return hit
+    const next = createRichTextBlock(spans, style, { align: align ?? "start", wrap: "word" })
+    this.richBlocks.set(key, next)
+    return next
+  }
+
+  mountButton(key: string, rect: Rect, node: { text: string; title?: string; disabled?: boolean; onClick?: () => void }, active: boolean) {
+    let cell = this.buttons.get(key)
+    if (!cell) {
+      cell = {
+        rect,
+        text: node.text,
+        title: node.title,
+        active,
+        disabled: node.disabled ?? false,
+        onClick: node.onClick,
+        used: true,
+        widget: new Button({
+          rect: () => cell!.active ? cell!.rect : ZERO_RECT,
+          text: () => cell!.text,
+          title: () => cell!.title ?? cell!.text,
+          onClick: () => cell!.onClick?.(),
+          active: () => cell!.active,
+          disabled: () => cell!.disabled,
+        }),
+      }
+      cell.widget.z = 10
+      this.buttons.set(key, cell)
+      this.root.add(cell.widget)
+    }
+    cell.rect = rect
+    cell.text = node.text
+    cell.title = node.title
+    cell.active = active
+    cell.disabled = node.disabled ?? false
+    cell.onClick = node.onClick
+    cell.used = true
+  }
+
+  mountCheckbox(key: string, rect: Rect, node: { label: string; checked: any; disabled?: boolean }, active: boolean) {
+    let cell = this.checkboxes.get(key)
+    if (!cell) {
+      cell = {
+        rect,
+        label: node.label,
+        checked: node.checked,
+        active,
+        disabled: node.disabled ?? false,
+        used: true,
+        widget: new Checkbox({
+          rect: () => cell!.active ? cell!.rect : ZERO_RECT,
+          label: () => cell!.label,
+          checked: node.checked,
+          active: () => cell!.active,
+          disabled: () => cell!.disabled,
+        }),
+      }
+      cell.widget.z = 10
+      this.checkboxes.set(key, cell)
+      this.root.add(cell.widget)
+    }
+    cell.rect = rect
+    cell.label = node.label
+    cell.checked = node.checked
+    cell.active = active
+    cell.disabled = node.disabled ?? false
+    cell.used = true
+  }
+
+  mountRadio(key: string, rect: Rect, node: { label: string; value: string; selected: any; disabled?: boolean }, active: boolean) {
+    let cell = this.radios.get(key)
+    if (!cell) {
+      cell = {
+        rect,
+        label: node.label,
+        value: node.value,
+        selected: node.selected,
+        active,
+        disabled: node.disabled ?? false,
+        used: true,
+        widget: new Radio({
+          rect: () => cell!.active ? cell!.rect : ZERO_RECT,
+          label: () => cell!.label,
+          value: node.value,
+          selected: node.selected,
+          active: () => cell!.active,
+          disabled: () => cell!.disabled,
+        }),
+      }
+      cell.widget.z = 10
+      this.radios.set(key, cell)
+      this.root.add(cell.widget)
+    }
+    cell.rect = rect
+    cell.label = node.label
+    cell.value = node.value
+    cell.selected = node.selected
+    cell.active = active
+    cell.disabled = node.disabled ?? false
+    cell.used = true
+  }
+
+  mountRow(key: string, rect: Rect, node: { leftText: string; rightText?: string; indent?: number; variant?: "group" | "item"; selected?: boolean; onClick?: () => void }, active: boolean) {
+    let cell = this.rows.get(key)
+    if (!cell) {
+      cell = {
+        rect,
+        leftText: node.leftText,
+        rightText: node.rightText,
+        indent: node.indent ?? 0,
+        variant: node.variant ?? "item",
+        selected: node.selected ?? false,
+        active,
+        onClick: node.onClick,
+        used: true,
+        widget: new Row(),
+      }
+      cell.widget.z = 10
+      this.rows.set(key, cell)
+      this.root.add(cell.widget)
+    }
+    cell.rect = rect
+    cell.leftText = node.leftText
+    cell.rightText = node.rightText
+    cell.indent = node.indent ?? 0
+    cell.variant = node.variant ?? "item"
+    cell.selected = node.selected ?? false
+    cell.active = active
+    cell.onClick = node.onClick
+    cell.used = true
+    cell.widget.set(
+      active
+        ? {
+            rect,
+            leftText: node.leftText,
+            rightText: node.rightText,
+            indent: node.indent ?? 0,
+            variant: node.variant ?? "item",
+            selected: node.selected,
+          }
+        : { rect: ZERO_RECT, leftText: "" },
+      active ? node.onClick : undefined,
+    )
+  }
+
+  mountScrollArea(key: string, rect: Rect, node: { child: BuilderNode }, active: boolean, ctx: CanvasRenderingContext2D) {
+    let area = this.scrollAreas.get(key)
+    if (!area) {
+      area = new BuilderScrollAreaElement(key, this.createTreeSurface)
+      area.z = 5
+      this.scrollAreas.set(key, area)
+      this.root.add(area)
+    }
+    this.usedScrollAreas.add(key)
+    area.set({ rect, active, child: node.child }, ctx)
+  }
+}

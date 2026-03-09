@@ -24,6 +24,7 @@ import {
 } from "./surface_builder"
 import { normalizeChildren, resolveChildren, resolveTextContent, type BuilderChild, type JSXNodeProps } from "../jsx"
 import type { RichTextSpan, RichTextStyle, TextEmphasis } from "../../core/draw.text"
+import { resolveRichTextChildren, type RichInlineChild } from "./rich_text_children"
 
 type ContainerProps = JSXNodeProps
 
@@ -36,13 +37,14 @@ type TextProps = JSXNodeProps & {
   size?: "body" | "headline" | "meta"
 }
 
-type RichTextProps = JSXNodeProps & {
-  spans: RichTextSpan[]
+type RichTextProps = Omit<JSXNodeProps, "children"> & {
+  spans?: RichTextSpan[]
   textStyle?: RichTextStyle
   align?: "start" | "center" | "end"
   tone?: "primary" | "muted"
   weight?: "normal" | "bold"
   size?: "body" | "headline" | "meta"
+  children?: RichInlineChild | RichInlineChild[]
 }
 
 type ButtonProps = JSXNodeProps & {
@@ -110,7 +112,15 @@ type PanelHeaderProps = JSXNodeProps & {
   meta?: string
 }
 
-function common(base: JSXNodeProps | undefined): CommonNodeProps {
+function common(base: {
+  key?: string
+  style?: CommonNodeProps["style"]
+  active?: boolean
+  visible?: boolean
+  box?: BoxStyle
+  provideStyle?: CommonNodeProps["provideStyle"]
+  styleOverride?: CommonNodeProps["styleOverride"]
+} | undefined): CommonNodeProps {
   return {
     key: base?.key,
     style: base?.style,
@@ -195,7 +205,12 @@ export function Text(props: TextProps) {
 }
 
 export function RichText(props: RichTextProps) {
-  return richTextNode(props.spans, {
+  const hasSpans = props.spans !== undefined
+  const hasChildren = props.children !== undefined && (!Array.isArray(props.children) || props.children.length > 0)
+  if (hasSpans && hasChildren) throw new Error("RichText accepts either spans or children, not both.")
+  const richChildren = props.children
+  const spans = props.spans ?? resolveRichTextChildren(Array.isArray(richChildren) ? richChildren : richChildren !== undefined ? [richChildren] : undefined)
+  return richTextNode(spans, {
     ...common(props),
     textStyle: props.textStyle,
     align: props.align,

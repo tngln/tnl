@@ -14,7 +14,7 @@ export const TextSurfaceDefinition: SurfaceDefinition<TextSurfaceProps> = define
         key="body"
         tone="muted"
         style={{ fill: true }}
-        spans={[{ text: props.body, color: theme.colors.textMuted }]}
+        spans={[{ text: props.body }]}
       />
     </PanelColumn>
   ),

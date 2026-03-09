@@ -2,9 +2,9 @@ import { draw, Line } from "./draw"
 
 export type TextEmphasis = { bold?: boolean; italic?: boolean; underline?: boolean }
 
-export type RichTextSpan = { text: string; color: string; emphasis?: TextEmphasis }
+export type RichTextSpan = { text: string; color?: string; emphasis?: TextEmphasis }
 
-export type RichTextStyle = { fontFamily: string; fontSize: number; fontWeight?: number; lineHeight: number }
+export type RichTextStyle = { fontFamily: string; fontSize: number; fontWeight?: number; lineHeight: number; color?: string }
 
 export type RichTextLayoutOptions = {
   maxWidth: number
@@ -160,7 +160,7 @@ function tokenize(ctx: CanvasRenderingContext2D, spans: RichTextSpan[], base: Ri
     for (const raw of segs) {
       const t = normalizeSpace(raw)
       if (!t) continue
-      tokens.push({ text: t, spanIndex: i, font, color: span.color, underline, isSpace: t === " " })
+      tokens.push({ text: t, spanIndex: i, font, color: span.color ?? base.color ?? "#000", underline, isSpace: t === " " })
     }
   }
   return tokens

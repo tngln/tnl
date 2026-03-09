@@ -1,7 +1,6 @@
 import { createElement, Fragment } from "../../../jsx"
 import { Column, PanelColumn, PanelScroll, PanelSection, PanelToolbar, RichText, Spacer, Text } from "../../../builder/components"
 import { defineSurface, mountSurface } from "../../../builder/surface_builder"
-import { theme } from "../../../../config/theme"
 import type { DeveloperPanelSpec } from "../index"
 
 type InfoPanelSpec = {
@@ -25,7 +24,7 @@ export function createInfoPanel(spec: InfoPanelSpec): DeveloperPanelSpec {
         <PanelScroll key={`${spec.id}.scroll`}>
           <Column style={{ axis: "column", padding: 6, gap: 10, w: "auto", h: "auto" }}>
               <PanelSection title="Status" key={`${spec.id}.status`}>
-                <RichText key={`${spec.id}.summary`} spans={[{ text: spec.summary, color: theme.colors.textMuted }]} tone="muted" />
+                <RichText key={`${spec.id}.summary`} tone="muted">{spec.summary}</RichText>
               </PanelSection>
             {spec.notes && spec.notes.length > 0 ? (
               <PanelSection title="Next" key={`${spec.id}.next`}>
@@ -34,11 +33,9 @@ export function createInfoPanel(spec: InfoPanelSpec): DeveloperPanelSpec {
                     <RichText
                       key={`${spec.id}.note.${index}`}
                       tone="muted"
-                      spans={[
-                        { text: `${index + 1}. `, color: theme.colors.textPrimary, emphasis: { bold: true } },
-                        { text: note, color: theme.colors.textMuted },
-                      ]}
-                    />
+                    >
+                      <b>{`${index + 1}. `}</b>{note}
+                    </RichText>
                   ))}
                 </Column>
               </PanelSection>

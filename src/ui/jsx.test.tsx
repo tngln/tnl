@@ -1,6 +1,8 @@
 import { createElement, Fragment } from "./jsx"
 import { describe, expect, it } from "bun:test"
-import { Column, Text } from "./builder/components"
+import { Column, RichText, Text } from "./builder/components"
+import { theme } from "../config/theme"
+import { resolveRichTextChildren } from "./builder/rich_text_children"
 
 describe("jsx runtime", () => {
   it("flattens children and ignores falsey values", () => {
@@ -28,5 +30,45 @@ describe("jsx runtime", () => {
     const node: any = <Demo />
     expect(node.kind).toBe("text")
     expect(node.text).toBe("ok")
+  })
+
+  it("creates rich text intrinsic nodes", () => {
+    const inline: any = (
+      <Fragment>
+        {"a"}
+        <b>{"b"}</b>
+        <span tone="muted">{"c"}</span>
+      </Fragment>
+    )
+    const spans = resolveRichTextChildren(Array.isArray(inline) ? inline : [inline])
+    expect(spans).toEqual([
+      { text: "a" },
+      { text: "b", emphasis: { bold: true } },
+      { text: "c", color: theme.colors.textMuted },
+    ])
+  })
+
+  it("rejects rich text intrinsic tags in normal layout children", () => {
+    expect(() => (
+      <Column>
+        <b>x</b>
+      </Column>
+    )).toThrow("RichText intrinsic tags can only be used inside <RichText>.")
+  })
+
+  it("resolves RichText children into spans", () => {
+    const node: any = (
+      <RichText tone="muted">
+        {"a"}
+        <b>{"b"}</b>
+        <span tone="primary">{"c"}</span>
+      </RichText>
+    )
+    expect(node.kind).toBe("richText")
+    expect(node.spans).toEqual([
+      { text: "a" },
+      { text: "b", emphasis: { bold: true } },
+      { text: "c", color: theme.colors.textPrimary },
+    ])
   })
 })

@@ -1,9 +1,10 @@
 import { textNode } from "./builder/surface_builder"
+import { isRichInlineNode, richTextElement, type RichInlineChild } from "./builder/rich_text_children"
 import type { BuilderNode, BoxStyle, CommonNodeProps } from "./builder/surface_builder"
 
 export type BuilderLeaf = BuilderNode | string | number | null | undefined | false
 export type BuilderChild = BuilderLeaf | BuilderChild[]
-export type BuilderElement = BuilderNode | BuilderChild[]
+export type BuilderElement = BuilderNode | BuilderChild[] | RichInlineChild
 export type BuilderComponent<P = {}> = (props: P & { children?: BuilderChild[] }) => BuilderElement
 
 type ComponentProps = CommonNodeProps & { children?: BuilderChild | BuilderChild[] }
@@ -24,8 +25,10 @@ export function flattenChildren(children: BuilderChild[]) {
 }
 
 export function normalizeChildren(children: BuilderChild[]) {
+  const flat = flattenChildren(children)
   const out: BuilderNode[] = []
-  for (const child of flattenChildren(children)) {
+  for (const child of flat) {
+    if (isRichInlineNode(child)) throw new Error("RichText intrinsic tags can only be used inside <RichText>.")
     if (typeof child === "string" || typeof child === "number") out.push(textNode(String(child)))
     else out.push(child as BuilderNode)
   }
@@ -62,8 +65,14 @@ export function createElement<P>(
   props: (P & ComponentProps) | null,
   ...children: BuilderChild[]
 ): BuilderElement {
-  const nextProps = { ...(props ?? {}), children } as P & { children?: BuilderChild[] }
+  const nextProps = {
+    ...(props ?? {}),
+    ...(children.length > 0 ? { children } : {}),
+  } as P & { children?: BuilderChild[] }
   if (type === Fragment) return children
+  if (type === "b" || type === "i" || type === "u" || type === "span") {
+    return richTextElement(type, nextProps as { children?: RichInlineChild[]; tone?: "primary" | "muted"; color?: string })
+  }
   if (typeof type === "function") return type(nextProps)
   throw new Error(`Unsupported JSX element type: ${String(type)}`)
 }
