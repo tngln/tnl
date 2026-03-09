@@ -21,6 +21,7 @@ function createManager(opts: Partial<TestContext> = {}) {
     resolve(current) {
       const contexts: string[] = []
       if (current.captureTopLevelTarget && typeof (current.captureTopLevelTarget as any).id === "string") contexts.push(`capture:${(current.captureTopLevelTarget as any).id}`)
+      if (current.focusTopLevelTarget && typeof (current.focusTopLevelTarget as any).id === "string") contexts.push(`focus:${(current.focusTopLevelTarget as any).id}`)
       if (current.hoverTopLevelTarget && typeof (current.hoverTopLevelTarget as any).id === "string") contexts.push(`hover:${(current.hoverTopLevelTarget as any).id}`)
       if (current.activeWindowId) contexts.push(`window:${current.activeWindowId}`)
       if (current.activePaneId) contexts.push(`pane:${current.activePaneId}`)
@@ -120,6 +121,21 @@ describe("shortcuts", () => {
     manager.handleKeyUp({ code: "F2" })
     manager.handleKeyDown({ code: "F2" })
     expect(ctx.log).toEqual(["window", "global"])
+  })
+
+  it("prefers focused top-level context before window and global", () => {
+    const focusedWindow = { id: "Focused" }
+    const { manager, ctx } = createManager({ activeWindowId: "Main", focusTopLevelTarget: focusedWindow })
+    manager.registerCommand({ id: "focus", run(current) { current.log.push("focus") } })
+    manager.registerCommand({ id: "window", run(current) { current.log.push("window") } })
+    manager.registerCommand({ id: "global", run(current) { current.log.push("global") } })
+    manager.registerBinding({ command: "global", context: "global", trigger: { kind: "key-down", code: "F6" } })
+    manager.registerBinding({ command: "window", context: "window:Main", trigger: { kind: "key-down", code: "F6" } })
+    manager.registerBinding({ command: "focus", context: "focus:Focused", trigger: { kind: "key-down", code: "F6" } })
+
+    manager.handleKeyDown({ code: "F6" })
+
+    expect(ctx.log).toEqual(["focus"])
   })
 
   it("honors enabled, when, preventDefault and stop", () => {

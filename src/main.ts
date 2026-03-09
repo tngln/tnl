@@ -66,8 +66,10 @@ const shortcutResolver: ShortcutContextResolver<AppShortcutContext> = {
   resolve(ctx) {
     const contexts: string[] = []
     const captureId = targetContextId(ctx.captureTopLevelTarget)
+    const focusId = targetContextId(ctx.focusTopLevelTarget)
     const hoverId = targetContextId(ctx.hoverTopLevelTarget)
     if (captureId) contexts.push(`capture:${captureId}`)
+    if (focusId) contexts.push(`focus:${focusId}`)
     if (hoverId) contexts.push(`hover:${hoverId}`)
     if (ctx.activeWindowId) contexts.push(`window:${ctx.activeWindowId}`)
     if (ctx.activePaneId) contexts.push(`pane:${ctx.activePaneId}`)
@@ -88,6 +90,8 @@ const shortcuts = new ShortcutManager<AppShortcutContext>({
     activeWindowId: windows.getActiveWindowId(),
     activePaneId: docking.getActivePaneId(),
     activeContainerId: docking.getActiveContainerId(),
+    focusTarget: ui.focusTarget,
+    focusTopLevelTarget: ui.focusTopLevelTarget,
     hoverTarget: ui.hoverTarget,
     captureTarget: ui.captureTarget,
     hoverTopLevelTarget: ui.hoverTopLevelTarget,
@@ -168,14 +172,38 @@ addWindowResizeListener(() => {
 })
 
 const removeKeyDownListener = addWindowKeyDownListener((event) => {
+  const handledByUi = ui.handleKeyDown({
+    code: event.code,
+    key: event.key,
+    repeat: event.repeat,
+    altKey: event.altKey,
+    ctrlKey: event.ctrlKey,
+    shiftKey: event.shiftKey,
+    metaKey: event.metaKey,
+  })
+  if (handledByUi) {
+    shortcuts.syncKeyDown(event)
+    event.preventDefault()
+    return
+  }
   shortcuts.handleKeyDown(event)
 })
 
 const removeKeyUpListener = addWindowKeyUpListener((event) => {
+  ui.handleKeyUp({
+    code: event.code,
+    key: event.key,
+    repeat: event.repeat,
+    altKey: event.altKey,
+    ctrlKey: event.ctrlKey,
+    shiftKey: event.shiftKey,
+    metaKey: event.metaKey,
+  })
   shortcuts.handleKeyUp(event)
 })
 
 const removeShortcutCancelListener = addBrowserInteractionCancelListener(() => {
+  ui.clearFocus()
   shortcuts.resetInputState()
 })
 ;(globalThis as any).__TNL_DEVTOOLS__.disposeShortcuts = () => {

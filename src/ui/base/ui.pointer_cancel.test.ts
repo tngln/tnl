@@ -4,9 +4,15 @@ import { CanvasUI, CursorRegion, PointerUIEvent, UIElement, type Rect } from "./
 class CaptureElement extends UIElement {
   moves = 0
   cancels: string[] = []
+  focused = false
+  blurred = false
 
   bounds(): Rect {
     return { x: 0, y: 0, w: 80, h: 80 }
+  }
+
+  canFocus() {
+    return true
   }
 
   onPointerDown(e: PointerUIEvent) {
@@ -19,6 +25,16 @@ class CaptureElement extends UIElement {
 
   onPointerCancel(_e: PointerUIEvent | null, reason: string) {
     this.cancels.push(reason)
+  }
+
+  onFocus() {
+    this.focused = true
+    this.blurred = false
+  }
+
+  onBlur() {
+    this.focused = false
+    this.blurred = true
   }
 }
 
@@ -235,11 +251,14 @@ describe("canvas ui pointer cancel", () => {
       const ui = new CanvasUI(canvas, new RootElement(target))
 
       ;(canvas as any).dispatch("pointerdown", pointerEvent(10, 10, 1))
+      expect(ui.focusTarget).toBe(target)
       windowHost.dispatch("blur")
       ;(canvas as any).dispatch("pointermove", pointerEvent(150, 10, 1))
 
       expect(target.cancels).toEqual(["blur"])
       expect(target.moves).toBe(0)
+      expect(target.blurred).toBe(true)
+      expect(ui.focusTarget).toBe(null)
 
       ui.destroy()
       windowHost.dispatch("blur")
@@ -290,6 +309,21 @@ describe("canvas ui pointer cancel", () => {
 
       ui.destroy()
       expect((canvas as any).style.cursor).toBe("default")
+    })
+  })
+
+  it("clears focus on destroy", () => {
+    withFakeDom(({ canvas }) => {
+      const target = new CaptureElement()
+      const ui = new CanvasUI(canvas, new RootElement(target))
+
+      ;(canvas as any).dispatch("pointerdown", pointerEvent(10, 10, 1))
+      expect(ui.focusTarget).toBe(target)
+
+      ui.destroy()
+
+      expect(target.blurred).toBe(true)
+      expect(ui.focusTarget).toBe(null)
     })
   })
 

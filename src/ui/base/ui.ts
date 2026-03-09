@@ -73,15 +73,30 @@ export type WheelLike = {
   metaKey: boolean
 }
 
+export type KeyLike = {
+  code: string
+  key: string
+  repeat: boolean
+  altKey: boolean
+  ctrlKey: boolean
+  shiftKey: boolean
+  metaKey: boolean
+}
+
 export type UIEventPhase = "target" | "bubble"
 
 export interface UIEventTargetNode {
   eventParentTarget(): UIEventTargetNode | null
+  canFocus?(): boolean
+  onFocus?(): void
+  onBlur?(): void
   onPointerDown?(e: PointerUIEvent): void
   onPointerMove?(e: PointerUIEvent): void
   onPointerUp?(e: PointerUIEvent): void
   onPointerCancel?(e: PointerUIEvent | null, reason: InteractionCancelReason): void
   onWheel?(e: WheelUIEvent): void
+  onKeyDown?(e: KeyUIEvent): void
+  onKeyUp?(e: KeyUIEvent): void
 }
 
 class UIEventState {
@@ -236,6 +251,63 @@ export class WheelUIEvent {
   }
 }
 
+export class KeyUIEvent {
+  readonly code: string
+  readonly key: string
+  readonly repeat: boolean
+  readonly altKey: boolean
+  readonly ctrlKey: boolean
+  readonly shiftKey: boolean
+  readonly metaKey: boolean
+  target: UIEventTargetNode | null = null
+  currentTarget: UIEventTargetNode | null = null
+  phase: UIEventPhase = "target"
+  private handled = false
+  private stopped = false
+
+  constructor(e: KeyLike) {
+    this.code = e.code
+    this.key = e.key
+    this.repeat = e.repeat
+    this.altKey = e.altKey
+    this.ctrlKey = e.ctrlKey
+    this.shiftKey = e.shiftKey
+    this.metaKey = e.metaKey
+  }
+
+  handle() {
+    this.handled = true
+  }
+
+  preventDefault() {
+    this.handled = true
+  }
+
+  stopPropagation() {
+    this.stopped = true
+  }
+
+  get didHandle() {
+    return this.handled
+  }
+
+  get propagationStopped() {
+    return this.stopped
+  }
+
+  withDispatch(target: UIEventTargetNode, currentTarget: UIEventTargetNode, phase: UIEventPhase) {
+    this.target = target
+    this.currentTarget = currentTarget
+    this.phase = phase
+  }
+
+  adoptOutcome(other: KeyUIEvent) {
+    if (other.target) this.target = other.target
+    if (other.didHandle) this.handle()
+    if (other.propagationStopped) this.stopPropagation()
+  }
+}
+
 function buildEventPath(target: UIEventTargetNode | null) {
   const path: UIEventTargetNode[] = []
   let current = target
@@ -277,6 +349,19 @@ export function dispatchWheelEvent(target: UIEventTargetNode | null, event: Whee
   }
 }
 
+export function dispatchKeyEvent(target: UIEventTargetNode | null, event: KeyUIEvent, kind: "down" | "up") {
+  if (!target) return
+  const path = buildEventPath(target)
+  const originalTarget = path[0]
+  for (let i = 0; i < path.length; i++) {
+    const current = path[i]
+    event.withDispatch(originalTarget, current, i === 0 ? "target" : "bubble")
+    if (kind === "down") current.onKeyDown?.(event)
+    else current.onKeyUp?.(event)
+    if (event.propagationStopped) break
+  }
+}
+
 export function dispatchPointerCancelEvent(
   target: UIEventTargetNode | null,
   event: PointerUIEvent | null,
@@ -314,6 +399,7 @@ export abstract class UIElement {
   private rt: { clip?: Rect; compositor?: Compositor; frameId: number; dpr: number } | null = null
 
   abstract bounds(): Rect
+  
   protected containsPoint(p: Vec2, _ctx?: CanvasRenderingContext2D) {
     return pointInRect(p, this.bounds())
   }
@@ -426,6 +512,13 @@ export abstract class UIElement {
   onPointerUp(_e: PointerUIEvent) {}
   onPointerCancel(_e: PointerUIEvent | null, _reason: InteractionCancelReason) {}
   onWheel(_e: WheelUIEvent) {}
+  canFocus() {
+    return false
+  }
+  onFocus() {}
+  onBlur() {}
+  onKeyDown(_e: KeyUIEvent) {}
+  onKeyUp(_e: KeyUIEvent) {}
   onPointerEnter() {}
   onPointerLeave() {}
 }
@@ -469,6 +562,7 @@ export class CanvasUI {
   private rafPending = false
   private capture: UIElement | null = null
   private hover: UIElement | null = null
+  private focus: UIElement | null = null
   private activePointerId: number | null = null
   private dpr = 1
   private cssW = 1
@@ -499,12 +593,20 @@ export class CanvasUI {
     return this.capture
   }
 
+  get focusTarget() {
+    return this.focus
+  }
+
   get hoverTopLevelTarget() {
     return this.hover ? this.topLevelTargetOf(this.hover) : null
   }
 
   get captureTopLevelTarget() {
     return this.capture ? this.topLevelTargetOf(this.capture) : null
+  }
+
+  get focusTopLevelTarget() {
+    return this.focus ? this.topLevelTargetOf(this.focus) : null
   }
 
   constructor(canvas: HTMLCanvasElement, root: UIElement, opts: { onTopLevelPointerDown?: (top: UIElement, target: UIElement) => void } = {}) {
@@ -523,6 +625,7 @@ export class CanvasUI {
     })
     this.removeBrowserInteractionCancelListener = addBrowserInteractionCancelListener((reason) => {
       this.cancelPointerSession(reason)
+      this.clearFocus()
     })
 
     canvas.addEventListener("pointerdown", this.onPointerDown)
@@ -543,6 +646,7 @@ export class CanvasUI {
     this.canvas.removeEventListener("pointercancel", this.onPointerCancel)
     this.canvas.removeEventListener("wheel", this.onWheel)
     this.releasePointerCapture()
+    this.clearFocus()
     this.applyCursor("default")
   }
 
@@ -685,6 +789,7 @@ export class CanvasUI {
   private onPointerDown = (e: PointerEvent) => {
     const p = this.toCanvasPoint(e)
     const target = this.root.hitTest(p, this.ctx)
+    this.focusElement(this.resolveFocusableTarget(target))
     if (!target) return
     this.activePointerId = e.pointerId
     setElementPointerCapture(this.canvas, e.pointerId)
@@ -781,6 +886,32 @@ export class CanvasUI {
     this.cancelPointerSession("pointercancel", e)
   }
 
+  focusElement(target: UIElement | null) {
+    if (this.focus === target) return
+    const previous = this.focus
+    this.focus = target
+    previous?.onBlur()
+    target?.onFocus()
+  }
+
+  clearFocus() {
+    this.focusElement(null)
+  }
+
+  handleKeyDown(e: KeyLike) {
+    if (!this.focus) return false
+    const ev = new KeyUIEvent(e)
+    dispatchKeyEvent(this.focus, ev, "down")
+    return ev.didHandle
+  }
+
+  handleKeyUp(e: KeyLike) {
+    if (!this.focus) return false
+    const ev = new KeyUIEvent(e)
+    dispatchKeyEvent(this.focus, ev, "up")
+    return ev.didHandle
+  }
+
   private applyCursor(next: CursorKind) {
     if (this.cursor === next) return
     this.cursor = next
@@ -808,6 +939,15 @@ export class CanvasUI {
     let top = target
     while (top.parent && top.parent !== this.root) top = top.parent
     return top
+  }
+
+  private resolveFocusableTarget(target: UIElement | null) {
+    let current = target
+    while (current) {
+      if (current.canFocus()) return current
+      current = current.parent
+    }
+    return null
   }
 
   private applyResolvedCursor(p: Vec2 | null, targetOverride?: UIElement | null) {

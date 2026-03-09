@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { CanvasUI, PointerUIEvent, UIElement, WheelUIEvent, type Rect } from "./ui"
+import { CanvasUI, KeyUIEvent, PointerUIEvent, UIElement, WheelUIEvent, type Rect } from "./ui"
 import { SurfaceRoot, ViewportElement, type Surface } from "./viewport"
 
 class HostElement extends UIElement {
@@ -30,9 +30,16 @@ class ChildElement extends UIElement {
   readonly events: string[] = []
   stop = false
   captureOnDown = false
+  stopKey = false
+  focused = false
+  blurred = false
 
   bounds(): Rect {
     return { x: 20, y: 20, w: 40, h: 40 }
+  }
+
+  canFocus() {
+    return true
   }
 
   onPointerDown(e: PointerUIEvent) {
@@ -47,6 +54,22 @@ class ChildElement extends UIElement {
 
   onPointerCancel(_e: PointerUIEvent | null, reason: string) {
     this.events.push(`cancel:${reason}`)
+  }
+
+  onFocus() {
+    this.focused = true
+    this.blurred = false
+  }
+
+  onBlur() {
+    this.focused = false
+    this.blurred = true
+  }
+
+  onKeyDown(e: KeyUIEvent) {
+    this.events.push(`key:${e.phase}:${e.code}`)
+    e.handle()
+    if (this.stopKey) e.stopPropagation()
   }
 }
 
@@ -68,6 +91,13 @@ class LocalLeaf extends UIElement {
   onWheel(e: WheelUIEvent) {
     this.events.push(`wheel:${e.phase}:${e.x},${e.y}`)
     if (this.handleWheel) e.handle()
+  }
+}
+
+class FocusHostElement extends HostElement {
+  onKeyDown(e: KeyUIEvent) {
+    this.events.push(`key:${e.phase}:${e.target === this ? "self" : "child"}:${e.code}`)
+    e.handle()
   }
 }
 
@@ -341,6 +371,100 @@ describe("ui event bubbling", () => {
 
       expect(surfaceMoves).toBe(1)
       expect(host.events).toEqual(["move:bubble:child:70,65"])
+
+      ui.destroy()
+    })
+  })
+
+  it("focuses the nearest focusable target on pointer down and clears it on empty hit", () => {
+    withFakeDom((canvas) => {
+      const host = new HostElement()
+      const child = new ChildElement()
+      host.add(child)
+      const ui = new CanvasUI(canvas, host)
+
+      ;(canvas as any).dispatch("pointerdown", pointerEvent(25, 25, 1))
+      expect(ui.focusTarget).toBe(child)
+      expect(child.focused).toBe(true)
+
+      ;(canvas as any).dispatch("pointerdown", pointerEvent(180, 180, 1))
+      expect(ui.focusTarget).toBe(null)
+      expect(child.blurred).toBe(true)
+
+      ui.destroy()
+    })
+  })
+
+  it("bubbles keyboard events from the focused target to its parent", () => {
+    withFakeDom((canvas) => {
+      const host = new FocusHostElement()
+      const child = new ChildElement()
+      host.add(child)
+      const ui = new CanvasUI(canvas, host)
+
+      ;(canvas as any).dispatch("pointerdown", pointerEvent(25, 25, 1))
+      const handled = ui.handleKeyDown({
+        code: "Enter",
+        key: "Enter",
+        repeat: false,
+        altKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        metaKey: false,
+      })
+
+      expect(handled).toBe(true)
+      expect(child.events).toEqual(["down:target:25,25", "key:target:Enter"])
+      expect(host.events).toEqual(["down:bubble:child:25,25", "key:bubble:child:Enter"])
+
+      ui.destroy()
+    })
+  })
+
+  it("stops keyboard bubbling when the focused target stops propagation", () => {
+    withFakeDom((canvas) => {
+      const host = new FocusHostElement()
+      const child = new ChildElement()
+      child.stopKey = true
+      host.add(child)
+      const ui = new CanvasUI(canvas, host)
+
+      ;(canvas as any).dispatch("pointerdown", pointerEvent(25, 25, 1))
+      const handled = ui.handleKeyDown({
+        code: "Escape",
+        key: "Escape",
+        repeat: false,
+        altKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        metaKey: false,
+      })
+
+      expect(handled).toBe(true)
+      expect(child.events).toEqual(["down:target:25,25", "key:target:Escape"])
+      expect(host.events).toEqual(["down:bubble:child:25,25"])
+
+      ui.destroy()
+    })
+  })
+
+  it("ignores keyboard dispatch when nothing is focused", () => {
+    withFakeDom((canvas) => {
+      const host = new FocusHostElement()
+      const ui = new CanvasUI(canvas, host)
+
+      const handled = ui.handleKeyDown({
+        code: "Space",
+        key: " ",
+        repeat: false,
+        altKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        metaKey: false,
+      })
+
+      expect(handled).toBe(false)
+      expect(host.events).toEqual([])
 
       ui.destroy()
     })

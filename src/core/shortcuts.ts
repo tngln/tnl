@@ -17,6 +17,8 @@ export type ShortcutExecutionContext = {
   activeWindowId?: string | null
   activePaneId?: string | null
   activeContainerId?: string | null
+  focusTarget?: unknown
+  focusTopLevelTarget?: unknown
   hoverTarget?: unknown
   captureTarget?: unknown
   hoverTopLevelTarget?: unknown
@@ -258,6 +260,14 @@ export class ShortcutManager<TContext extends ShortcutExecutionContext = Shortcu
   handleKeyUp(event: KeyboardLike) {
     this.input.syncKeyUp(event)
     return false
+  }
+
+  syncKeyDown(event: KeyboardLike) {
+    return this.input.syncKeyDown(event)
+  }
+
+  syncKeyUp(event: KeyboardLike) {
+    this.input.syncKeyUp(event)
   }
 
   handlePointerDown(event: PointerLike) {
