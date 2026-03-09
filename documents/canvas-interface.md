@@ -7,11 +7,11 @@
 这份文档现在承担“项目根级总览”的角色，重点说明当前已经实现的接口层次和推荐用法。
 
 如果需要看更细的现状说明，请同时参考：
-- [.trae/documents/UI系统现状与调用约定.md](./.trae/documents/UI系统现状与调用约定.md)
-- [.trae/documents/Surface-Viewport 设计.md](./.trae/documents/Surface-Viewport%20设计.md)
-- [.trae/documents/layout-flex.md](./.trae/documents/layout-flex.md)
-- [.trae/documents/文本排版增强.md](./.trae/documents/文本排版增强.md)
-- [.trae/documents/开发者工具框架.md](./.trae/documents/开发者工具框架.md)
+- [UI系统现状与调用约定.md](./UI系统现状与调用约定.md)
+- [Surface-Viewport 设计.md](./Surface-Viewport%20设计.md)
+- [layout-flex.md](./layout-flex.md)
+- [文本排版增强.md](./文本排版增强.md)
+- [开发者工具框架.md](./开发者工具框架.md)
 
 当前实现已经超出本文最早版本中的范围，新增了几项关键能力：
 - `ModalWindow` 已有标准 body host，窗口 body 不再需要手工 `translate + render`
