@@ -1,562 +1,172 @@
 # UI 系统现状与调用约定
 
-本文档记录当前已经落地的 Canvas UI 基建。它不是初始设计稿，而是面向“回忆当前实现”和“后续继续开发时如何接着写”的现状说明。
+本文只回答两件事：
 
-相关旧文档：
-- `Surface-Viewport 设计.md`：记录最初的 Surface/Viewport 设计意图。
-- `开发者工具框架.md`：记录 Developer 窗口最初的框架计划。
-- `layout-flex.md`、`文本排版增强.md`：记录 layout 与富文本的早期设计。
+1. 现在这套 Canvas UI 已经收敛到什么形态。
+2. 继续写代码时，默认应该怎么写。
 
----
+完整说明请优先看 [canvas-interface.md](./canvas-interface.md)。
 
-## 1. 当前 UI 架构分层
+## 1. 当前已经稳定下来的分层
 
-当前系统已经形成 6 层：
+当前 UI 的主干已经基本固定为：
 
 1. `CanvasUI`
-- 文件：`src/ui/base/ui.ts`
-- 职责：
-  - 管理高 DPI canvas。
-  - 管理 dirty rect 和局部重绘。
-  - 管理 pointer / wheel 事件分发、capture、hover。
-  - 管理 `Compositor` 帧生命周期。
-- 当前特性：
-  - `wheel` 已进入统一事件系统。
-  - 在 canvas 上全局拦截 `Ctrl + wheel` / `Meta + wheel`，避免触发浏览器页面缩放。
-
+   - 管 canvas、dirty rect、pointer / wheel、capture、hover、`Compositor`。
 2. `UIElement`
-- 文件：`src/ui/base/ui.ts`
-- 这是最底层的可命中、可绘制节点系统。
-- 仍然适合：
-  - 自定义命中逻辑
-  - 自定义绘制
-  - 需要直接控制 pointer 状态机的低层组件
-
+   - 最底层命中与绘制节点。
 3. `Surface` / `ViewportElement`
-- 文件：`src/ui/base/viewport.ts`
-- `Surface` 负责内容坐标系下的绘制和事件处理。
-- `ViewportElement` 负责：
-  - clip
-  - padding
-  - scroll
-  - 坐标转换
-  - 将 pointer / wheel 转成 surface-local 再投递给 `Surface`
-- 当前 `Surface` 接口已经支持：
-  - `render`
-  - `contentSize`
-  - `hitTest`
-  - `onPointerDown/Move/Up`
-  - `onWheel`
-  - `compose`
+   - 内容对象与视口壳分离。
+4. `ModalWindow` / `SurfaceWindow` / `WindowManager`
+   - 窗口壳、窗口 body host、窗口编排。
+5. Builder / JSX / 函数式 surface
+   - 普通页面和面板的默认 authoring 方式。
 
-4. 窗口系统
-- 文件：`src/ui/window/window.ts`
-- 核心是 `ModalWindow`。
-- 现在已经从“子类自己手工画 body”演进为“窗口内建 body host”：
-  - `setBodySurface(surface, opts?)`
-  - 内建 `bodyViewport`
-  - body rect 统一由窗口壳计算
-- `SurfaceWindow` 是当前推荐的窗口 authoring 入口：
-  - 窗口壳仍由类管理
-  - body 则直接挂 `Surface` 或函数式 surface mount spec
+这条链路已经被这些真实实现验证过：
 
-5. Builder / JSX / 函数式 Surface
-- 入口文件：
-  - `src/ui/builder/surface_builder.ts`
-  - `src/ui/builder/components.tsx`
-  - `src/ui/jsx.ts`
-- 当前高层 UI 的推荐写法已经不是“继承类 + 手算坐标”，而是：
-  - JSX 产出 `BuilderNode`
-  - `defineSurface(setup)` 建立实例状态
-  - `mountSurface(...)` 或 `surfaceMount(...)` 产出真实 `Surface`
+- `src/ui/window/about_dialog.tsx`
+- `src/ui/window/developer/panels/*.tsx`
+- `src/ui/surfaces/tab_panel_surface.ts`
+- `src/ui/surfaces/timeline_surface.ts`
+- `src/ui/docking/workspace_surface.ts`
 
-6. 页面级样式继承
-- 仍在 Builder 层内部完成，不是浏览器 CSS。
-- 关键字段：
-  - `provideStyle`
-  - `styleOverride`
-- 目标：
-  - 让文本颜色、字重、字号、surface tone 等视觉语义沿 Builder 树有限继承
-  - 不让 flex/layout 尺寸也参与继承
+## 2. 当前默认写法
 
-7. 平台能力收口
-- 目录：`src/platform/web`
-- 当前负责集中：
-  - DOM app 入口
-  - RAF / resize / load
-  - canvas / OffscreenCanvas / DPR / 测量 context
-  - navigator / runtime flags
-  - WebCodecs probe
-  - OPFS root / storage estimate
-  - prompt / confirm / alert
-  - 文件选择与下载
-- 目的：
-  - 保持当前 web-first 运行
-  - 显式集中浏览器绑定点
-  - 为未来 native runtime 迁移留清晰替换边界
-
----
-
-## 2. 当前推荐的 authoring 范式
-
-### 2.1 高层页面 / 面板
+### 2.1 普通窗口
 
 默认使用：
-- JSX
-- `defineSurface`
+
 - `SurfaceWindow`
+- `surfaceMount(...)`
+- `defineSurface(...)`
 
-推荐形态：
+不要再优先写：
 
-```tsx
-const ExampleSurface = defineSurface({
-  id: "Example.Surface",
-  setup: () => {
-    const count = signal(0)
+- 继承窗口类后在 `drawBody()` 里手工排版
+- 手工维护一个 fake viewport 给 body 用
 
-    return () => (
-      <PanelColumn>
-        <Text weight="bold">Example</Text>
-        <Button text={`Count ${count.peek()}`} onClick={() => count.set((v) => v + 1)} />
-      </PanelColumn>
-    )
-  },
-})
-```
+### 2.2 普通页面 / 面板
 
-适用对象：
-- About body
-- Developer panels
-- 控制面板
-- 数据面板
-- 说明型或表单型窗口内容
+默认使用：
 
-### 2.2 复杂复合组件
-
-仍然保留类式 `Surface`。
-
-适用对象：
-- `TimelineCompositeSurface`
-- `TabPanelSurface`
-- 多 viewport 复合控件
-- 需要专门的滚动/缩放/命中协调层的组件
-
-判断标准：
-- 如果只是页面结构和局部状态，优先函数式 surface。
-- 如果需要专门绘图管线、专门 hit test、多子 viewport 协调，继续用类式 surface。
-
----
-
-## 3. Builder 系统当前能力
-
-### 3.1 BuilderNode
-
-当前 Builder 节点主要包括：
-- 容器：
-  - `row`
-  - `column`
-  - `stack`
-- 基础：
-  - `text`
-  - `richText`
-  - `button`
-  - `checkbox`
-  - `radio`
-  - `rowItem`
-  - `scrollArea`
-  - `spacer`
-
-### 3.2 JSX runtime
-
-文件：`src/ui/jsx.ts`
-
-当前规则：
-- 字符串 / 数字 child 自动转 `text` 节点
-- `null` / `undefined` / `false` 被忽略
-- children 自动拍平
-- 只支持函数组件
-- `Fragment` 只是返回 children，不引入额外层级
-
-### 3.3 函数式 Surface
-
-文件：`src/ui/builder/surface_builder.ts`
-
-关键 API：
-- `defineSurface({ id, setup })`
-- `mountSurface(definition, props)`
-- `surfaceMount(definition, props)`
-
-语义：
-- `setup(props)` 每个实例只执行一次
-- `render(props)` 每次重绘执行
-- props 更新不会重跑 setup
-- setup 内允许使用 `signal()`、`Set`、`Map`、缓存对象
-
----
-
-## 4. 样式继承系统现状
-
-当前已经不是纯 `variant` 路线，而是有限级联继承。
-
-### 4.1 继承的数据
-
-当前 `InheritedStyle` 只覆盖视觉语义：
-
-- `text`
-  - `color`
-  - `fontFamily`
-  - `fontSize`
-  - `fontWeight`
-  - `lineHeight`
-  - `emphasis`
-- `surface`
-  - `tone`
-  - `density`
-  - `panelFill`
-  - `panelStroke`
-  - `sectionFill`
-  - `sectionStroke`
-  - `scrollFill`
-
-### 4.2 不继承的数据
-
-以下内容仍然必须显式写：
-- `w/h`
-- `grow/shrink/basis/fill/fixed`
-- `padding/gap/margin`
-- `align/justify`
-- `active/visible`
-- 具体 widget 尺寸
-
-这是刻意的。否则布局会变得不可预测。
-
-### 4.3 使用规则
-
-- 父节点通过 `provideStyle` 给子树提供默认视觉样式。
-- 节点通过 `styleOverride` 覆盖自身最终样式。
-- `styleOverride` 不会自动向后代扩散。
-
-当前页面级组件已经把这套继承包装好了，因此一般不需要直接手写这两个字段。
-
----
-
-## 5. 当前可直接复用的 Builder 页面组件
-
-文件：`src/ui/builder/components.tsx`
-
-### 5.1 通用结构组件
-- `Column`
-- `Row`
-- `Stack`
-- `Spacer`
-- `ScrollArea`
-- `Section`
-- `FormRow`
-- `ToolbarRow`
-
-### 5.2 文本与控件组件
-- `Text`
-- `RichText`
-- `Button`
-- `Checkbox`
-- `Radio`
-- `RowItem`
-
-### 5.3 页面骨架组件
+- JSX
+- Builder components
 - `PanelColumn`
-- `PanelToolbar`
 - `PanelHeader`
 - `PanelActionRow`
 - `PanelScroll`
 - `PanelSection`
 
-### 5.4 当前这些组件已承担的默认语义
+这类页面的典型特征是：
 
-`PanelColumn`
-- 页面主容器
-- 提供默认 body text 样式
+- 列表
+- 表单
+- 说明型内容
+- Developer panel
+- 工具窗口 body
 
-`PanelHeader`
-- 标题 + 右侧 meta / trailing
+### 2.3 复杂编辑器区域
 
-`PanelActionRow`
-- 开发者工具/工具面板顶部动作条
-- 支持：
-  - `actions`
-  - `compact`
-  - `icon`
-  - `title`
-  - `disabled`
+满足以下任一条件时，直接写类式 `Surface`：
 
-`PanelScroll`
-- 面板主滚动区
+- 多个 viewport 协调
+- 独立滚动 / 缩放坐标系
+- 自定义 hit test
+- 明显以绘图为主，而不是以普通控件排版为主
 
-`PanelSection`
-- 面板内带边框/背景的小节
+当前代表：
 
----
+- `TimelineCompositeSurface`
+- `TabPanelSurface`
+- `DockWorkspaceSurface`
 
-## 6. 基础控件当前状态
+## 3. Builder 侧当前约定
 
-### 6.1 Button
+### 3.1 JSX 不是 React
 
-文件：`src/ui/widgets/button.ts`
+当前 JSX runtime 只支持：
 
-当前支持：
-- `active`
-- `disabled`
-- `title`
+- 函数组件
+- `Fragment`
+- 字符串 / 数字 child 自动转文本节点
+- `b` / `i` / `u` / `span` 仅在 `RichText` 内可用
 
-当前语义：
-- `active = false`：不参与显示/命中
-- `disabled = true`：可见但不可点击
-- `title`：当前用于 compact/icon 工具栏按钮的 tooltip 提示
+### 3.2 `defineSurface` 生命周期
 
-### 6.2 Checkbox / Radio
+`defineSurface({ setup })` 的语义是：
 
-文件：
-- `src/ui/widgets/checkbox.ts`
-- `src/ui/widgets/radio.ts`
+- `setup(initialProps)` 每次 mount 只执行一次
+- 返回的 `render(props)` 在后续重绘里接收最新 props
 
-当前支持：
-- 真正的 `disabled` 态
-- 可见但不可交互
-- hover/down/click 不再响应
+因此：
 
-### 6.3 Row
+- 局部 `signal`、缓存对象、局部集合，放在 `setup`
+- 如果 props 以后会变，渲染时优先读 `render(props)` 参数，而不是只闭包捕获初始 props
 
-文件：`src/ui/widgets/row.ts`
+### 3.3 布局与样式
 
-当前是公共列表行组件，而不是某个面板私有实现。
+当前 Builder 会消费 `src/core/layout.ts` 的 `LayoutStyle`。
 
-当前能力：
-- `group` / `item` 两种变体
-- `selected`
-- `hover`
-- `click`
-- 左右文本自动截断，避免覆盖
+最常用的属性：
 
-已用于：
-- Data panel
-- Storage panel
+- `axis`
+- `gap`
+- `padding`
+- `margin`
+- `align`
+- `justify`
+- `fixed`
+- `fill`
+- `grow`
+- `shrink`
 
-### 6.4 Scrollbar
+当前样式继承只覆盖视觉语义，不覆盖布局尺寸。也就是说：
 
-文件：`src/ui/widgets/scrollbar.ts`
+- 文本颜色、字号、字重可以继承
+- `w/h`、`grow`、`padding`、`margin` 仍要显式写
 
-当前支持：
-- 横向 / 纵向
-- auto hide
-- 作为通用滚动条被复用于：
-  - `TabPanelSurface`
-  - `TimelineCompositeSurface`
-  - Builder `scrollArea`
+## 4. Surface / Viewport 当前约定
 
----
+`Surface` 负责：
 
-## 7. Surface / Viewport 当前使用方式
+- 在本地坐标系绘制
+- 可选提供 `contentSize`
+- 可选处理输入和 hit test
 
-### 7.1 ViewportElement 已承担的职责
+`ViewportElement` 负责：
 
-- clip
-- padding
-- scroll 偏移
-- surface-local 坐标转换
+- `rect`
+- `clip`
+- `padding`
+- `scroll`
+- 坐标转换
 - pointer / wheel 路由
 
-### 7.2 wheel 的当前约定
+当前普通窗口 body 已经内建 viewport host。不要为普通窗口内容重复 new 一个 body viewport。
 
-`CanvasUI` 已统一发出 `WheelUIEvent`。
+## 5. 平台边界约定
 
-当前行为：
-- 如果组件显式 `handle()`，上层会 `preventDefault()`
-- canvas 内全局拦截 `Ctrl + wheel` / `Meta + wheel`
-- `ViewportElement` 会先把 wheel 转成 local 坐标，再交给 `Surface.onWheel`
+浏览器运行时能力优先从 `src/platform/web` 进入。
 
-### 7.3 body host 的窗口化收口
+当前不应再默认在这些层里直接读取浏览器全局：
 
-现在窗口 body 不应该再手写：
-- `ctx.save()`
-- `ctx.translate(...)`
-- `surface.render(ctx, fakeViewport)`
-- `ctx.restore()`
+- `core`
+- `ui/base`
+- `ui/window`
+- Developer panels
 
-新写法应当使用：
-- `SurfaceWindow`
-- `setBodySurface(...)`
+换句话说，UI 写法可以继续是 web-first，但浏览器绑定点应尽量集中。
 
----
+## 6. 当前不要优先做的事情
 
-## 8. 开发者工具当前状态
+- 在窗口类里回到手工 body 排版
+- 在普通面板里重写一套列表 / 滚动 / section 结构
+- 仅为了保存几个局部状态而退回类式 surface
+- 在 Builder 页面里到处重复手写 token，而不复用 `Panel*` 组件
+- 在新 UI 文件里重新散开 `window` / `document` / `navigator`
 
-入口：
-- `src/ui/window/developer/developer_tools_window.ts`
-- `src/ui/window/developer/index.ts`
+## 7. 一句决策规则
 
-### 8.1 当前 Tab 列表
+如果页面更像“应用面板”，用 `defineSurface + JSX`。
 
-Developer 页面当前保留：
-- Data
-- Storage
-- Control
-- WM
-- Worker
-- Codec
-- Surface
-- Inspector
-
-已经移除：
-- Timeline Developer Tab
-
-原因：
-- Timeline 已经演进为独立工具窗口和独立核心组件，不再适合作为 Developer 下的一个占位 tab。
-
-### 8.2 当前各 panel 的形态
-
-`Control`
-- 函数式 surface
-- JSX
-- `PanelSection` + 表单/控件示例
-
-`Data`
-- 函数式 surface
-- 当前是真实数据面板，不再只是说明文字
-- 使用 `RowItem` 构建 state tree 列表
-
-`Storage`
-- 函数式 surface
-- 已不再使用面板内部 hard-coded list widget
-- 当前结构：
-  - `PanelHeader`
-  - `PanelActionRow`
-  - `PanelScroll`
-  - `RowItem`
-- 仍保留真实 OPFS 行为：
-  - refresh
-  - upload
-  - download
-  - delete
-  - edit meta
-  - prefix
-
-`WM / Worker / Codec / Surface / Inspector`
-- 目前主要通过共享 `InfoPanel` 骨架展示状态与后续方向
-- 已迁到 Builder / JSX / Panel 组件体系
-
----
-
-## 9. Timeline 当前状态
-
-Timeline 已经是独立核心 UI 组件，不再放在 Developer tab 里。
-
-核心文件：
-- `src/ui/surfaces/timeline_surface.ts`
-- `src/ui/timeline/model.ts`
-- `src/ui/window/timeline_tool_window.ts`
-
-当前结构：
-- `TimelineCompositeSurface`
-  - `TimelineRulerSurface`
-  - `TimelineContainerBackgroundSurface`
-  - `TimelineTrackHeaderSurface`
-  - `TimelineTrackContentSurface`
-- 两个 scrollbar
-- 横纵滚动
-- `Ctrl` / `Meta` + wheel 缩放
-- fixed header 与滚动内容分离
-
-当前定位：
-- 属于复杂 composite surface
-- 继续保留类式实现
-- 不应强行迁到 Builder 整棵树
-
----
-
-## 10. 当前窗口层推荐写法
-
-### 10.1 About / Tool / Developer 这类窗口
-
-优先使用：
-- `SurfaceWindow`
-- body 挂函数式 surface
-
-例如：
-
-```ts
-export class AboutDialog extends SurfaceWindow {
-  constructor() {
-    super({
-      id: "Help.About",
-      x: 80,
-      y: 80,
-      w: 480,
-      h: 260,
-      title: "About",
-      open: true,
-      resizable: true,
-      body: surfaceMount(AboutBodySurface, {}),
-    })
-  }
-}
-```
-
-### 10.2 什么时候继续直接继承 `ModalWindow`
-
-只有在窗口壳本身需要特殊行为时才直接继承 `ModalWindow`。
-
-普通窗口内容不要再自己维护：
-- body rect
-- 自己 new 的 body viewport
-- 手工 translate 渲染逻辑
-
----
-
-## 11. 当前继续开发时的默认约定
-
-### 11.1 默认优先级
-
-新写一个普通面板 / 对话框 body 时，优先顺序应是：
-
-1. `SurfaceWindow`
-2. `defineSurface`
-3. JSX + Builder components
-4. `PanelColumn / PanelHeader / PanelActionRow / PanelScroll / PanelSection`
-5. 浏览器能力从 `src/platform/web` 进入
-
-### 11.2 不要优先做的事情
-
-以下做法现在都应视为例外，而不是默认：
-- 在窗口 `drawBody()` 里手工排版
-- 面板里重新手写一套列表 widget
-- 仅为了保存局部状态去 `extends BuilderSurface`
-- 在每一行 JSX 上重复手写 theme token
-- 在 `core`、`ui/base`、`ui/window`、Developer panels 里直接读取 `document` / `window` / `navigator`
-
-### 11.3 什么时候仍然应该回到底层
-
-满足以下任一条件时，直接写类式 `Surface` / `UIElement` 是合理的：
-- 需要复杂命中测试
-- 需要多个 viewport 协调
-- 需要独立滚动/缩放坐标系
-- 需要专门的绘图管线和裁剪策略
-
-但即使在这些场景里，运行时平台能力也应尽量继续通过 `src/platform/web` 集中访问，而不是把浏览器全局读取重新散回业务文件。
-
----
-
-## 12. 后续文档更新建议
-
-后续如果继续推进 UI 基建，优先在本文补：
-- 新的页面级组件约定
-- 新的函数式 surface 能力
-- 窗口层 authoring 变化
-- Developer 面板结构变化
-
-而旧设计文档主要保留：
-- 设计初衷
-- 边界讨论
-- 为什么当时这样选
-
-这样文档职责会更清楚：
-- 旧文档解释“为什么”
-- 本文解释“现在是什么、接下来怎么用”
+如果页面更像“编辑器控件”，用类式 `Surface + ViewportElement`。

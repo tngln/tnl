@@ -1,112 +1,208 @@
-## 现状更新
-- 本文是 layout 系统的初始设计稿。
-- 当前 `src/core/layout.ts` 已经实现并扩展到比原计划更高一层的能力：
-  - `row` / `column` / `stack`
-  - `padding` / `inset` / `margin`
-  - `gap` / `rowGap` / `columnGap`
-  - `grow` / `shrink` / `basis`
-  - `fixed` / `fill`
-  - `position: "flow" | "overlay"`
-  - `overflow`
-  - `measureLayout(...)` 与测量缓存
-- 当前 layout 的主要消费方不是直接的 `UIElement`，而是 Builder engine。
-- 当前继续开发时，请优先参考：`UI系统现状与调用约定.md`
+# Layout / Flex 说明
 
-## 目标
-- 在 core/layout.ts 设计并实现一个简易、类 Flexbox 的排版系统，用于把“绝对位置手算”转为“从外到内的自动布局”。
-- 仅做布局（计算每个节点的 Rect），不负责绘制；布局结果可被 UI/绘制层直接使用。
-- 支持单轴（row/column）布局、gap/padding、对齐、以及 grow/shrink 在主轴上分配/回收剩余空间。
-- 不引入大量类；优先使用轻量对象/纯函数 + 少量枚举/联合类型，避免高频创建/销毁成本。
-- 将“Layout（类 Flexbox）”作为 Phase 0 的一个额外目标记录到 Phase 0 目标清单中（后续在仓库的 Phase 0 规划文档里落地）。
+本文说明当前 `src/core/layout.ts` 的真实能力，以及它在 Builder 里的使用方式。主入口说明仍然是 [canvas-interface.md](./canvas-interface.md)。
 
-## 范围与非目标
-- **范围**
-  - 单容器（layout container）对子节点进行主轴排布，并递归对子节点继续做从外到内的布局。
-  - 叶子节点通过 measure 回调提供“内容自然尺寸”（intrinsic size）。
-  - 对于每个节点输出：`rect: {x,y,w,h}`（逻辑坐标）。
-- **非目标（Phase 0 不做）**
-  - 多行换行（flex-wrap）、复杂的 baseline 对齐、百分比尺寸、min/max-content 规则、绝对定位、滚动布局。
-  - 复杂的文本排版（由 draw/Text 处理）。
+## 1. 当前定位
 
-## 核心数据结构（建议）
-- **Axis**
-  - `row | column`
-- **LayoutStyle（可配置项）**
-  - `axis`: 主轴方向（row/column）
-  - `gap`: 主轴间距（number）
-  - `padding`: `number | {l,t,r,b}`（简化为全局或四边）
-  - `justify`: `start | center | end | space-between`（主轴分布）
-  - `align`: `start | center | end | stretch`（交叉轴对齐）
-  - `w/h`: `number | "auto"`（容器/节点显式尺寸；auto 则由父布局约束/measure 决定）
-  - `minW/minH` 与 `maxW/maxH`（可选，先做最常用的最小值约束也可）
-  - `grow`: number（默认 0）
-  - `shrink`: number（默认 1）
-  - `basis`: `number | "auto"`（主轴基础尺寸；auto 则来自 measure 或显式 w/h）
-  - `alignSelf`: 可选，覆盖容器 align（start/center/end/stretch）
-- **LayoutNode（轻量对象）**
-  - `style: LayoutStyle`
-  - `children?: LayoutNode[]`
-  - `measure?: (max: {w:number; h:number}) => {w:number; h:number}`（叶子用；容器可不需要）
-  - `rect?: Rect`（输出，或由 layout() 返回）
-  - `id?: string`（可选，便于调试/测试）
+`core/layout.ts` 已经不是单纯的计划稿，而是实际被 Builder engine 消费的布局层。
 
-## API 设计（建议）
-- `layout(root: LayoutNode, outer: Rect): LayoutNode` 或 `layout(root, outer): Rect[]/Map`
-  - 输入 outer 为根节点可用空间（逻辑坐标）
-  - 输出可选择：
-    - 直接写回每个 node 的 `rect`
-    - 或返回 `Map<LayoutNode, Rect>`（更纯粹，但会有 Map 分配）
-- `resolvePadding(padding): {l,t,r,b}`
-- `clampSize(size, min/max)`
+当前主要使用方：
 
-## 布局算法（单轴简化版）
-- 对容器节点：
-  - 计算 contentBox：`outer` 去掉 padding 得到可用区域。
-  - 主轴可用长度 `mainAvail`，交叉轴可用长度 `crossAvail`。
-  - 对每个 child 先确定 base size（主轴）：
-    - `basis` 为 number → base = basis
-    - `basis` 为 auto：
-      - 若 axis=row 且 child.style.w 为 number → base = w；否则用 `measure(max)` 的 w
-      - 若 axis=column 同理取 h
-  - 计算 base 总和：`sumBase + gap*(n-1)`。
-  - **grow 分配**：若 `sumBase < mainAvail` 且存在 grow>0：
-    - extra = mainAvail - sumBase
-    - 每个 child 追加：`extra * (child.grow / totalGrow)`
-  - **shrink 回收**：若 `sumBase > mainAvail` 且存在 shrink>0：
-    - deficit = sumBase - mainAvail
-    - 每个 child 减少：`deficit * (child.shrink / totalShrink)`，并应用 minW/minH（如实现）
-  - 计算主轴起始偏移（justify）：
-    - start/center/end/space-between
-  - 逐个放置 child rect：
-    - 主轴位置累加（含 gap）
-    - 交叉轴尺寸：
-      - align/stretch：stretch 则 crossSize = crossAvail，否则来自 measure/显式尺寸
-      - alignSelf 覆盖 align
-  - 对每个 child 递归调用 layout(child, childRect)（从外到内）。
-- 对叶子节点：
-  - 若父已给定 childRect（含 stretch 情况），叶子只需接受并写回。
-  - 若需要由叶子决定自身尺寸：使用 measure(max) 决定 w/h，再由父控制摆放。
+- `src/ui/builder/engine.ts`
+- `src/ui/builder/registry.ts`
 
-## 与现有 UI 系统的集成计划
-- 新增 `src/core/layout.ts`（仅纯布局与类型，不依赖 Canvas/UI）。
-- 为 UIElement 增加可选 `layoutNode()` 或 `layoutStyle/measure`：
-  - Phase 0 最小集成：在某些容器控件（如窗口 body 内）先试用 layout 以减少绝对定位。
-  - 不强制所有 UIElement 一次性迁移，允许逐步替换。
-- 命中测试：
-  - 继续以 UIElement.bounds()/containsPoint 为主；布局只负责更新 bounds 所用的 rect。
+当前典型结果：
 
-## 质量与验证
-- 单元测试（优先）：
-  - row/column 基本排列、gap/padding
-  - grow 分配、shrink 回收
-  - align/stretch/justify 组合的几个典型用例
-- 手工验证：
-  - 在现有 demo 窗口里引入一个简单布局容器（后续执行阶段实现），确保视觉/命中正常。
+- JSX / Builder 页面不再主要依赖手算坐标
+- `PanelColumn`、`PanelScroll`、`FormRow`、`ToolbarRow` 等都建立在这层布局语义上
 
-## 迁移策略
-- 第一步：只落地 layout.ts 与测试；不改动现有 UI 逻辑，避免大面积回归。
-- 第二步：在一个小范围（例如 AboutWindow 内容区）用布局系统替换手写坐标，验证体验。
-- 第三步：逐步推广到更多窗口/面板。
+## 2. 当前支持的布局属性
 
-## Phase 0 目标更新（计划）
-- 在 Phase 0 目标中新增条目：“提供简易 Flexbox-like 布局（core/layout.ts）以简化 UI 绝对定位。”
+`LayoutStyle` 当前字段：
+
+```ts
+type LayoutStyle = {
+  axis?: "row" | "column" | "stack"
+  gap?: number
+  rowGap?: number
+  columnGap?: number
+  padding?: Padding
+  inset?: Padding
+  margin?: Padding
+  justify?: "start" | "center" | "end" | "space-between"
+  align?: "start" | "center" | "end" | "stretch"
+  alignSelf?: "start" | "center" | "end" | "stretch"
+  position?: "flow" | "overlay"
+  overflow?: "visible" | "clip" | "scroll"
+
+  w?: number | "auto"
+  h?: number | "auto"
+  minW?: number
+  minH?: number
+  maxW?: number
+  maxH?: number
+
+  grow?: number
+  shrink?: number
+  basis?: number | "auto"
+  fixed?: number
+  fill?: boolean
+}
+```
+
+## 3. 当前语义
+
+### 3.1 容器轴向
+
+- `axis: "row"`
+  - 主轴为横向
+- `axis: "column"`
+  - 主轴为纵向
+- `axis: "stack"`
+  - 子节点叠放在同一个区域内
+
+### 3.2 尺寸分配
+
+- `fixed`
+  - 直接指定主轴固定尺寸
+- `fill`
+  - 占满父级分配给它的空间
+- `grow`
+  - 主轴剩余空间分配权重
+- `shrink`
+  - 主轴空间不足时的收缩权重
+- `basis`
+  - 主轴基础尺寸
+
+当前最常用的简化写法：
+
+- 固定宽按钮：`style={{ fixed: 120 }}`
+- 占满剩余空间：`style={{ fill: true }}`
+- 顶开右侧内容：`<Spacer style={{ fill: true }} />`
+
+### 3.3 间距与盒模型
+
+- `padding`
+  - 内容内边距
+- `inset`
+  - 节点整体再向内收一层
+- `margin`
+  - 节点与邻居之间的外边距
+- `gap`
+  - 主轴间距
+- `rowGap` / `columnGap`
+  - 对不同轴额外指定 gap
+
+### 3.4 对齐
+
+- `justify`
+  - 主轴分布
+- `align`
+  - 交叉轴对齐
+- `alignSelf`
+  - 子节点覆盖容器 `align`
+
+### 3.5 定位模式
+
+- `position: "flow"`
+  - 参与主轴排布
+- `position: "overlay"`
+  - 不参与主轴排布，叠放在容器内容区上
+
+`overlay` 适合：
+
+- 角标
+- 覆盖层
+- stack 容器里的浮动元素
+
+### 3.6 `overflow`
+
+`overflow` 当前是布局语义位，不等于“自动滚动实现”。
+
+也就是说：
+
+- Builder 页面要滚动，仍然优先使用 `ScrollArea` / `PanelScroll`
+- 更底层的复杂组件，要滚动则继续使用 `ViewportElement + Scrollbar`
+
+## 4. 当前暴露的纯函数
+
+布局层当前对外的核心函数是：
+
+- `measureLayout(node, max)`
+- `layout(node, outer)`
+- `resolvePadding(padding)`
+
+其中：
+
+- `measureLayout(...)`
+  - 给一个节点树测量自然尺寸
+- `layout(...)`
+  - 真正把 `rect` 写回每个节点
+
+Builder engine 当前的流程就是：
+
+1. 先把 JSX / BuilderNode 转成 AST。
+2. 用 `measureLayout(...)` 测量内容高度。
+3. 再用 `layout(...)` 写回每个节点的 `rect`。
+4. 最后按 `rect` 执行绘制和控件挂载。
+
+## 5. Builder 里的常见模式
+
+### 5.1 整页纵向布局
+
+```tsx
+<PanelColumn>
+  <PanelHeader title="Window Manager" meta="3 windows" />
+  <PanelActionRow compact actions={[...]} />
+  <PanelScroll>{content}</PanelScroll>
+</PanelColumn>
+```
+
+`PanelColumn` 已经默认给出：
+
+- `axis: "column"`
+- `padding`
+- `gap`
+- 基础文本样式
+
+### 5.2 左右分布
+
+```tsx
+<Row style={{ align: "center", gap: 8 }}>
+  <Text tone="muted">Label</Text>
+  <Spacer style={{ fill: true }} />
+  <Text>Value</Text>
+</Row>
+```
+
+### 5.3 固定标签 + 自适应字段
+
+```tsx
+<FormRow
+  label="Codec"
+  labelWidth={92}
+  field={<Button text="Probe" style={{ fixed: 120 }} onClick={probe} />}
+/>
+```
+
+### 5.4 可滚动列表
+
+```tsx
+<PanelScroll>
+  <Column style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
+    {rows}
+  </Column>
+</PanelScroll>
+```
+
+这里内部 `Column` 通常会显式写 `w: "auto"` / `h: "auto"`，让内容高度按子项自然增长，再交给外层 scroll area 管滚动。
+
+## 6. 当前使用建议
+
+继续写页面时，优先遵守这几条：
+
+- 普通面板先用 Builder 组件，不先算坐标。
+- 先试 `PanelColumn` / `PanelScroll` / `PanelSection`，再决定是否需要更细的 `Row` / `Column`。
+- 需要占满剩余空间时，优先 `fill` 或 `Spacer`，不要先写 magic number。
+- 需要滚动时，普通页面用 `ScrollArea` / `PanelScroll`，不要把 `overflow` 当成自动滚动实现。
+- 只有复杂编辑器控件，才直接脱离 Builder，用类式 `Surface` 管自己的局部布局。
