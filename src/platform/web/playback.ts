@@ -11,12 +11,24 @@ type ManagedVideo = HTMLVideoElement & {
 
 const playbackLog = createLogger("playback.runtime")
 
+export type PlaybackDurationSource = "metadata" | "recovered" | "seekable" | "unknown"
+
+export type PlaybackDurationInfo = {
+  duration: number
+  source: PlaybackDurationSource
+  rawDuration: number
+  seekableEnd: number
+}
+
 export type PlaybackRuntimeSnapshot = {
   sourcePath: string | null
   ready: boolean
   loading: boolean
   playing: boolean
   duration: number
+  durationSource: PlaybackDurationSource
+  rawDuration: number
+  seekableEnd: number
   currentTime: number
   volume: number
   muted: boolean
@@ -31,6 +43,20 @@ export type PlaybackRuntimeSnapshot = {
   networkState: number
   errorCode: number | null
   error: string | null
+}
+
+export function resolvePlaybackDuration(rawDuration: number, seekableEnd: number, recoveredDuration: number | null): PlaybackDurationInfo {
+  if (Number.isFinite(rawDuration) && rawDuration > 0) {
+    return { duration: rawDuration, source: "metadata", rawDuration, seekableEnd: normalizeDurationValue(seekableEnd) }
+  }
+  if (Number.isFinite(recoveredDuration) && (recoveredDuration ?? 0) > 0) {
+    return { duration: recoveredDuration ?? 0, source: "recovered", rawDuration, seekableEnd: normalizeDurationValue(seekableEnd) }
+  }
+  const normalizedSeekableEnd = normalizeDurationValue(seekableEnd)
+  if (normalizedSeekableEnd > 0) {
+    return { duration: normalizedSeekableEnd, source: "seekable", rawDuration, seekableEnd: normalizedSeekableEnd }
+  }
+  return { duration: 0, source: "unknown", rawDuration, seekableEnd: normalizedSeekableEnd }
 }
 
 function inferMimeType(path: string | null) {
@@ -82,6 +108,7 @@ export class PlaybackRuntime {
   private blobType: string | null = null
   private resolvedMime: string | null = null
   private playbackRate = 1
+  private recoveredDuration: number | null = null
 
   constructor() {
     const video = this.video
@@ -117,12 +144,16 @@ export class PlaybackRuntime {
 
   snapshot(): PlaybackRuntimeSnapshot {
     const video = this.video
+    const durationInfo = this.readDurationInfo(video)
     return {
       sourcePath: this.sourcePath,
-      ready: Boolean(video && Number.isFinite(video.duration) && video.duration > 0),
+      ready: Boolean(video && video.videoWidth > 0 && video.videoHeight > 0 && durationInfo.duration > 0),
       loading: this.loading,
       playing: Boolean(video && !video.paused && !video.ended),
-      duration: video?.duration && Number.isFinite(video.duration) ? video.duration : 0,
+      duration: durationInfo.duration,
+      durationSource: durationInfo.source,
+      rawDuration: durationInfo.rawDuration,
+      seekableEnd: durationInfo.seekableEnd,
       currentTime: video?.currentTime ?? 0,
       volume: video?.volume ?? 1,
       muted: video?.muted ?? false,
@@ -166,6 +197,7 @@ export class PlaybackRuntime {
     this.sourcePath = path
     this.frameRate = null
     this.lastFrameTime = null
+    this.recoveredDuration = null
     this.blobType = blob.type || null
     const inferred = inferMimeType(path)
     const incomingType = typeHint || blob.type || null
@@ -202,10 +234,15 @@ export class PlaybackRuntime {
         video.addEventListener("loadedmetadata", onLoaded)
         video.addEventListener("error", onError)
       })
+      await this.recoverDurationIfNeeded(video, path)
       this.loading = false
+      const durationInfo = this.readDurationInfo(video)
       playbackLog.info("Playback source loaded", {
         path,
-        duration: video.duration,
+        duration: durationInfo.duration,
+        durationSource: durationInfo.source,
+        rawDuration: durationInfo.rawDuration,
+        seekableEnd: durationInfo.seekableEnd,
         width: video.videoWidth,
         height: video.videoHeight,
         readyState: video.readyState,
@@ -279,7 +316,7 @@ export class PlaybackRuntime {
   seekTo(seconds: number) {
     const video = this.video
     if (!video) return
-    const duration = Number.isFinite(video.duration) ? video.duration : 0
+    const duration = this.readDurationInfo(video).duration
     video.currentTime = Math.max(0, Math.min(duration, seconds))
     playbackLog.trace("Playback seek", { path: this.sourcePath, currentTime: video.currentTime, requestedTime: seconds })
     this.notify()
@@ -364,6 +401,37 @@ export class PlaybackRuntime {
     this.objectUrl = null
   }
 
+  private readDurationInfo(video: HTMLVideoElement | null): PlaybackDurationInfo {
+    return resolvePlaybackDuration(video?.duration ?? 0, getSeekableEnd(video), this.recoveredDuration)
+  }
+
+  private async recoverDurationIfNeeded(video: HTMLVideoElement, path: string) {
+    const before = this.readDurationInfo(video)
+    if (before.duration > 0) return before
+    playbackLog.warn("Playback duration is not finite; attempting recovery", {
+      path,
+      rawDuration: before.rawDuration,
+      seekableEnd: before.seekableEnd,
+    })
+    const recovered = await probeVideoDuration(video)
+    if (recovered > 0) {
+      this.recoveredDuration = recovered
+      playbackLog.info("Recovered playback duration from non-finite metadata", {
+        path,
+        recoveredDuration: recovered,
+      })
+      this.notify()
+      return this.readDurationInfo(video)
+    }
+    const after = this.readDurationInfo(video)
+    playbackLog.warn("Playback duration recovery did not yield a finite duration", {
+      path,
+      rawDuration: after.rawDuration,
+      seekableEnd: after.seekableEnd,
+    })
+    return after
+  }
+
   private startFrameLoop() {
     const video = this.video
     if (!video) return
@@ -399,4 +467,69 @@ export class PlaybackRuntime {
     this.rafHandle = null
     this.boundFrameLoop = null
   }
+}
+
+function normalizeDurationValue(value: number | null | undefined) {
+  return Number.isFinite(value) && (value ?? 0) > 0 ? (value as number) : 0
+}
+
+function getSeekableEnd(video: HTMLVideoElement | null) {
+  if (!video || video.seekable.length <= 0) return 0
+  try {
+    return normalizeDurationValue(video.seekable.end(video.seekable.length - 1))
+  } catch {
+    return 0
+  }
+}
+
+async function probeVideoDuration(video: HTMLVideoElement) {
+  const existing = resolvePlaybackDuration(video.duration, getSeekableEnd(video), null)
+  if (existing.duration > 0) return existing.duration
+  const originalTime = Number.isFinite(video.currentTime) ? video.currentTime : 0
+  return await new Promise<number>((resolve) => {
+    let done = false
+    let timeoutId = 0
+    const finish = (reason: string) => {
+      if (done) return
+      done = true
+      cleanup()
+      const resolvedDuration = resolvePlaybackDuration(video.duration, getSeekableEnd(video), null).duration
+      playbackLog.debug("Completed playback duration probe", {
+        reason,
+        rawDuration: video.duration,
+        seekableEnd: getSeekableEnd(video),
+        resolvedDuration,
+      })
+      try {
+        video.currentTime = Math.min(originalTime, resolvedDuration || originalTime)
+      } catch {
+        // Ignore restore failures; the caller can still render from the probed media state.
+      }
+      resolve(resolvedDuration)
+    }
+    const onDurationChange = () => {
+      if (resolvePlaybackDuration(video.duration, getSeekableEnd(video), null).duration > 0) finish("durationchange")
+    }
+    const onSeeked = () => {
+      if (resolvePlaybackDuration(video.duration, getSeekableEnd(video), null).duration > 0) finish("seeked")
+    }
+    const onTimeUpdate = () => {
+      if (resolvePlaybackDuration(video.duration, getSeekableEnd(video), null).duration > 0) finish("timeupdate")
+    }
+    const cleanup = () => {
+      if (timeoutId) clearTimeout(timeoutId)
+      video.removeEventListener("durationchange", onDurationChange)
+      video.removeEventListener("seeked", onSeeked)
+      video.removeEventListener("timeupdate", onTimeUpdate)
+    }
+    video.addEventListener("durationchange", onDurationChange)
+    video.addEventListener("seeked", onSeeked)
+    video.addEventListener("timeupdate", onTimeUpdate)
+    timeoutId = window.setTimeout(() => finish("timeout"), 1500)
+    try {
+      video.currentTime = 24 * 60 * 60
+    } catch {
+      finish("seek-throw")
+    }
+  })
 }

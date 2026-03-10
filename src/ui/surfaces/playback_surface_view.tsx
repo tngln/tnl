@@ -69,6 +69,10 @@ export const PlaybackSurface = defineSurface({
       const logEntries = listDebugEntries({ scopePrefix: ["app", "playback", "opfs"], limit: 12 })
       const diagnostics = [
         { id: "diag.source", left: "Source", right: state.selectedPath ?? "-" },
+        { id: "diag.duration", left: "Duration", right: runtime.duration > 0 ? `${runtime.duration.toFixed(3)} s` : "-" },
+        { id: "diag.durationSource", left: "Duration Source", right: runtime.durationSource },
+        { id: "diag.rawDuration", left: "Raw Duration", right: Number.isFinite(runtime.rawDuration) ? `${runtime.rawDuration.toFixed(3)} s` : String(runtime.rawDuration) },
+        { id: "diag.seekableEnd", left: "Seekable End", right: runtime.seekableEnd > 0 ? `${runtime.seekableEnd.toFixed(3)} s` : "-" },
         { id: "diag.mime", left: "Resolved MIME", right: runtime.resolvedMime ?? "-" },
         { id: "diag.blob", left: "Blob Type", right: runtime.blobType ?? "-" },
         { id: "diag.canplay", left: "Can Play", right: runtime.canPlayType || "no" },
