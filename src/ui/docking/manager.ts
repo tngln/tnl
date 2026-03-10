@@ -410,14 +410,15 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
       paneId,
       source: { kind: "floating", originRect: this.getFloatingWindowRect(pane) ?? pane.floatingRect, followPointer: false },
     }
-    const dragImage = typeof pane.dragImage === "function" ? pane.dragImage() : pane.dragImage
     this.drag.begin({
       kind: "dock.pane",
       payload,
       pointerId: this.dragPointerId,
       start: pointer,
       behavior: this.createDockDragBehavior(payload),
-      dragImage,
+      // Title-bar dragging a floating tool window is primarily "move the window".
+      // We only show a drag image once we are actually hovering a docking target.
+      dragImage: null,
     })
     this.updateDrag(pointer)
   }
@@ -425,6 +426,7 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
   updateDrag(pointer: Vec2) {
     if (!this.activeDockSession()) return
     this.drag.move(this.dragPointerId, pointer, 1)
+    this.syncDockDragImage()
     this.invalidate?.()
   }
 
@@ -469,6 +471,24 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
 
   private activeDockPayload(): DockPaneDragPayload | null {
     return this.activeDockSession()?.payload ?? null
+  }
+
+  private syncDockDragImage() {
+    const session = this.activeDockSession()
+    if (!session) return
+    const payload = session.payload
+    if (payload.source.kind !== "floating") return
+
+    const wants = session.candidate?.preview?.style === "dock"
+    if (wants) {
+      if (session.dragImage) return
+      const pane = this.panes.get(payload.paneId)
+      if (!pane?.dragImage) return
+      const spec = typeof pane.dragImage === "function" ? pane.dragImage() : pane.dragImage
+      this.drag.setDragImage(spec ?? null)
+      return
+    }
+    if (session.dragImage) this.drag.setDragImage(null)
   }
 
   private createDockDragBehavior(payload: DockPaneDragPayload): DragBehavior<"dock.pane"> {
