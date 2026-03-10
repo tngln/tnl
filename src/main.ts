@@ -172,7 +172,7 @@ addWindowResizeListener(() => {
 })
 
 const removeKeyDownListener = addWindowKeyDownListener((event) => {
-  const handledByUi = ui.handleKeyDown({
+  const result = ui.handleKeyDown({
     code: event.code,
     key: event.key,
     repeat: event.repeat,
@@ -181,16 +181,16 @@ const removeKeyDownListener = addWindowKeyDownListener((event) => {
     shiftKey: event.shiftKey,
     metaKey: event.metaKey,
   })
-  if (handledByUi) {
+  if (result.consumed) {
     shortcuts.syncKeyDown(event)
-    event.preventDefault()
+    if (result.preventDefault) event.preventDefault()
     return
   }
   shortcuts.handleKeyDown(event)
 })
 
 const removeKeyUpListener = addWindowKeyUpListener((event) => {
-  ui.handleKeyUp({
+  const result = ui.handleKeyUp({
     code: event.code,
     key: event.key,
     repeat: event.repeat,
@@ -199,6 +199,7 @@ const removeKeyUpListener = addWindowKeyUpListener((event) => {
     shiftKey: event.shiftKey,
     metaKey: event.metaKey,
   })
+  if (result.preventDefault) event.preventDefault()
   shortcuts.handleKeyUp(event)
 })
 

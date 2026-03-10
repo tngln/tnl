@@ -83,6 +83,11 @@ export type KeyLike = {
   metaKey: boolean
 }
 
+export type KeyDispatchResult = {
+  consumed: boolean
+  preventDefault: boolean
+}
+
 export type UIEventPhase = "target" | "bubble"
 
 export interface UIEventTargetNode {
@@ -123,6 +128,7 @@ export class PointerUIEvent {
   private captured = false
   private stopped = false
   private handled = false
+  private requestedFocusTarget: UIEventTargetNode | null = null
 
   constructor(e: PointerLike) {
     this.pointerId = e.pointerId
@@ -156,6 +162,10 @@ export class PointerUIEvent {
     this.handled = true
   }
 
+  requestFocus(target?: UIEventTargetNode | null) {
+    this.requestedFocusTarget = target ?? this.target
+  }
+
   get didCapture() {
     return this.captured
   }
@@ -166,6 +176,10 @@ export class PointerUIEvent {
 
   get propagationStopped() {
     return this.stopped
+  }
+
+  get focusTarget() {
+    return this.requestedFocusTarget
   }
 
   withDispatch(target: UIEventTargetNode, currentTarget: UIEventTargetNode, phase: UIEventPhase, point?: Vec2) {
@@ -180,6 +194,7 @@ export class PointerUIEvent {
 
   adoptOutcome(other: PointerUIEvent) {
     if (other.target) this.target = other.target
+    if (other.focusTarget) this.requestedFocusTarget = other.focusTarget
     if (other.didCapture) this.capturePointer()
     if (other.didHandle) this.handle()
     if (other.propagationStopped) this.stopPropagation()
@@ -262,7 +277,8 @@ export class KeyUIEvent {
   target: UIEventTargetNode | null = null
   currentTarget: UIEventTargetNode | null = null
   phase: UIEventPhase = "target"
-  private handled = false
+  private consumed = false
+  private prevented = false
   private stopped = false
 
   constructor(e: KeyLike) {
@@ -276,11 +292,16 @@ export class KeyUIEvent {
   }
 
   handle() {
-    this.handled = true
+    this.consume()
+  }
+
+  consume() {
+    this.consumed = true
   }
 
   preventDefault() {
-    this.handled = true
+    this.consume()
+    this.prevented = true
   }
 
   stopPropagation() {
@@ -288,7 +309,15 @@ export class KeyUIEvent {
   }
 
   get didHandle() {
-    return this.handled
+    return this.consumed
+  }
+
+  get didConsume() {
+    return this.consumed
+  }
+
+  get didPreventDefault() {
+    return this.prevented
   }
 
   get propagationStopped() {
@@ -303,7 +332,8 @@ export class KeyUIEvent {
 
   adoptOutcome(other: KeyUIEvent) {
     if (other.target) this.target = other.target
-    if (other.didHandle) this.handle()
+    if (other.didConsume) this.consume()
+    if (other.didPreventDefault) this.preventDefault()
     if (other.propagationStopped) this.stopPropagation()
   }
 }
@@ -789,7 +819,6 @@ export class CanvasUI {
   private onPointerDown = (e: PointerEvent) => {
     const p = this.toCanvasPoint(e)
     const target = this.root.hitTest(p, this.ctx)
-    this.focusElement(this.resolveFocusableTarget(target))
     if (!target) return
     this.activePointerId = e.pointerId
     setElementPointerCapture(this.canvas, e.pointerId)
@@ -810,6 +839,8 @@ export class CanvasUI {
     })
     const before = top.bounds()
     dispatchPointerEvent(target, ev, "down")
+    const focusTarget = ev.focusTarget instanceof UIElement ? ev.focusTarget : ev.target instanceof UIElement ? ev.target : target
+    this.focusElement(this.resolveFocusableTarget(focusTarget))
     if (ev.didCapture) this.capture = target
     this.applyResolvedCursor(p, this.capture ?? target)
     const after = top.bounds()
@@ -899,17 +930,17 @@ export class CanvasUI {
   }
 
   handleKeyDown(e: KeyLike) {
-    if (!this.focus) return false
+    if (!this.focus) return { consumed: false, preventDefault: false }
     const ev = new KeyUIEvent(e)
     dispatchKeyEvent(this.focus, ev, "down")
-    return ev.didHandle
+    return { consumed: ev.didConsume, preventDefault: ev.didPreventDefault }
   }
 
   handleKeyUp(e: KeyLike) {
-    if (!this.focus) return false
+    if (!this.focus) return { consumed: false, preventDefault: false }
     const ev = new KeyUIEvent(e)
     dispatchKeyEvent(this.focus, ev, "up")
-    return ev.didHandle
+    return { consumed: ev.didConsume, preventDefault: ev.didPreventDefault }
   }
 
   private applyCursor(next: CursorKind) {

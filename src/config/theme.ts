@@ -13,6 +13,13 @@ export type Theme = {
     closeDownBg: string
     closeGlyph: string
     closeGlyphOnHover: string
+    inputBg: string
+    inputBorder: string
+    inputBorderFocus: string
+    inputText: string
+    inputPlaceholder: string
+    inputSelectionBg: string
+    inputDisabledBg: string
   }
   spacing: {
     xs: number
@@ -57,6 +64,13 @@ export const theme: Theme = {
     closeDownBg: "#b32020",
     closeGlyph: "#0b0f17",
     closeGlyphOnHover: "#ffffff",
+    inputBg: "rgba(255,255,255,0.04)",
+    inputBorder: "rgba(255,255,255,0.16)",
+    inputBorderFocus: "rgba(140,190,255,0.88)",
+    inputText: "#e9edf3",
+    inputPlaceholder: "rgba(233,237,243,0.40)",
+    inputSelectionBg: "rgba(120,170,255,0.34)",
+    inputDisabledBg: "rgba(255,255,255,0.025)",
   },
   spacing: {
     xs: 6,
@@ -81,4 +95,3 @@ export const theme: Theme = {
     closeButtonPad: 6,
   },
 }
-

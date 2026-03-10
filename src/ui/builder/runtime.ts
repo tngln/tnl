@@ -4,7 +4,7 @@ import { ZERO_RECT } from "../../core/rect"
 import { createMeasureContext } from "../../platform/web/canvas"
 import { SurfaceRoot, ViewportElement, type Surface } from "../base/viewport"
 import { UIElement, WheelUIEvent, type Rect, type Vec2 } from "../base/ui"
-import { Button, Checkbox, Radio, Row, Scrollbar, TreeRow, TREE_ROW_HEIGHT } from "../widgets"
+import { Button, Checkbox, Radio, Row, Scrollbar, TextBox, TreeRow, TREE_ROW_HEIGHT } from "../widgets"
 import { clamp } from "./utils"
 import type { BuilderNode, TreeItem, TreeViewNode } from "./types"
 
@@ -42,6 +42,16 @@ type RadioCell = {
   label: string
   value: string
   selected: any
+  active: boolean
+  disabled: boolean
+  used: boolean
+}
+
+type TextBoxCell = {
+  widget: TextBox
+  rect: Rect
+  value: any
+  placeholder?: string
   active: boolean
   disabled: boolean
   used: boolean
@@ -151,6 +161,7 @@ export class BuilderRuntime {
   private readonly buttons = new Map<string, ButtonCell>()
   private readonly checkboxes = new Map<string, CheckboxCell>()
   private readonly radios = new Map<string, RadioCell>()
+  private readonly textboxes = new Map<string, TextBoxCell>()
   private readonly rows = new Map<string, RowCell>()
   private readonly treeRows = new Map<string, TreeRowCell>()
   private readonly scrollAreas = new Map<string, BuilderScrollAreaElement>()
@@ -164,6 +175,7 @@ export class BuilderRuntime {
       buttons: this.buttons.size,
       checkboxes: this.checkboxes.size,
       radios: this.radios.size,
+      textboxes: this.textboxes.size,
       rows: this.rows.size,
       treeRows: this.treeRows.size,
       scrollAreas: this.scrollAreas.size,
@@ -178,6 +190,7 @@ export class BuilderRuntime {
     for (const cell of this.buttons.values()) cell.used = false
     for (const cell of this.checkboxes.values()) cell.used = false
     for (const cell of this.radios.values()) cell.used = false
+    for (const cell of this.textboxes.values()) cell.used = false
     for (const cell of this.rows.values()) cell.used = false
     for (const cell of this.treeRows.values()) cell.used = false
     this.usedScrollAreas.clear()
@@ -187,6 +200,7 @@ export class BuilderRuntime {
     for (const cell of this.buttons.values()) if (!cell.used) cell.active = false
     for (const cell of this.checkboxes.values()) if (!cell.used) cell.active = false
     for (const cell of this.radios.values()) if (!cell.used) cell.active = false
+    for (const cell of this.textboxes.values()) if (!cell.used) cell.active = false
     for (const cell of this.rows.values()) {
       if (cell.used) continue
       cell.active = false
@@ -308,6 +322,36 @@ export class BuilderRuntime {
     cell.label = node.label
     cell.value = node.value
     cell.selected = node.selected
+    cell.active = active
+    cell.disabled = node.disabled ?? false
+    cell.used = true
+  }
+
+  mountTextBox(key: string, rect: Rect, node: { value: any; placeholder?: string; disabled?: boolean }, active: boolean) {
+    let cell = this.textboxes.get(key)
+    if (!cell) {
+      cell = {
+        rect,
+        value: node.value,
+        placeholder: node.placeholder,
+        active,
+        disabled: node.disabled ?? false,
+        used: true,
+        widget: new TextBox({
+          rect: () => cell!.active ? cell!.rect : ZERO_RECT,
+          value: node.value,
+          placeholder: () => cell!.placeholder ?? "",
+          active: () => cell!.active,
+          disabled: () => cell!.disabled,
+        }),
+      }
+      cell.widget.z = 10
+      this.textboxes.set(key, cell)
+      this.root.add(cell.widget)
+    }
+    cell.rect = rect
+    cell.value = node.value
+    cell.placeholder = node.placeholder
     cell.active = active
     cell.disabled = node.disabled ?? false
     cell.used = true

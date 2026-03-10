@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "../jsx"
-import { Button, Checkbox, FormRow, PanelColumn, PanelSection, Radio, RichText, Spacer, Text } from "../builder/components"
+import { Button, Checkbox, FormRow, PanelColumn, PanelSection, Radio, RichText, Spacer, Text, TextBox } from "../builder/components"
 import { defineSurface } from "../builder/surface_builder"
 import { signal } from "../../core/reactivity"
 
@@ -9,6 +9,7 @@ export const ControlsSurface = defineSurface({
     const clicks = signal(0)
     const checked = signal(false)
     const radio = signal("A")
+    const input = signal("")
 
     return () => (
       <PanelColumn>
@@ -29,8 +30,20 @@ export const ControlsSurface = defineSurface({
             }
           />
           <Text key="controls.status" tone="muted" style={{ margin: { l: 74, t: 4, r: 0, b: 0 } }}>
-            {`Checked: ${checked.peek() ? "true" : "false"}, Radio: ${radio.peek()}`}
+            {`Checked: ${checked.peek() ? "true" : "false"}, Radio: ${radio.peek()}, Input: ${input.peek() || "(empty)"}`}
           </Text>
+          <FormRow
+            key="controls.input"
+            label="Input"
+            labelWidth={64}
+            field={<TextBox key="controls.input.box" value={input} placeholder="Type here" style={{ fill: true }} />}
+          />
+          <FormRow
+            key="controls.label"
+            label="Label"
+            labelWidth={64}
+            field={<Text key="controls.input.label">{input.peek() || "(empty)"}</Text>}
+          />
           <Spacer style={{ fixed: 6 }} />
           <Checkbox key="controls.checkbox" checked={checked}>Checkbox: enable something</Checkbox>
           <Radio key="controls.radio.a" value="A" selected={radio}>Radio A</Radio>

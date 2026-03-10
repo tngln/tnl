@@ -77,9 +77,18 @@ class LocalLeaf extends UIElement {
   readonly events: string[] = []
   handleWheel = false
   stopPointer = false
+  focused = false
 
   bounds(): Rect {
     return { x: 0, y: 0, w: 30, h: 30 }
+  }
+
+  canFocus() {
+    return true
+  }
+
+  onFocus() {
+    this.focused = true
   }
 
   onPointerDown(e: PointerUIEvent) {
@@ -303,6 +312,8 @@ describe("ui event bubbling", () => {
       expect(leaf.events).toEqual(["down:target:10,15"])
       expect(surfaceEvents).toEqual([])
       expect(host.events).toEqual(["down:bubble:child:60,55"])
+      expect(ui.focusTarget).toBe(leaf)
+      expect(leaf.focused).toBe(true)
 
       ui.destroy()
     })
@@ -413,7 +424,7 @@ describe("ui event bubbling", () => {
         metaKey: false,
       })
 
-      expect(handled).toBe(true)
+      expect(handled).toEqual({ consumed: true, preventDefault: false })
       expect(child.events).toEqual(["down:target:25,25", "key:target:Enter"])
       expect(host.events).toEqual(["down:bubble:child:25,25", "key:bubble:child:Enter"])
 
@@ -440,7 +451,7 @@ describe("ui event bubbling", () => {
         metaKey: false,
       })
 
-      expect(handled).toBe(true)
+      expect(handled).toEqual({ consumed: true, preventDefault: false })
       expect(child.events).toEqual(["down:target:25,25", "key:target:Escape"])
       expect(host.events).toEqual(["down:bubble:child:25,25"])
 
@@ -463,7 +474,7 @@ describe("ui event bubbling", () => {
         metaKey: false,
       })
 
-      expect(handled).toBe(false)
+      expect(handled).toEqual({ consumed: false, preventDefault: false })
       expect(host.events).toEqual([])
 
       ui.destroy()

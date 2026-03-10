@@ -7,7 +7,7 @@ import { TREE_ROW_HEIGHT } from "../widgets"
 import { textFont } from "./text"
 import { inheritedTextToRichTextStyle, resolveTextColor, resolveTextEmphasis, resolveTextStyle } from "./styles"
 import type { BuilderEngine } from "./engine"
-import type { AstNode, BuilderNode, ButtonNode, CheckboxNode, ContainerNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SpacerNode, TextNode, TreeViewNode } from "./types"
+import type { AstNode, BuilderNode, ButtonNode, CheckboxNode, ContainerNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SpacerNode, TextBoxNode, TextNode, TreeViewNode } from "./types"
 import { flattenTreeItems } from "./runtime"
 
 export type MeasureSize = { w: number; h: number }
@@ -138,6 +138,23 @@ const radioHandler: BuilderNodeHandler<RadioNode> = {
   },
 }
 
+const textBoxHandler: BuilderNodeHandler<TextBoxNode> = {
+  kind: "textbox",
+  measure: (_engine, ctx, node, max) => {
+    const basis = node.placeholder && !node.value.peek() ? node.placeholder : node.value.peek()
+    const w = measureTextWidth(ctx, basis || " ", textFont({
+      fontFamily: theme.typography.family,
+      fontSize: theme.typography.body.size,
+      fontWeight: theme.typography.body.weight,
+      lineHeight: theme.spacing.lg,
+    }))
+    return { w: Math.min(max.w, Math.max(160, w + 16)), h: 28 }
+  },
+  mount: (engine, _ctx, node, ast, path, active) => {
+    engine.runtime.mountTextBox(path, ast.rect ?? ZERO_RECT, node, active)
+  },
+}
+
 const rowItemHandler: BuilderNodeHandler<RowNode> = {
   kind: "rowItem",
   measure: () => ({ w: Number.POSITIVE_INFINITY, h: 22 }),
@@ -184,6 +201,7 @@ export function createDefaultBuilderRegistry() {
   registry.register(buttonHandler)
   registry.register(checkboxHandler)
   registry.register(radioHandler)
+  registry.register(textBoxHandler)
   registry.register(rowItemHandler)
   registry.register(treeViewHandler)
   registry.register(scrollAreaHandler)

@@ -91,6 +91,13 @@ export type RadioNode = NodeBase & {
   disabled?: boolean
 }
 
+export type TextBoxNode = NodeBase & {
+  kind: "textbox"
+  value: Signal<string>
+  placeholder?: string
+  disabled?: boolean
+}
+
 export type RowVariant = "group" | "item"
 
 export type RowNode = NodeBase & {
@@ -133,6 +140,7 @@ export type BuilderNode =
   | ButtonNode
   | CheckboxNode
   | RadioNode
+  | TextBoxNode
   | RowNode
   | TreeViewNode
   | ScrollAreaNode

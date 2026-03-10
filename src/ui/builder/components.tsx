@@ -14,6 +14,7 @@ import {
   section,
   spacer,
   stack,
+  textBoxNode,
   treeViewNode,
   textNode,
   toolbarRow,
@@ -66,6 +67,12 @@ type RadioProps = JSXNodeProps & {
   label?: string
   value: string
   selected: Signal<string>
+  disabled?: boolean
+}
+
+type TextBoxProps = Omit<JSXNodeProps, "children"> & {
+  value: Signal<string>
+  placeholder?: string
   disabled?: boolean
 }
 
@@ -238,6 +245,10 @@ export function Checkbox(props: CheckboxProps) {
 
 export function Radio(props: RadioProps) {
   return radioNode(props.label ?? resolveTextContent(props), props.value, props.selected, { ...common(props), disabled: props.disabled })
+}
+
+export function TextBox(props: TextBoxProps) {
+  return textBoxNode(props.value, { ...common(props), placeholder: props.placeholder, disabled: props.disabled })
 }
 
 export function RowItem(props: RowItemProps) {

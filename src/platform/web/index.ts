@@ -1,3 +1,4 @@
+export * from "./1px_textbox"
 export * from "./app"
 export * from "./animation"
 export * from "./canvas"

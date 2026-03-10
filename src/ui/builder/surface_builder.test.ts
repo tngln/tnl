@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import { signal } from "../../core/reactivity"
 import { theme } from "../../config/theme"
-import { BuilderSurface, buttonNode, checkboxNode, column, defineSurface, flattenTreeItems, mountSurface, richTextNode, rowItemNode, scrollAreaNode, textNode, treeItem, treeViewNode } from "./surface_builder"
+import { BuilderSurface, buttonNode, checkboxNode, column, defineSurface, flattenTreeItems, mountSurface, richTextNode, rowItemNode, scrollAreaNode, textBoxNode, textNode, treeItem, treeViewNode } from "./surface_builder"
 import { PointerUIEvent } from "../base/ui"
 
 function fakeCtx() {
@@ -74,6 +74,7 @@ function withFakeDocument<T>(run: () => T) {
 describe("surface builder", () => {
   it("reuses mounted widget counts across renders", () => {
     const checked = signal(false)
+    const text = signal("hello")
     const surface = new BuilderSurface({
       id: "Builder.Test",
       build: () =>
@@ -81,6 +82,7 @@ describe("surface builder", () => {
           [
             buttonNode("Click", { key: "btn" }),
             checkboxNode("Check", checked, { key: "check" }),
+            textBoxNode(text, { key: "textbox", placeholder: "Type here" }),
             rowItemNode({ key: "summary", leftText: "Summary", rightText: "ok" }),
             scrollAreaNode(
               column(
@@ -112,6 +114,7 @@ describe("surface builder", () => {
     expect(second).toEqual(first)
     expect(first.buttons).toBe(1)
     expect(first.checkboxes).toBe(1)
+    expect(first.textboxes).toBe(1)
     expect(first.rows).toBe(1)
     expect(first.scrollAreas).toBe(1)
   })
