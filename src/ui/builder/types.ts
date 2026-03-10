@@ -132,6 +132,21 @@ export type ScrollAreaNode = NodeBase & {
   child: BuilderNode
 }
 
+export type PaintNode = NodeBase & {
+  kind: "paint"
+  draw: (ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }, active: boolean) => void
+  measure?: (max: { w: number; h: number }) => { w: number; h: number }
+}
+
+export type SliderNode = NodeBase & {
+  kind: "slider"
+  min: number
+  max: number
+  value: number
+  onChange?: (next: number) => void
+  disabled?: boolean
+}
+
 export type BuilderNode =
   | ContainerNode
   | SpacerNode
@@ -144,6 +159,8 @@ export type BuilderNode =
   | RowNode
   | TreeViewNode
   | ScrollAreaNode
+  | PaintNode
+  | SliderNode
 
 export type AstNode = LayoutNode & {
   builder: BuilderNode

@@ -1,3 +1,5 @@
+import { invariant } from "../../core/errors"
+
 export type AnyCanvas = OffscreenCanvas | HTMLCanvasElement
 export type Any2DContext = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 
@@ -9,12 +11,12 @@ export function createLayerCanvas(wPx: number, hPx: number): AnyCanvas {
     canvas.height = hPx
     return canvas
   }
-  throw new Error("Canvas is not available in this environment")
+  invariant(false, { domain: "platform", code: "CanvasUnavailable", message: "Canvas is not available in this environment" })
 }
 
 export function getCanvas2DContext(canvas: AnyCanvas, opts: CanvasRenderingContext2DSettings = { alpha: true, desynchronized: true }) {
   const ctx = canvas.getContext("2d", opts as any)
-  if (!ctx) throw new Error("2D context not available")
+  invariant(ctx, { domain: "platform", code: "Canvas2DUnavailable", message: "2D context not available" })
   return ctx as Any2DContext
 }
 

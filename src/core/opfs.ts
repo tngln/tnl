@@ -1,13 +1,11 @@
 import { estimateStorageUsage, getOpfsRootDirectory } from "../platform/web/opfs"
+import { AppError } from "./errors"
 
 export type OpfsErrorCode = "NotFound" | "AlreadyExists" | "InvalidPath" | "DbCorrupted" | "PermissionDenied" | "Unsupported" | "Unknown"
 
-export class OpfsError extends Error {
-  readonly code: OpfsErrorCode
+export class OpfsError extends AppError {
   constructor(code: OpfsErrorCode, message: string, cause?: unknown) {
-    super(message)
-    this.code = code
-    ;(this as any).cause = cause
+    super({ name: "OpfsError", domain: "opfs", code, message, cause })
   }
 }
 

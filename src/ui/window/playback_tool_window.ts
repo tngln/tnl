@@ -1,11 +1,11 @@
-import type { Surface } from "../base/viewport"
 import { PlaybackSurface } from "../surfaces/playback_surface"
+import { mountSurface } from "../builder/surface_builder"
 import { SurfaceWindow } from "./window"
 
 export const PLAYBACK_TOOL_WINDOW_ID = "Playback.Tool"
 
-export function createPlaybackToolSurface(): Surface {
-  return new PlaybackSurface({ id: "Playback.Surface" })
+export function createPlaybackToolSurface() {
+  return mountSurface(PlaybackSurface, {})
 }
 
 export function createPlaybackToolWindow() {

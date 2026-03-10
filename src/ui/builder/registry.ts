@@ -1,3 +1,4 @@
+import { AppError } from "../../core/errors"
 import { theme } from "../../config/theme"
 import { draw, RRect, Text } from "../../core/draw"
 import { measureTextWidth } from "../../core/draw.text"
@@ -7,7 +8,7 @@ import { TREE_ROW_HEIGHT } from "../widgets"
 import { textFont } from "./text"
 import { inheritedTextToRichTextStyle, resolveTextColor, resolveTextEmphasis, resolveTextStyle } from "./styles"
 import type { BuilderEngine } from "./engine"
-import type { AstNode, BuilderNode, ButtonNode, CheckboxNode, ContainerNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SpacerNode, TextBoxNode, TextNode, TreeViewNode } from "./types"
+import type { AstNode, BuilderNode, ButtonNode, CheckboxNode, ContainerNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, SpacerNode, TextBoxNode, TextNode, TreeViewNode } from "./types"
 import { flattenTreeItems } from "./runtime"
 
 export type MeasureSize = { w: number; h: number }
@@ -29,7 +30,14 @@ export class BuilderNodeRegistry {
 
   get(kind: BuilderNode["kind"]) {
     const handler = this.handlers.get(kind)
-    if (!handler) throw new Error(`No builder node handler registered for ${kind}`)
+    if (!handler) {
+      throw new AppError({
+        domain: "builder",
+        code: "MissingNodeHandler",
+        message: `No builder node handler registered for ${kind}`,
+        details: { kind },
+      })
+    }
     return handler
   }
 }
@@ -186,6 +194,25 @@ const scrollAreaHandler: BuilderNodeHandler<ScrollAreaNode> = {
   },
 }
 
+const paintHandler: BuilderNodeHandler<PaintNode> = {
+  kind: "paint",
+  measure: (_engine, _ctx, node, max) => node.measure?.(max) ?? { w: max.w, h: 0 },
+  mount: (engine, _ctx, node, ast, _path, active) => {
+    const rect = ast.rect ?? ZERO_RECT
+    engine.drawOps.push((canvas) => {
+      node.draw(canvas, rect, active)
+    })
+  },
+}
+
+const sliderHandler: BuilderNodeHandler<SliderNode> = {
+  kind: "slider",
+  measure: (_engine, _ctx, _node, max) => ({ w: max.w, h: 20 }),
+  mount: (engine, _ctx, node, ast, path, active) => {
+    engine.runtime.mountSlider(path, ast.rect ?? ZERO_RECT, node, active)
+  },
+}
+
 const spacerHandler: BuilderNodeHandler<SpacerNode> = {
   kind: "spacer",
   measure: () => ({ w: 0, h: 0 }),
@@ -205,6 +232,8 @@ export function createDefaultBuilderRegistry() {
   registry.register(rowItemHandler)
   registry.register(treeViewHandler)
   registry.register(scrollAreaHandler)
+  registry.register(paintHandler)
+  registry.register(sliderHandler)
   registry.register(spacerHandler)
   return registry
 }

@@ -1,0 +1,276 @@
+import { theme, font } from "../../config/theme"
+import { draw, RRect, Text as DrawText } from "../../core/draw"
+import { getDebugLevel, listDebugEntries, setDebugLevel, type DebugEntry, type DebugLevel } from "../../core/debug"
+import { createElement, Fragment } from "../jsx"
+import { Button, Column, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Row, RowItem, SliderField, Spacer, Text } from "../builder/components"
+import { defineSurface } from "../builder/surface_builder"
+import { getPlaybackSession } from "../playback/session"
+import { formatTimecode } from "../playback/timecode"
+
+const DEBUG_LEVELS: DebugLevel[] = ["error", "warn", "info", "debug", "trace"]
+
+export function formatPlaybackTime(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "00:00"
+  const total = Math.floor(seconds)
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const secs = total % 60
+  if (hours > 0) return `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
+  return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
+}
+
+function basename(path: string | null) {
+  if (!path) return "No source selected"
+  const index = path.lastIndexOf("/")
+  return index >= 0 ? path.slice(index + 1) : path
+}
+
+function logColor(level: DebugLevel) {
+  if (level === "error") return "rgba(255,120,120,0.95)"
+  if (level === "warn") return "rgba(255,196,92,0.95)"
+  if (level === "info") return theme.colors.textPrimary
+  return theme.colors.textMuted
+}
+
+function formatDebugTimestamp(at: number) {
+  const date = new Date(at)
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}`
+}
+
+function formatDebugEntry(entry: DebugEntry) {
+  return `${formatDebugTimestamp(entry.at)} [${entry.level}] ${entry.scope} · ${entry.message}`
+}
+
+export const PlaybackSurface = defineSurface({
+  id: "Playback.Surface",
+  setup: () => {
+    const session = getPlaybackSession()
+    let initialized = false
+
+    return () => {
+      if (!initialized) {
+        initialized = true
+        session.ensureInitialized()
+      }
+
+      const state = session.snapshot()
+      const runtime = state.runtime
+      const selectedLabel = basename(state.selectedPath)
+      const timeText = `${formatPlaybackTime(runtime.currentTime)} / ${formatPlaybackTime(runtime.duration)}`
+      const timecode = formatTimecode(runtime.currentTime, runtime.frameRate ?? 30)
+      const status = state.busy
+        ? "Loading media..."
+        : state.error
+          ? state.error
+          : runtime.ready
+            ? `${runtime.width}x${runtime.height}${runtime.frameRate ? ` · ${runtime.frameRate.toFixed(2)} fps` : ""}`
+            : "Select an OPFS video or import one."
+      const debugLevel = getDebugLevel()
+      const logEntries = listDebugEntries({ scopePrefix: ["app", "playback", "opfs"], limit: 12 })
+      const diagnostics = [
+        { id: "diag.source", left: "Source", right: state.selectedPath ?? "-" },
+        { id: "diag.mime", left: "Resolved MIME", right: runtime.resolvedMime ?? "-" },
+        { id: "diag.blob", left: "Blob Type", right: runtime.blobType ?? "-" },
+        { id: "diag.canplay", left: "Can Play", right: runtime.canPlayType || "no" },
+        { id: "diag.ready", left: "Ready / Network", right: `${runtime.readyState} / ${runtime.networkState}` },
+        { id: "diag.rate", left: "Playback Rate", right: `${runtime.playbackRate.toFixed(2)}x` },
+        { id: "diag.audio", left: "Audio", right: `${runtime.muted ? "Muted" : "Live"} · ${(runtime.volume * 100).toFixed(0)}%` },
+        { id: "diag.error", left: "Media Error", right: runtime.errorCode === null ? "-" : String(runtime.errorCode) },
+        { id: "diag.debug", left: "Debug Level", right: debugLevel },
+      ]
+
+      return (
+        <PanelColumn>
+          <PanelHeader title="Playback" meta={selectedLabel}>
+            <Text tone="muted" size="meta" color={state.error ? "rgba(255,120,120,0.95)" : theme.colors.textMuted}>{status}</Text>
+          </PanelHeader>
+          <PanelActionRow
+            key="playback.actions"
+            compact
+            actions={[
+              { key: "refresh", icon: "R", text: "Refresh", title: "Refresh OPFS media", onClick: () => void session.refreshEntries(), disabled: state.busy },
+              { key: "import", icon: "I", text: "Import", title: "Import video files", onClick: () => void session.importFiles(), disabled: state.busy },
+              { key: "play", icon: runtime.playing ? "P" : ">", text: runtime.playing ? "Pause" : "Play", title: runtime.playing ? "Pause" : "Play", onClick: () => void session.togglePlayPause(), disabled: !runtime.ready || state.busy },
+            ]}
+          />
+          <PanelScroll key="playback.scroll">
+            <Row style={{ align: "start", gap: 10, w: "auto", h: "auto" }}>
+              <Column style={{ axis: "column", gap: 10, fixed: 284, w: "auto", h: "auto" }}>
+                <PanelSection key="playback.media" title={`Media (${state.entries.length})`}>
+                  <Text tone="muted" size="meta">OPFS source list stays independently scrollable so the panel remains usable even with many files.</Text>
+                  <PanelScroll key="playback.media.scroll" style={{ fixed: 300, margin: { t: 8, r: 0, b: 0, l: 0 } }}>
+                    {state.entries.length ? (
+                      <Column style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
+                        {state.entries.map((entry) => (
+                          <RowItem
+                            key={`playback.entry.${entry.path}`}
+                            leftText={entry.path}
+                            rightText={entry.type || "video/*"}
+                            selected={entry.path === state.selectedPath}
+                            onClick={() => void session.selectPath(entry.path)}
+                          />
+                        ))}
+                      </Column>
+                    ) : (
+                      <Column style={{ axis: "column", gap: 4, padding: { l: 4, t: 4, r: 14, b: 4 }, w: "auto", h: "auto" }}>
+                        <Text tone="muted" size="meta">No video assets found in OPFS.</Text>
+                      </Column>
+                    )}
+                  </PanelScroll>
+                </PanelSection>
+
+                <PanelSection key="playback.source" title="Source Details">
+                  <Column style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
+                    <Text weight="bold">{selectedLabel}</Text>
+                    <Text tone="muted" size="meta">{state.selectedPath ?? "No source selected"}</Text>
+                    <Text tone="muted" size="meta">Current timecode: {timecode}</Text>
+                  </Column>
+                </PanelSection>
+              </Column>
+
+              <Column style={{ axis: "column", gap: 10, grow: 1, basis: 0, fill: true, w: "auto", h: "auto" }}>
+                <PanelSection key="playback.preview" title="Preview">
+                  <Paint
+                    key="playback.preview.canvas"
+                    style={{ w: "auto", h: "auto" }}
+                    box={{ fill: "#06090f", stroke: "rgba(255,255,255,0.08)", radius: 10 }}
+                    measure={(max) => ({ w: max.w, h: Math.max(220, Math.min(360, Math.floor(max.w * 0.5625))) })}
+                    draw={(ctx, rect) => {
+                      draw(
+                        ctx,
+                        RRect({ x: rect.x, y: rect.y, w: rect.w, h: rect.h, r: 10 }, { fill: { color: "#06090f" }, stroke: { color: "rgba(255,255,255,0.08)", hairline: true }, pixelSnap: true }),
+                      )
+                      const inner = { x: rect.x + 12, y: rect.y + 12, w: Math.max(0, rect.w - 24), h: Math.max(0, rect.h - 24) }
+                      const drewVideo = session.drawVideo(ctx, inner)
+                      if (!drewVideo) {
+                        draw(
+                          ctx,
+                          DrawText({
+                            x: rect.x + rect.w / 2,
+                            y: rect.y + rect.h / 2,
+                            text: state.busy ? "Preparing preview..." : "Playback Preview",
+                            style: {
+                              color: theme.colors.textMuted,
+                              font: font(theme, theme.typography.headline),
+                              align: "center",
+                              baseline: "middle",
+                            },
+                          }),
+                        )
+                      }
+                      draw(
+                        ctx,
+                        DrawText({
+                          x: rect.x + rect.w - 16,
+                          y: rect.y + 14,
+                          text: timecode,
+                          style: {
+                            color: theme.colors.textPrimary,
+                            font: `${700} 16px ${theme.typography.family}`,
+                            align: "right",
+                            baseline: "top",
+                          },
+                        }),
+                        DrawText({
+                          x: rect.x + 16,
+                          y: rect.y + rect.h - 16,
+                          text: timeText,
+                          style: {
+                            color: theme.colors.textMuted,
+                            font: font(theme, theme.typography.body),
+                            baseline: "alphabetic",
+                          },
+                        }),
+                      )
+                    }}
+                  />
+                  <Row style={{ align: "center", gap: 8, margin: { t: 8, r: 0, b: 0, l: 0 } }}>
+                    <Text weight="bold">{timecode}</Text>
+                    <Spacer style={{ fill: true }} />
+                    <Text tone="muted">{timeText}</Text>
+                  </Row>
+                </PanelSection>
+
+                <PanelSection key="playback.transport" title="Transport">
+                  <Text tone="muted" size="meta">Timeline-linked position</Text>
+                  <SliderField
+                    key="playback.transport.position"
+                    style={{ margin: { t: 8, r: 0, b: 0, l: 0 } }}
+                    min={0}
+                    max={Math.max(runtime.duration, 0.001)}
+                    value={runtime.currentTime}
+                    onChange={(next) => session.seekTo(next)}
+                    disabled={!runtime.ready || state.busy}
+                  />
+                  <Row style={{ align: "center", gap: 8, margin: { t: 10, r: 0, b: 0, l: 0 } }}>
+                    <Button text="Prev" onClick={() => session.stepFrame(-1)} disabled={!runtime.ready || state.busy} style={{ fixed: 64 }} />
+                    <Button text={runtime.playing ? "Pause" : "Play"} onClick={() => void session.togglePlayPause()} disabled={!runtime.ready || state.busy} style={{ fixed: 72 }} />
+                    <Button text="Next" onClick={() => session.stepFrame(1)} disabled={!runtime.ready || state.busy} style={{ fixed: 64 }} />
+                    <Spacer style={{ fill: true }} />
+                    <Text tone="muted">{timeText}</Text>
+                  </Row>
+                  <Row style={{ align: "center", gap: 8, margin: { t: 10, r: 0, b: 0, l: 0 } }}>
+                    <Text tone="muted" size="meta" style={{ fixed: 52 }}>Volume</Text>
+                    <SliderField
+                      key="playback.transport.volume"
+                      style={{ grow: 1, basis: 0, fill: true }}
+                      min={0}
+                      max={1}
+                      value={runtime.volume}
+                      onChange={(next) => session.setVolume(next)}
+                      disabled={state.busy}
+                    />
+                    <Button text={runtime.muted ? "Unmute" : "Mute"} onClick={() => session.toggleMuted()} disabled={state.busy} style={{ fixed: 84 }} />
+                  </Row>
+                  <Row style={{ align: "center", gap: 8, margin: { t: 10, r: 0, b: 0, l: 0 } }}>
+                    <Text tone="muted" size="meta" style={{ fixed: 52 }}>Rate</Text>
+                    <Button text="-" onClick={() => session.setPlaybackRate(runtime.playbackRate / 2)} disabled={state.busy} style={{ fixed: 32 }} />
+                    <Text style={{ fixed: 64 }}>{runtime.playbackRate.toFixed(2)}x</Text>
+                    <Button text="+" onClick={() => session.setPlaybackRate(runtime.playbackRate * 2)} disabled={state.busy} style={{ fixed: 32 }} />
+                    <Spacer style={{ fill: true }} />
+                    <Text tone="muted" size="meta">{runtime.ready ? `${runtime.width}x${runtime.height}` : "No media"}</Text>
+                  </Row>
+                </PanelSection>
+
+                <PanelSection key="playback.diagnostics" title="Diagnostics">
+                  <Column style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                    {diagnostics.map((row) => (
+                      <RowItem key={row.id} leftText={row.left} rightText={row.right} />
+                    ))}
+                  </Column>
+                  {runtime.error ? (
+                    <Text color="rgba(255,120,120,0.95)" size="meta" style={{ margin: { t: 8, r: 0, b: 0, l: 0 } }}>{runtime.error}</Text>
+                  ) : null}
+                </PanelSection>
+
+                <PanelSection key="playback.debug" title="Debug Output">
+                  <Text tone="muted" size="meta">This level is global. Raising it increases console output and the buffered diagnostics shown here.</Text>
+                  <Row style={{ align: "center", gap: 6, margin: { t: 8, r: 0, b: 0, l: 0 } }}>
+                    {DEBUG_LEVELS.map((level) => (
+                      <Button
+                        key={`playback.debug.level.${level}`}
+                        text={level.toUpperCase()}
+                        onClick={() => setDebugLevel(level)}
+                        disabled={debugLevel === level}
+                        style={{ fixed: 68 }}
+                      />
+                    ))}
+                  </Row>
+                  <Column style={{ axis: "column", gap: 4, margin: { t: 10, r: 0, b: 0, l: 0 }, w: "auto", h: "auto" }}>
+                    {logEntries.length ? (
+                      logEntries.map((entry) => (
+                        <Text key={`playback.log.${entry.id}`} color={logColor(entry.level)} size="meta">{formatDebugEntry(entry)}</Text>
+                      ))
+                    ) : (
+                      <Text tone="muted" size="meta">No debug entries captured yet.</Text>
+                    )}
+                  </Column>
+                </PanelSection>
+              </Column>
+            </Row>
+          </PanelScroll>
+        </PanelColumn>
+      )
+    }
+  },
+})

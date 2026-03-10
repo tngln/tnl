@@ -1,4 +1,6 @@
 import { effect } from "./core/reactivity"
+import { createLogger } from "./core/debug"
+import { invariant, toErrorInfo } from "./core/errors"
 import { createCodecRegistry } from "./core/codecs"
 import { ShortcutManager, type ShortcutContextResolver, type ShortcutExecutionContext } from "./core/shortcuts"
 import { theme } from "./config/theme"
@@ -12,13 +14,21 @@ import { TIMECODE_TOOL_WINDOW_ID } from "./ui/window/timecode_tool_window"
 import { unionRect } from "./core/rect"
 import { TOOLS_DIALOG_ID } from "./ui/window/tools_dialog"
 import { TIMELINE_TOOL_WINDOW_ID } from "./ui/window/timeline_tool_window"
-import { addBrowserInteractionCancelListener, addWindowKeyDownListener, addWindowKeyUpListener, addWindowLoadListener, addWindowResizeListener, applyDocumentTheme, getRootCanvas, registerServiceWorker, scheduleAnimationFrame } from "./platform/web"
+import { addBrowserInteractionCancelListener, addWindowErrorListener, addWindowKeyDownListener, addWindowKeyUpListener, addWindowLoadListener, addWindowResizeListener, addWindowUnhandledRejectionListener, applyDocumentTheme, getRootCanvas, registerServiceWorker, scheduleAnimationFrame } from "./platform/web"
 import { DockingManager } from "./ui/docking/manager"
 import { createDefaultDockablePanes } from "./ui/docking/default_panes"
 import { findLeafByPane, firstLeaf } from "./ui/docking/model"
 
 const canvas = getRootCanvas("#app")
-if (!canvas) throw new Error("Canvas not found")
+invariant(canvas, {
+  domain: "app",
+  code: "CanvasNotFound",
+  message: "Canvas not found",
+  details: { selector: "#app" },
+})
+
+const appLog = createLogger("app")
+appLog.info("Initializing application")
 
 applyDocumentTheme(theme.colors.appBg, theme.colors.appBg)
 
@@ -230,10 +240,26 @@ const removeShortcutCancelListener = addBrowserInteractionCancelListener(() => {
   ui.clearFocus()
   shortcuts.resetInputState()
 })
+const removeWindowErrorListener = addWindowErrorListener((event) => {
+  appLog.error("Unhandled window error", {
+    message: event.message,
+    filename: event.filename,
+    line: event.lineno,
+    column: event.colno,
+    error: toErrorInfo(event.error),
+  })
+})
+const removeUnhandledRejectionListener = addWindowUnhandledRejectionListener((event) => {
+  appLog.error("Unhandled promise rejection", {
+    reason: toErrorInfo(event.reason),
+  })
+})
 ;(globalThis as any).__TNL_DEVTOOLS__.disposeShortcuts = () => {
   removeKeyDownListener()
   removeKeyUpListener()
   removeShortcutCancelListener()
+  removeWindowErrorListener()
+  removeUnhandledRejectionListener()
 }
 
 canvas.addEventListener("pointerdown", (event) => {

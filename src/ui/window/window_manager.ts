@@ -1,5 +1,6 @@
 import { draw, RRect } from "../../core/draw"
 import { theme } from "../../config/theme"
+import { invariant } from "../../core/errors"
 import { type Rect as BoundsRect, type Vec2, UIElement } from "../base/ui"
 import { ModalWindow, type Root, type WindowSnapshot } from "./window"
 
@@ -88,7 +89,12 @@ export class WindowManager implements WindowControlApi {
   }
 
   register(win: ModalWindow) {
-    if (this.windows.has(win.id)) throw new Error(`Window already registered: ${win.id}`)
+    invariant(!this.windows.has(win.id), {
+      domain: "window",
+      code: "WindowAlreadyRegistered",
+      message: `Window already registered: ${win.id}`,
+      details: { id: win.id },
+    })
     this.windows.set(win.id, win)
     this.root.add(win)
     win.setMaximizeBounds(this.maximizeRect())

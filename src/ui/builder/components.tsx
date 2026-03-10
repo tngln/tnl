@@ -6,12 +6,14 @@ import {
   checkboxNode,
   column,
   formRow,
+  paintNode,
   radioNode,
   richTextNode,
   row,
   rowItemNode,
   scrollAreaNode,
   section,
+  sliderNode,
   spacer,
   stack,
   textBoxNode,
@@ -86,6 +88,19 @@ type RowItemProps = JSXNodeProps & {
 }
 
 type ScrollAreaProps = JSXNodeProps
+
+type PaintProps = Omit<JSXNodeProps, "children"> & {
+  draw: (ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }, active: boolean) => void
+  measure?: (max: { w: number; h: number }) => { w: number; h: number }
+}
+
+type SliderProps = Omit<JSXNodeProps, "children"> & {
+  min: number
+  max: number
+  value: number
+  onChange?: (next: number) => void
+  disabled?: boolean
+}
 
 type TreeViewProps = Omit<JSXNodeProps, "children"> & {
   items: TreeItem[]
@@ -259,6 +274,25 @@ export function ScrollArea(props: ScrollAreaProps) {
   const children = resolveChildren(props)
   const child = children.length <= 1 ? (children[0] ?? spacer()) : column(children, { axis: "column", gap: 0, w: "auto", h: "auto" })
   return scrollAreaNode(child, common(props))
+}
+
+export function Paint(props: PaintProps) {
+  return paintNode({
+    ...common(props),
+    draw: props.draw,
+    measure: props.measure,
+  })
+}
+
+export function SliderField(props: SliderProps) {
+  return sliderNode({
+    ...common(props),
+    min: props.min,
+    max: props.max,
+    value: props.value,
+    onChange: props.onChange,
+    disabled: props.disabled,
+  })
 }
 
 export function TreeView(props: TreeViewProps) {

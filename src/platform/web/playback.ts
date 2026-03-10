@@ -1,4 +1,6 @@
 import { scheduleAnimationFrame } from "./animation"
+import { createLogger } from "../../core/debug"
+import { AppError, describeError, toAppError, toErrorInfo } from "../../core/errors"
 
 type VideoFrameCallback = (now: number, metadata: { mediaTime?: number; presentedFrames?: number }) => void
 
@@ -6,6 +8,8 @@ type ManagedVideo = HTMLVideoElement & {
   requestVideoFrameCallback?: (callback: VideoFrameCallback) => number
   cancelVideoFrameCallback?: (handle: number) => void
 }
+
+const playbackLog = createLogger("playback.runtime")
 
 export type PlaybackRuntimeSnapshot = {
   sourcePath: string | null
@@ -146,9 +150,16 @@ export class PlaybackRuntime {
   async loadBlob(blob: Blob, path: string, typeHint?: string) {
     const video = this.video
     if (!video) {
-      this.error = "HTMLVideoElement is not available in this environment"
+      const error = new AppError({
+        domain: "playback",
+        code: "VideoElementUnavailable",
+        message: "HTMLVideoElement is not available in this environment",
+        details: { path },
+      })
+      this.error = describeError(error)
+      playbackLog.error("Playback video element is unavailable", { error: toErrorInfo(error) })
       this.notify()
-      return
+      throw error
     }
     this.loading = true
     this.error = null
@@ -160,6 +171,12 @@ export class PlaybackRuntime {
     const incomingType = typeHint || blob.type || null
     if (shouldOverrideMime(incomingType)) this.resolvedMime = inferred || incomingType
     else this.resolvedMime = incomingType
+    playbackLog.info("Loading playback source", {
+      path,
+      blobType: this.blobType,
+      typeHint: typeHint || null,
+      resolvedMime: this.resolvedMime,
+    })
     this.revokeObjectUrl()
     const playableBlob = this.resolvedMime && this.resolvedMime !== blob.type ? new Blob([blob], { type: this.resolvedMime }) : blob
     this.objectUrl = URL.createObjectURL(playableBlob)
@@ -186,11 +203,35 @@ export class PlaybackRuntime {
         video.addEventListener("error", onError)
       })
       this.loading = false
+      playbackLog.info("Playback source loaded", {
+        path,
+        duration: video.duration,
+        width: video.videoWidth,
+        height: video.videoHeight,
+        readyState: video.readyState,
+        networkState: video.networkState,
+        canPlayType: this.resolvedMime ? video.canPlayType(this.resolvedMime) : "",
+      })
       this.notify()
     } catch (error) {
+      const appError = toAppError(error, {
+        domain: "playback",
+        code: "LoadFailed",
+        message: `Failed to load video: ${path}`,
+        details: {
+          path,
+          blobType: this.blobType,
+          resolvedMime: this.resolvedMime,
+          readyState: video.readyState,
+          networkState: video.networkState,
+          mediaErrorCode: video.error?.code ?? null,
+        },
+      })
       this.loading = false
-      this.error = error instanceof Error ? error.message : String(error)
+      this.error = describeError(appError)
+      playbackLog.error("Failed to load playback source", { error: toErrorInfo(appError) })
       this.notify()
+      throw appError
     }
   }
 
@@ -200,10 +241,22 @@ export class PlaybackRuntime {
     this.error = null
     try {
       await video.play()
+      playbackLog.debug("Playback started", {
+        path: this.sourcePath,
+        currentTime: video.currentTime,
+        playbackRate: video.playbackRate,
+      })
       this.startFrameLoop()
       this.notify()
     } catch (error) {
-      this.error = error instanceof Error ? error.message : String(error)
+      const appError = toAppError(error, {
+        domain: "playback",
+        code: "PlayFailed",
+        message: `Failed to start playback${this.sourcePath ? ` for ${this.sourcePath}` : ""}`,
+        details: { path: this.sourcePath, playbackRate: video.playbackRate },
+      })
+      this.error = describeError(appError)
+      playbackLog.error("Playback start failed", { error: toErrorInfo(appError) })
       this.notify()
     }
   }
@@ -212,6 +265,7 @@ export class PlaybackRuntime {
     const video = this.video
     if (!video) return
     video.pause()
+    playbackLog.debug("Playback paused", { path: this.sourcePath, currentTime: video.currentTime })
     this.stopFrameLoop()
     this.notify()
   }
@@ -227,6 +281,7 @@ export class PlaybackRuntime {
     if (!video) return
     const duration = Number.isFinite(video.duration) ? video.duration : 0
     video.currentTime = Math.max(0, Math.min(duration, seconds))
+    playbackLog.trace("Playback seek", { path: this.sourcePath, currentTime: video.currentTime, requestedTime: seconds })
     this.notify()
   }
 
@@ -236,6 +291,7 @@ export class PlaybackRuntime {
     video.pause()
     const fps = this.frameRate && this.frameRate > 0 ? this.frameRate : 30
     const step = 1 / fps
+    playbackLog.debug("Playback frame step", { path: this.sourcePath, delta, fps, currentTime: video.currentTime })
     this.seekTo((video.currentTime ?? 0) + delta * step)
   }
 
@@ -245,6 +301,7 @@ export class PlaybackRuntime {
     video.volume = Math.max(0, Math.min(1, volume))
     if (video.volume > 0 && video.muted) video.muted = false
     if (video.volume <= 0) video.muted = true
+    playbackLog.trace("Playback volume changed", { path: this.sourcePath, volume: video.volume, muted: video.muted })
     this.notify()
   }
 
@@ -252,6 +309,7 @@ export class PlaybackRuntime {
     const video = this.video
     if (!video) return
     video.muted = muted
+    playbackLog.debug("Playback mute toggled", { path: this.sourcePath, muted })
     this.notify()
   }
 
@@ -267,6 +325,7 @@ export class PlaybackRuntime {
     const next = Math.max(0.25, Math.min(4, rate))
     this.playbackRate = next
     if (video) video.playbackRate = next
+    playbackLog.debug("Playback rate changed", { path: this.sourcePath, playbackRate: next })
     this.notify()
   }
 

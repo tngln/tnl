@@ -4,7 +4,7 @@ import { ZERO_RECT } from "../../core/rect"
 import { createMeasureContext } from "../../platform/web/canvas"
 import { SurfaceRoot, ViewportElement, type Surface } from "../base/viewport"
 import { UIElement, WheelUIEvent, type Rect, type Vec2 } from "../base/ui"
-import { Button, Checkbox, Radio, Row, Scrollbar, TextBox, TreeRow, TREE_ROW_HEIGHT } from "../widgets"
+import { Button, Checkbox, Radio, Row, Scrollbar, Slider, TextBox, TreeRow, TREE_ROW_HEIGHT } from "../widgets"
 import { clamp } from "./utils"
 import type { BuilderNode, TreeItem, TreeViewNode } from "./types"
 
@@ -54,6 +54,18 @@ type TextBoxCell = {
   placeholder?: string
   active: boolean
   disabled: boolean
+  used: boolean
+}
+
+type SliderCell = {
+  widget: Slider
+  rect: Rect
+  min: number
+  max: number
+  value: number
+  active: boolean
+  disabled: boolean
+  onChange?: (next: number) => void
   used: boolean
 }
 
@@ -162,6 +174,7 @@ export class BuilderRuntime {
   private readonly checkboxes = new Map<string, CheckboxCell>()
   private readonly radios = new Map<string, RadioCell>()
   private readonly textboxes = new Map<string, TextBoxCell>()
+  private readonly sliders = new Map<string, SliderCell>()
   private readonly rows = new Map<string, RowCell>()
   private readonly treeRows = new Map<string, TreeRowCell>()
   private readonly scrollAreas = new Map<string, BuilderScrollAreaElement>()
@@ -215,6 +228,7 @@ export class BuilderRuntime {
       checkboxes: this.checkboxes.size,
       radios: this.radios.size,
       textboxes: this.textboxes.size,
+      sliders: this.sliders.size,
       rows: this.rows.size,
       treeRows: this.treeRows.size,
       scrollAreas: this.scrollAreas.size,
@@ -230,6 +244,7 @@ export class BuilderRuntime {
     this.markAllUnused(this.checkboxes)
     this.markAllUnused(this.radios)
     this.markAllUnused(this.textboxes)
+    this.markAllUnused(this.sliders)
     this.markAllUnused(this.rows)
     this.markAllUnused(this.treeRows)
     this.usedScrollAreas.clear()
@@ -240,6 +255,7 @@ export class BuilderRuntime {
     this.deactivateUnusedWidgetCells(this.checkboxes)
     this.deactivateUnusedWidgetCells(this.radios)
     this.deactivateUnusedWidgetCells(this.textboxes)
+    this.deactivateUnusedWidgetCells(this.sliders)
     for (const cell of this.rows.values()) {
       if (cell.used) continue
       cell.active = false
@@ -404,6 +420,45 @@ export class BuilderRuntime {
         cell.value = node.value
         cell.placeholder = node.placeholder
         cell.disabled = node.disabled ?? false
+      },
+    )
+  }
+
+  mountSlider(key: string, rect: Rect, node: { min: number; max: number; value: number; onChange?: (next: number) => void; disabled?: boolean }, active: boolean) {
+    this.mountWidgetCell(
+      this.sliders,
+      key,
+      () => {
+        let cell!: SliderCell
+        cell = {
+          rect,
+          min: node.min,
+          max: node.max,
+          value: node.value,
+          active,
+          disabled: node.disabled ?? false,
+          onChange: node.onChange,
+          used: false,
+          widget: new Slider({
+            rect: () => cell.active ? cell.rect : ZERO_RECT,
+            min: () => cell.min,
+            max: () => cell.max,
+            value: () => cell.value,
+            onChange: (next) => cell.onChange?.(next),
+            active: () => cell.active,
+            disabled: () => cell.disabled,
+          }),
+        }
+        return cell
+      },
+      active,
+      (cell) => {
+        cell.rect = rect
+        cell.min = node.min
+        cell.max = node.max
+        cell.value = node.value
+        cell.disabled = node.disabled ?? false
+        cell.onChange = node.onChange
       },
     )
   }

@@ -1,4 +1,5 @@
 import type { InteractionCancelReason } from "../../core/event_stream"
+import { invariant } from "../../core/errors"
 import type { Surface } from "../base/viewport"
 import { pointInRect, type Rect, type Vec2 } from "../base/ui"
 import { DragDropController, type ActiveDragSession, type DragBehavior, type DragImageSpec, type DragPayload, type DropCandidate, type DropProvider } from "../base/drag_drop"
@@ -173,7 +174,12 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
   }
 
   registerPane(init: DockablePaneInit) {
-    if (this.panes.has(init.id)) throw new Error(`Dockable pane already registered: ${init.id}`)
+    invariant(!this.panes.has(init.id), {
+      domain: "docking",
+      code: "PaneAlreadyRegistered",
+      message: `Dockable pane already registered: ${init.id}`,
+      details: { id: init.id },
+    })
     this.panes.set(init.id, {
       id: init.id,
       surface: init.surface,
@@ -342,7 +348,12 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
 
   getPaneSurface(paneId: string) {
     const pane = this.panes.get(paneId)
-    if (!pane) throw new Error(`Unknown dockable pane: ${paneId}`)
+    invariant(pane, {
+      domain: "docking",
+      code: "UnknownPane",
+      message: `Unknown dockable pane: ${paneId}`,
+      details: { id: paneId },
+    })
     return pane.surface
   }
 

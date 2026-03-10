@@ -1,9 +1,15 @@
+import { invariant } from "../../core/errors"
+
 export async function getOpfsRootDirectory() {
   const nav = navigator as Navigator & {
     storage?: StorageManager & { getDirectory?: () => Promise<FileSystemDirectoryHandle> }
   }
   const getDirectory = nav.storage?.getDirectory
-  if (typeof getDirectory !== "function") throw new Error("OPFS is not available in this environment")
+  invariant(typeof getDirectory === "function", {
+    domain: "platform",
+    code: "OpfsUnavailable",
+    message: "OPFS is not available in this environment",
+  })
   return await getDirectory.call(nav.storage)
 }
 
