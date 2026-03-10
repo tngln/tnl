@@ -1,5 +1,7 @@
 import type { DeveloperContext } from "../window/developer"
 import { createDeveloperToolsSurface, DEVELOPER_WINDOW_ID } from "../window/developer/developer_tools_window"
+import { createPlaybackToolSurface, PLAYBACK_TOOL_WINDOW_ID } from "../window/playback_tool_window"
+import { createTimecodeToolSurface, TIMECODE_TOOL_WINDOW_ID } from "../window/timecode_tool_window"
 import { createTimelineToolSurface, TIMELINE_TOOL_WINDOW_ID } from "../window/timeline_tool_window"
 import { createToolsSurface, TOOLS_DIALOG_ID } from "../window/tools_dialog"
 import type { DockablePaneInit } from "./manager"
@@ -68,6 +70,18 @@ export function createDefaultDockablePanes(ctx: DeveloperContext): DockablePaneI
       surface: createTimelineToolSurface(),
       floatingRect: { x: 260, y: 220, w: 900, h: 320 },
       dragImage: () => makePaneDragImage("Timeline"),
+    },
+    {
+      id: PLAYBACK_TOOL_WINDOW_ID,
+      surface: createPlaybackToolSurface(),
+      floatingRect: { x: 320, y: 120, w: 920, h: 560 },
+      dragImage: () => makePaneDragImage("Playback"),
+    },
+    {
+      id: TIMECODE_TOOL_WINDOW_ID,
+      surface: createTimecodeToolSurface(),
+      floatingRect: { x: 980, y: 48, w: 320, h: 150 },
+      dragImage: () => makePaneDragImage("Timecode"),
     },
   ]
 }

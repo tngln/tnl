@@ -23,6 +23,9 @@ export type TimelineViewModel = {
   rangeStart: number
   rangeEnd: number
   baseUnit: number
+  fps?: number
+  playhead?: number
+  onSeek?: (value: number) => void
   tracks: TimelineTrackModel[]
   selection?: TimelineSelection
 }

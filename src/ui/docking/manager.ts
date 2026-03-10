@@ -1,3 +1,4 @@
+import type { InteractionCancelReason } from "../../core/event_stream"
 import type { Surface } from "../base/viewport"
 import { pointInRect, type Rect, type Vec2 } from "../base/ui"
 import { DragDropController, type ActiveDragSession, type DragBehavior, type DragImageSpec, type DragPayload, type DropCandidate, type DropProvider } from "../base/drag_drop"
@@ -573,6 +574,7 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
       targetId: `dock.fallback:${payload.paneId}`,
       effect: "none",
       commit: () => {
+        if (payload.source.kind !== "floating") return
         const nextRect = this.getFloatingWindowRect(pane) ?? this.rectFromPointer(pointer, pane.floatingRect)
         if (this.sameRect(nextRect, payload.source.originRect)) {
           pane.floatingRect = payload.source.originRect

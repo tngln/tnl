@@ -7,13 +7,15 @@ import { WindowManager } from "./ui/window/window_manager"
 import { CanvasUI } from "./ui/base/ui"
 import { ABOUT_DIALOG_ID, createAboutDialog } from "./ui/window/about_dialog"
 import { DEVELOPER_WINDOW_ID } from "./ui/window/developer/developer_tools_window"
+import { PLAYBACK_TOOL_WINDOW_ID } from "./ui/window/playback_tool_window"
+import { TIMECODE_TOOL_WINDOW_ID } from "./ui/window/timecode_tool_window"
 import { unionRect } from "./core/rect"
 import { TOOLS_DIALOG_ID } from "./ui/window/tools_dialog"
 import { TIMELINE_TOOL_WINDOW_ID } from "./ui/window/timeline_tool_window"
 import { addBrowserInteractionCancelListener, addWindowKeyDownListener, addWindowKeyUpListener, addWindowLoadListener, addWindowResizeListener, applyDocumentTheme, getRootCanvas, registerServiceWorker, scheduleAnimationFrame } from "./platform/web"
 import { DockingManager } from "./ui/docking/manager"
 import { createDefaultDockablePanes } from "./ui/docking/default_panes"
-import { firstLeaf } from "./ui/docking/model"
+import { findLeafByPane, firstLeaf } from "./ui/docking/model"
 
 const canvas = getRootCanvas("#app")
 if (!canvas) throw new Error("Canvas not found")
@@ -133,10 +135,28 @@ shortcuts.registerCommand({
   },
 })
 
+shortcuts.registerCommand({
+  id: "workspace.activatePlayback",
+  run(ctx) {
+    ctx.docking.activatePane(PLAYBACK_TOOL_WINDOW_ID)
+    ctx.ui.invalidate()
+  },
+})
+
+shortcuts.registerCommand({
+  id: "workspace.activateTimecode",
+  run(ctx) {
+    ctx.docking.activatePane(TIMECODE_TOOL_WINDOW_ID)
+    ctx.ui.invalidate()
+  },
+})
+
 shortcuts.registerBinding({ command: "app.toggleAbout", context: "global", trigger: { kind: "key-down", code: "F1" } })
 shortcuts.registerBinding({ command: "workspace.activateDeveloper", context: "global", trigger: { kind: "key-down", code: "F2" } })
 shortcuts.registerBinding({ command: "workspace.activateTools", context: "global", trigger: { kind: "key-down", code: "F3" } })
 shortcuts.registerBinding({ command: "workspace.activateTimeline", context: "global", trigger: { kind: "key-down", code: "F4" } })
+shortcuts.registerBinding({ command: "workspace.activatePlayback", context: "global", trigger: { kind: "key-down", code: "F5" } })
+shortcuts.registerBinding({ command: "workspace.activateTimecode", context: "global", trigger: { kind: "key-down", code: "F6" } })
 
 for (const pane of createDefaultDockablePanes(developerContext)) docking.registerPane(pane)
 const workspaceId = docking.createContainer()
@@ -145,6 +165,9 @@ docking.dockPane(firstPaneId, workspaceId, null, "center")
 const leftLeafId = firstLeaf(docking.getRoot(workspaceId))?.id ?? null
 if (leftLeafId) docking.dockPane(TOOLS_DIALOG_ID, workspaceId, leftLeafId, "center")
 if (leftLeafId) docking.dockPane(TIMELINE_TOOL_WINDOW_ID, workspaceId, leftLeafId, "right")
+const timelineLeafId = findLeafByPane(docking.getRoot(workspaceId), TIMELINE_TOOL_WINDOW_ID)?.id ?? null
+if (timelineLeafId) docking.dockPane(PLAYBACK_TOOL_WINDOW_ID, workspaceId, timelineLeafId, "bottom")
+docking.floatPane(TIMECODE_TOOL_WINDOW_ID, { x: 980, y: 48, w: 320, h: 150 })
 
 windows.setCanvasSize(ui.sizeCss)
 ;(globalThis as any).__TNL_DEVTOOLS__ ??= {}

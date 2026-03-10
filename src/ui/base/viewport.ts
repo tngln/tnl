@@ -334,6 +334,7 @@ export class ViewportElement extends UIElement {
     const le = toLocalWheelEvent(e, local)
     const target = s.hitTest?.(local, vp) ?? this.surfaceBridge
     dispatchWheelEvent(target, le, this.surfacePointForTarget(local))
+    if (!le.didHandle && target !== this.surfaceBridge) this.surfaceBridge.onWheel(le)
     e.adoptOutcome(le)
   }
 }

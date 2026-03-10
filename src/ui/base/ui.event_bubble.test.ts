@@ -235,6 +235,35 @@ describe("ui event bubbling", () => {
     })
   })
 
+  it("falls back to the surface wheel handler when hitTest returns the surface root", () => {
+    withFakeDom({}, ({ canvas }) => {
+      const host = new HostElement()
+      const root = new SurfaceRoot()
+      let surfaceWheel = 0
+      const surface: Surface = {
+        id: "wheel-root-surface",
+        render() {},
+        hitTest(p) {
+          return root.hitTest(p)
+        },
+        onWheel() {
+          surfaceWheel += 1
+        },
+      }
+      const viewport = new ViewportElement({
+        rect: () => ({ x: 50, y: 40, w: 100, h: 100 }),
+        target: surface,
+      })
+      host.add(viewport)
+      const ui = new CanvasUI(canvas, host)
+
+      ;(canvas as any).dispatch("wheel", wheelEvent(60, 55))
+
+      expect(surfaceWheel).toBe(1)
+      ui.destroy()
+    })
+  })
+
   it("does not recurse when viewport falls back to the surface bridge on pointer move", () => {
     withFakeDom({}, ({ canvas }) => {
       const host = new HostElement()

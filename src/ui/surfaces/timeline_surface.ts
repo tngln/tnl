@@ -1,7 +1,7 @@
 import { font, theme } from "../../config/theme"
 import { draw, Line, Rect as RectOp, RRect, Text } from "../../core/draw"
 import { clamp } from "../../core/rect"
-import { UIElement, WheelUIEvent, pointInRect, type Rect, type Vec2 } from "../base/ui"
+import { PointerUIEvent, UIElement, WheelUIEvent, pointInRect, type Rect, type Vec2 } from "../base/ui"
 import { ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "../base/viewport"
 import { Scrollbar } from "../widgets/scrollbar"
 import {
@@ -473,6 +473,18 @@ export class TimelineCompositeSurface implements Surface {
     e.handle()
   }
 
+  private playheadX() {
+    const playhead = this.viewModel.playhead
+    if (playhead === undefined) return null
+    return this.layoutState.headerWidth + valueToX(playhead, this.viewModel.rangeStart, this.scaleState.pxPerUnit) - this.scrollState.scrollX
+  }
+
+  private seekAt(surfaceX: number) {
+    const contentLocalX = surfaceX - this.layoutState.contentRect.x + this.scrollState.scrollX
+    const value = Math.max(this.viewModel.rangeStart, Math.min(this.viewModel.rangeEnd, this.viewModel.rangeStart + contentLocalX / Math.max(1e-6, this.scaleState.pxPerUnit)))
+    this.viewModel.onSeek?.(value)
+  }
+
   render(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, viewport: ViewportContext) {
     this.recomputeTrackMetrics()
     this.updateLayout(viewport)
@@ -492,10 +504,27 @@ export class TimelineCompositeSurface implements Surface {
     )
 
     this.root.draw(ctx as CanvasRenderingContext2D)
+
+    const playheadX = this.playheadX()
+    if (playheadX !== null && playheadX >= this.layoutState.headerWidth && playheadX <= this.layoutState.headerWidth + this.layoutState.contentRect.w) {
+      draw(
+        ctx as CanvasRenderingContext2D,
+        Line({ x: playheadX + 0.5, y: 0 }, { x: playheadX + 0.5, y: this.layoutState.rulerRect.h + this.layoutState.contentRect.h }, { color: "rgba(255,116,116,0.95)", width: 2 }),
+        RRect({ x: playheadX - 18, y: 4, w: 36, h: 16, r: 6 }, { fill: { color: "rgba(255,116,116,0.92)" }, pixelSnap: true }),
+        Text({ x: playheadX, y: 12.5, text: "PH", style: { color: "#1b0b0b", font: `${700} 10px ${theme.typography.family}`, align: "center", baseline: "middle" } }),
+      )
+    }
   }
 
   hitTest(pSurface: Vec2) {
     return this.root.hitTest(pSurface)
+  }
+
+  onPointerDown(e: PointerUIEvent) {
+    if (pointInRect({ x: e.x, y: e.y }, this.layoutState.rulerRect) || pointInRect({ x: e.x, y: e.y }, this.layoutState.contentRect)) {
+      this.seekAt(e.x)
+      e.handle()
+    }
   }
 
   onWheel(e: WheelUIEvent) {

@@ -1,15 +1,17 @@
 import { TimelineCompositeSurface } from "../surfaces/timeline_surface"
 import { createFrameUnitAdapter } from "../timeline/model"
-import { createTimelineDemoModel } from "../timeline/demo"
+import { getPlaybackSession } from "../playback/session"
 import type { Surface } from "../base/viewport"
 import { SurfaceWindow } from "./window"
 
 export const TIMELINE_TOOL_WINDOW_ID = "Timeline.Tool"
 
 export function createTimelineToolSurface(): Surface {
+  const session = getPlaybackSession()
+  session.ensureInitialized()
   return new TimelineCompositeSurface({
-    id: "Timeline.Demo",
-    view: createTimelineDemoModel(),
+    id: "Timeline.Real",
+    view: session.timelineView(),
     unitAdapter: createFrameUnitAdapter(1),
     initialPxPerUnit: 5,
     minPxPerUnit: 1,
