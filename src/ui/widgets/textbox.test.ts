@@ -3,41 +3,7 @@ import { signal } from "../../core/reactivity"
 import { KeyUIEvent, PointerUIEvent } from "../base/ui"
 import { TextBox } from "./textbox"
 import type { OnePxTextboxBridge, OnePxTextboxSession, OnePxTextboxSyncState } from "../../platform/web"
-
-function fakeCtx() {
-  let font = "400 12px system-ui"
-  return {
-    get font() {
-      return font
-    },
-    set font(value: string) {
-      font = value
-    },
-    measureText(text: string) {
-      const size = /(\d+(?:\.\d+)?)px/.exec(font)
-      const px = size ? parseFloat(size[1]) : 12
-      return { width: text.length * px * 0.6 }
-    },
-  } as unknown as CanvasRenderingContext2D
-}
-
-function withFakeDocument<T>(run: () => T) {
-  const previousDocument = (globalThis as any).document
-  ;(globalThis as any).document = {
-    createElement() {
-      return {
-        getContext() {
-          return fakeCtx()
-        },
-      }
-    },
-  }
-  try {
-    return run()
-  } finally {
-    ;(globalThis as any).document = previousDocument
-  }
-}
+import { withFakeDocument } from "../builder/test_utils"
 
 class MockBridge implements OnePxTextboxBridge {
   session: OnePxTextboxSession | null = null

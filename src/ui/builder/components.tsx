@@ -25,7 +25,7 @@ import {
   type RowVariant,
   type TreeItem,
 } from "./surface_builder"
-import { normalizeChildren, resolveChildren, resolveTextContent, type BuilderChild, type JSXNodeProps } from "../jsx"
+import { resolveChildren, resolveTextContent, type JSXNodeProps } from "../jsx"
 import type { RichTextSpan, RichTextStyle, TextEmphasis } from "../../core/draw.text"
 import { resolveRichTextChildren, type RichInlineChild } from "./rich_text_children"
 

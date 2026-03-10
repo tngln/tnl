@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import { CanvasUI, CursorRegion, PointerUIEvent, UIElement, type Rect } from "./ui"
+import { pointerEvent, withFakeDom } from "./test_utils"
 
 class CaptureElement extends UIElement {
   moves = 0
@@ -120,115 +121,9 @@ class OverlappingCursorElement extends UIElement {
   }
 }
 
-type ListenerMap = Map<string, Set<(event: any) => void>>
-
-function createListenerHost() {
-  const listeners: ListenerMap = new Map()
-  return {
-    listeners,
-    addEventListener(type: string, listener: (event: any) => void) {
-      let bucket = listeners.get(type)
-      if (!bucket) {
-        bucket = new Set()
-        listeners.set(type, bucket)
-      }
-      bucket.add(listener)
-    },
-    removeEventListener(type: string, listener: (event: any) => void) {
-      listeners.get(type)?.delete(listener)
-    },
-    dispatch(type: string, event: any = {}) {
-      for (const listener of listeners.get(type) ?? []) listener(event)
-    },
-  }
-}
-
-function fakeContext() {
-  return {
-    setTransform() {},
-    save() {},
-    restore() {},
-    beginPath() {},
-    rect() {},
-    clip() {},
-    fillRect() {},
-  } as unknown as CanvasRenderingContext2D
-}
-
-function withFakeDom<T>(run: (ctx: {
-  canvas: HTMLCanvasElement
-  windowHost: ReturnType<typeof createListenerHost>
-  documentHost: ReturnType<typeof createListenerHost> & { visibilityState: string }
-}) => T) {
-  const previousWindow = (globalThis as any).window
-  const previousDocument = (globalThis as any).document
-  const previousRaf = (globalThis as any).requestAnimationFrame
-
-  const windowHost = createListenerHost()
-  const documentBase = createListenerHost()
-  const documentHost = Object.assign(documentBase, { visibilityState: "visible" })
-  const canvasHost = createListenerHost()
-  let capturedPointerId: number | null = null
-  let releasedPointerId: number | null = null
-
-  const canvas = Object.assign(canvasHost, {
-    width: 0,
-    height: 0,
-    style: { cursor: "default" },
-    getContext() {
-      return fakeContext()
-    },
-    getBoundingClientRect() {
-      return { left: 0, top: 0, width: 200, height: 120 }
-    },
-    setPointerCapture(pointerId: number) {
-      capturedPointerId = pointerId
-    },
-    releasePointerCapture(pointerId: number) {
-      releasedPointerId = pointerId
-    },
-  }) as unknown as HTMLCanvasElement
-
-  ;(globalThis as any).window = Object.assign(windowHost, { devicePixelRatio: 1 })
-  ;(globalThis as any).document = documentHost
-  ;(globalThis as any).requestAnimationFrame = (cb: FrameRequestCallback) => {
-    cb(0)
-    return 1
-  }
-
-  try {
-    return run({
-      canvas: Object.assign(canvas, {
-        __capturedPointerId: () => capturedPointerId,
-        __releasedPointerId: () => releasedPointerId,
-      }) as HTMLCanvasElement,
-      windowHost,
-      documentHost,
-    })
-  } finally {
-    ;(globalThis as any).window = previousWindow
-    ;(globalThis as any).document = previousDocument
-    ;(globalThis as any).requestAnimationFrame = previousRaf
-  }
-}
-
-function pointerEvent(x: number, y: number, buttons: number) {
-  return {
-    pointerId: 1,
-    clientX: x,
-    clientY: y,
-    button: 0,
-    buttons,
-    altKey: false,
-    ctrlKey: false,
-    shiftKey: false,
-    metaKey: false,
-  } as PointerEvent
-}
-
 describe("canvas ui pointer cancel", () => {
   it("cancels active capture on pointercancel and clears capture", () => {
-    withFakeDom(({ canvas, windowHost }) => {
+    withFakeDom({ canvasRect: { width: 200, height: 120 }, includeDocumentCreateElement: false, trackPointerCapture: true }, ({ canvas, windowHost }) => {
       const target = new CaptureElement()
       const ui = new CanvasUI(canvas, new RootElement(target))
 
@@ -246,7 +141,7 @@ describe("canvas ui pointer cancel", () => {
   })
 
   it("cancels active capture on browser blur and removes listeners on destroy", () => {
-    withFakeDom(({ canvas, windowHost }) => {
+    withFakeDom({ canvasRect: { width: 200, height: 120 }, includeDocumentCreateElement: false, trackPointerCapture: true }, ({ canvas, windowHost }) => {
       const target = new CaptureElement()
       const ui = new CanvasUI(canvas, new RootElement(target))
 
@@ -267,7 +162,7 @@ describe("canvas ui pointer cancel", () => {
   })
 
   it("applies cursor from hovered cursor regions and restores default when leaving", () => {
-    withFakeDom(({ canvas }) => {
+    withFakeDom({ canvasRect: { width: 200, height: 120 }, includeDocumentCreateElement: false }, ({ canvas }) => {
       const root = new RootElement(new CursorElement({ x: 20, y: 20, w: 30, h: 30 }, "ew-resize"))
       const ui = new CanvasUI(canvas, root)
 
@@ -282,7 +177,7 @@ describe("canvas ui pointer cancel", () => {
   })
 
   it("prefers the top-most cursor region when regions overlap", () => {
-    withFakeDom(({ canvas }) => {
+    withFakeDom({ canvasRect: { width: 200, height: 120 }, includeDocumentCreateElement: false }, ({ canvas }) => {
       const ui = new CanvasUI(canvas, new RootElement(new OverlappingCursorElement()))
 
       ;(canvas as any).dispatch("pointermove", pointerEvent(20, 20, 0))
@@ -293,7 +188,7 @@ describe("canvas ui pointer cancel", () => {
   })
 
   it("keeps the active cursor during capture and resets on destroy", () => {
-    withFakeDom(({ canvas }) => {
+    withFakeDom({ canvasRect: { width: 200, height: 120 }, includeDocumentCreateElement: false, trackPointerCapture: true }, ({ canvas }) => {
       const target = new CaptureElement()
       target.add(
         new CursorRegion({
@@ -313,7 +208,7 @@ describe("canvas ui pointer cancel", () => {
   })
 
   it("clears focus on destroy", () => {
-    withFakeDom(({ canvas }) => {
+    withFakeDom({ canvasRect: { width: 200, height: 120 }, includeDocumentCreateElement: false }, ({ canvas }) => {
       const target = new CaptureElement()
       const ui = new CanvasUI(canvas, new RootElement(target))
 
@@ -328,7 +223,7 @@ describe("canvas ui pointer cancel", () => {
   })
 
   it("does not adopt a descendant cursor when a parent capture target has no capture cursor", () => {
-    withFakeDom(({ canvas }) => {
+    withFakeDom({ canvasRect: { width: 200, height: 120 }, includeDocumentCreateElement: false }, ({ canvas }) => {
       const ui = new CanvasUI(canvas, new RootElement(new ParentCaptureElement()))
 
       ;(canvas as any).dispatch("pointerdown", pointerEvent(10, 10, 1))

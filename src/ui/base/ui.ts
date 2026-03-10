@@ -112,15 +112,28 @@ export interface UIEventTargetNode {
   onKeyUp?(e: KeyUIEvent): void
 }
 
-class UIEventState {
+class UIEventBase {
   target: UIEventTargetNode | null = null
   currentTarget: UIEventTargetNode | null = null
   phase: UIEventPhase = "target"
-  propagationStopped = false
-  defaultPrevented = false
+  protected stopped = false
+
+  stopPropagation() {
+    this.stopped = true
+  }
+
+  get propagationStopped() {
+    return this.stopped
+  }
+
+  withDispatch(target: UIEventTargetNode, currentTarget: UIEventTargetNode, phase: UIEventPhase) {
+    this.target = target
+    this.currentTarget = currentTarget
+    this.phase = phase
+  }
 }
 
-export class PointerUIEvent {
+export class PointerUIEvent extends UIEventBase {
   readonly pointerId: number
   readonly x: number
   readonly y: number
@@ -130,15 +143,12 @@ export class PointerUIEvent {
   readonly ctrlKey: boolean
   readonly shiftKey: boolean
   readonly metaKey: boolean
-  target: UIEventTargetNode | null = null
-  currentTarget: UIEventTargetNode | null = null
-  phase: UIEventPhase = "target"
   private captured = false
-  private stopped = false
   private handled = false
   private requestedFocusTarget: UIEventTargetNode | null = null
 
   constructor(e: PointerLike) {
+    super()
     this.pointerId = e.pointerId
     this.x = e.x
     this.y = e.y
@@ -155,11 +165,7 @@ export class PointerUIEvent {
   }
 
   capturePointer() {
-    this.captured = true
-  }
-
-  stopPropagation() {
-    this.stopped = true
+    this.capture()
   }
 
   handle() {
@@ -167,7 +173,7 @@ export class PointerUIEvent {
   }
 
   preventDefault() {
-    this.handled = true
+    this.handle()
   }
 
   requestFocus(target?: UIEventTargetNode | null) {
@@ -182,18 +188,12 @@ export class PointerUIEvent {
     return this.handled
   }
 
-  get propagationStopped() {
-    return this.stopped
-  }
-
   get focusTarget() {
     return this.requestedFocusTarget
   }
 
   withDispatch(target: UIEventTargetNode, currentTarget: UIEventTargetNode, phase: UIEventPhase, point?: Vec2) {
-    this.target = target
-    this.currentTarget = currentTarget
-    this.phase = phase
+    super.withDispatch(target, currentTarget, phase)
     if (point) {
       ;(this as { x: number; y: number }).x = point.x
       ;(this as { y: number }).y = point.y
@@ -209,7 +209,7 @@ export class PointerUIEvent {
   }
 }
 
-export class WheelUIEvent {
+export class WheelUIEvent extends UIEventBase {
   readonly x: number
   readonly y: number
   readonly deltaX: number
@@ -219,13 +219,10 @@ export class WheelUIEvent {
   readonly ctrlKey: boolean
   readonly shiftKey: boolean
   readonly metaKey: boolean
-  target: UIEventTargetNode | null = null
-  currentTarget: UIEventTargetNode | null = null
-  phase: UIEventPhase = "target"
   private handled = false
-  private stopped = false
 
   constructor(e: WheelLike) {
+    super()
     this.x = e.x
     this.y = e.y
     this.deltaX = e.deltaX
@@ -242,25 +239,15 @@ export class WheelUIEvent {
   }
 
   preventDefault() {
-    this.handled = true
-  }
-
-  stopPropagation() {
-    this.stopped = true
+    this.handle()
   }
 
   get didHandle() {
     return this.handled
   }
 
-  get propagationStopped() {
-    return this.stopped
-  }
-
   withDispatch(target: UIEventTargetNode, currentTarget: UIEventTargetNode, phase: UIEventPhase, point?: Vec2) {
-    this.target = target
-    this.currentTarget = currentTarget
-    this.phase = phase
+    super.withDispatch(target, currentTarget, phase)
     if (point) {
       ;(this as { x: number; y: number }).x = point.x
       ;(this as { y: number }).y = point.y
@@ -274,7 +261,7 @@ export class WheelUIEvent {
   }
 }
 
-export class KeyUIEvent {
+export class KeyUIEvent extends UIEventBase {
   readonly code: string
   readonly key: string
   readonly repeat: boolean
@@ -282,14 +269,11 @@ export class KeyUIEvent {
   readonly ctrlKey: boolean
   readonly shiftKey: boolean
   readonly metaKey: boolean
-  target: UIEventTargetNode | null = null
-  currentTarget: UIEventTargetNode | null = null
-  phase: UIEventPhase = "target"
   private consumed = false
   private prevented = false
-  private stopped = false
 
   constructor(e: KeyLike) {
+    super()
     this.code = e.code
     this.key = e.key
     this.repeat = e.repeat
@@ -312,10 +296,6 @@ export class KeyUIEvent {
     this.prevented = true
   }
 
-  stopPropagation() {
-    this.stopped = true
-  }
-
   get didHandle() {
     return this.consumed
   }
@@ -326,16 +306,6 @@ export class KeyUIEvent {
 
   get didPreventDefault() {
     return this.prevented
-  }
-
-  get propagationStopped() {
-    return this.stopped
-  }
-
-  withDispatch(target: UIEventTargetNode, currentTarget: UIEventTargetNode, phase: UIEventPhase) {
-    this.target = target
-    this.currentTarget = currentTarget
-    this.phase = phase
   }
 
   adoptOutcome(other: KeyUIEvent) {

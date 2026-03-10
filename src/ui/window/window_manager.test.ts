@@ -30,6 +30,20 @@ function maximizeButtonPoint(win: SurfaceWindow) {
   }
 }
 
+function pointer(x: number, y: number, buttons: number) {
+  return new PointerUIEvent({
+    pointerId: 1,
+    x,
+    y,
+    button: 0,
+    buttons,
+    altKey: false,
+    ctrlKey: false,
+    shiftKey: false,
+    metaKey: false,
+  })
+}
+
 describe("window manager", () => {
   it("lists stable snapshots and focuses windows", () => {
     const root = new Root()
@@ -136,34 +150,8 @@ describe("window manager", () => {
     let now = 1_000
     Date.now = () => now
     try {
-      const down = () =>
-        a.onPointerDown(
-          new PointerUIEvent({
-            pointerId: 1,
-            x: 40,
-            y: 24,
-            button: 0,
-            buttons: 1,
-            altKey: false,
-            ctrlKey: false,
-            shiftKey: false,
-            metaKey: false,
-          }),
-        )
-      const up = () =>
-        a.onPointerUp(
-          new PointerUIEvent({
-            pointerId: 1,
-            x: 40,
-            y: 24,
-            button: 0,
-            buttons: 0,
-            altKey: false,
-            ctrlKey: false,
-            shiftKey: false,
-            metaKey: false,
-          }),
-        )
+      const down = () => a.onPointerDown(pointer(40, 24, 1))
+      const up = () => a.onPointerUp(pointer(40, 24, 0))
 
       down()
       up()
@@ -200,32 +188,8 @@ describe("window manager", () => {
     expect(target).toBeTruthy()
 
     target?.onPointerEnter()
-    target?.onPointerDown(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: point.x,
-        y: point.y,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
-    target?.onPointerUp(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: point.x,
-        y: point.y,
-        button: 0,
-        buttons: 0,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
+    target?.onPointerDown(pointer(point.x, point.y, 1))
+    target?.onPointerUp(pointer(point.x, point.y, 0))
     expect(a.maximized.peek()).toBe(true)
     expect(a.bounds()).toEqual({ x: 0, y: 0, w: 900, h: 600 })
 
@@ -233,32 +197,8 @@ describe("window manager", () => {
     const restoreTarget = root.hitTest(restorePoint)
     expect(restoreTarget).toBeTruthy()
     restoreTarget?.onPointerEnter()
-    restoreTarget?.onPointerDown(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: restorePoint.x,
-        y: restorePoint.y,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
-    restoreTarget?.onPointerUp(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: restorePoint.x,
-        y: restorePoint.y,
-        button: 0,
-        buttons: 0,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
+    restoreTarget?.onPointerDown(pointer(restorePoint.x, restorePoint.y, 1))
+    restoreTarget?.onPointerUp(pointer(restorePoint.x, restorePoint.y, 0))
     expect(a.maximized.peek()).toBe(false)
     expect(a.bounds()).toEqual({ x: 10, y: 20, w: 200, h: 120 })
   })
@@ -272,58 +212,10 @@ describe("window manager", () => {
     coordinator.setCanvasSize({ x: 900, y: 600 })
     coordinator.maximize("A")
 
-    a.onPointerDown(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 360,
-        y: 16,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
-    a.onPointerMove(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 420,
-        y: 48,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
-    a.onPointerMove(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 460,
-        y: 64,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
-    a.onPointerUp(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 460,
-        y: 64,
-        button: 0,
-        buttons: 0,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
+    a.onPointerDown(pointer(360, 16, 1))
+    a.onPointerMove(pointer(420, 48, 1))
+    a.onPointerMove(pointer(460, 64, 1))
+    a.onPointerUp(pointer(460, 64, 0))
 
     expect(a.maximized.peek()).toBe(false)
     expect(a.bounds().w).toBe(200)
@@ -341,48 +233,12 @@ describe("window manager", () => {
 
     coordinator.register(a)
 
-    a.onPointerDown(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 40,
-        y: 24,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
-    a.onPointerMove(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 90,
-        y: 54,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
+    a.onPointerDown(pointer(40, 24, 1))
+    a.onPointerMove(pointer(90, 54, 1))
     const moved = a.bounds()
 
     a.onPointerCancel(null, "blur")
-    a.onPointerMove(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 140,
-        y: 90,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
+    a.onPointerMove(pointer(140, 90, 1))
 
     expect(a.bounds()).toEqual(moved)
   })
@@ -395,45 +251,9 @@ describe("window manager", () => {
     coordinator.register(a)
     coordinator.setCanvasSize({ x: 1000, y: 700 })
 
-    a.onPointerDown(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 40,
-        y: 24,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
-    a.onPointerMove(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 8,
-        y: 120,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
-    a.onPointerUp(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 8,
-        y: 120,
-        button: 0,
-        buttons: 0,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
+    a.onPointerDown(pointer(40, 24, 1))
+    a.onPointerMove(pointer(8, 120, 1))
+    a.onPointerUp(pointer(8, 120, 0))
 
     expect(a.maximized.peek()).toBe(false)
     expect(a.screenUsage.peek()).toBe("left-half")
@@ -448,45 +268,9 @@ describe("window manager", () => {
     coordinator.register(a)
     coordinator.setCanvasSize({ x: 1001, y: 700 })
 
-    a.onPointerDown(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 40,
-        y: 24,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
-    a.onPointerMove(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 996,
-        y: 120,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
-    a.onPointerUp(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 996,
-        y: 120,
-        button: 0,
-        buttons: 0,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
+    a.onPointerDown(pointer(40, 24, 1))
+    a.onPointerMove(pointer(996, 120, 1))
+    a.onPointerUp(pointer(996, 120, 0))
 
     expect(a.maximized.peek()).toBe(false)
     expect(a.screenUsage.peek()).toBe("right-half")
@@ -501,45 +285,9 @@ describe("window manager", () => {
     coordinator.register(a)
     coordinator.setCanvasSize({ x: 960, y: 640 })
 
-    a.onPointerDown(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 40,
-        y: 24,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
-    a.onPointerMove(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 320,
-        y: 8,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
-    a.onPointerUp(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 320,
-        y: 8,
-        button: 0,
-        buttons: 0,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
+    a.onPointerDown(pointer(40, 24, 1))
+    a.onPointerMove(pointer(320, 8, 1))
+    a.onPointerUp(pointer(320, 8, 0))
 
     expect(a.maximized.peek()).toBe(true)
     expect(a.screenUsage.peek()).toBe("none")
@@ -554,48 +302,12 @@ describe("window manager", () => {
     coordinator.register(a)
     coordinator.setCanvasSize({ x: 1000, y: 700 })
 
-    a.onPointerDown(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 40,
-        y: 24,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
-    a.onPointerMove(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 8,
-        y: 120,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
+    a.onPointerDown(pointer(40, 24, 1))
+    a.onPointerMove(pointer(8, 120, 1))
 
     expect(coordinator.getSnapPreviewRect()).toEqual({ x: 0, y: 0, w: 500, h: 700 })
 
-    a.onPointerUp(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: 8,
-        y: 120,
-        button: 0,
-        buttons: 0,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
+    a.onPointerUp(pointer(8, 120, 0))
 
     expect(coordinator.getSnapPreviewRect()).toBe(null)
   })
@@ -630,45 +342,9 @@ describe("window manager", () => {
     const handle = root.hitTest(start)
     expect(handle).toBeTruthy()
 
-    handle?.onPointerDown(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: start.x,
-        y: start.y,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
-    handle?.onPointerMove(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: start.x + 40,
-        y: start.y + 30,
-        button: 0,
-        buttons: 1,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
-    handle?.onPointerUp(
-      new PointerUIEvent({
-        pointerId: 1,
-        x: start.x + 40,
-        y: start.y + 30,
-        button: 0,
-        buttons: 0,
-        altKey: false,
-        ctrlKey: false,
-        shiftKey: false,
-        metaKey: false,
-      }),
-    )
+    handle?.onPointerDown(pointer(start.x, start.y, 1))
+    handle?.onPointerMove(pointer(start.x + 40, start.y + 30, 1))
+    handle?.onPointerUp(pointer(start.x + 40, start.y + 30, 0))
 
     expect(a.w.peek()).toBe(240)
     expect(a.h.peek()).toBe(150)

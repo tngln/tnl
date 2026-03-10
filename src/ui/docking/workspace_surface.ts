@@ -2,7 +2,7 @@ import { draw, Line, Rect as RectOp, RRect, Text } from "../../core/draw"
 import { measureTextWidth } from "../../core/draw.text"
 import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "../../core/event_stream"
 import { createMachine, type Machine } from "../../core/fsm"
-import { clamp } from "../../core/rect"
+import { clamp, inflateRect } from "../../core/rect"
 import { font, theme } from "../../config/theme"
 import { CursorRegion, PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "../base/ui"
 import { SurfaceRoot, ViewportElement, type Surface, type ViewportContext } from "../base/viewport"
@@ -499,15 +499,6 @@ function insetRect(rect: Rect, inset: number): Rect {
     y: rect.y + inset,
     w: Math.max(0, rect.w - inset * 2),
     h: Math.max(0, rect.h - inset * 2),
-  }
-}
-
-function inflateRect(rect: Rect, amount: number): Rect {
-  return {
-    x: rect.x - amount,
-    y: rect.y - amount,
-    w: rect.w + amount * 2,
-    h: rect.h + amount * 2,
   }
 }
 

@@ -180,9 +180,9 @@ export class ModalWindow extends UIElement {
     })
     this.bodyViewport.z = 1
     this.add(this.bodyViewport)
-    this.add(new CloseButton(this))
-    if (this.chrome === "default" && this.resizable) this.add(new MaximizeButton(this))
-    if (this.minimizable) this.add(new MinimizeButton(this))
+    this.add(new TitleBarButton(this, CLOSE_BUTTON_SPEC))
+    this.add(new TitleBarButton(this, MAXIMIZE_BUTTON_SPEC))
+    this.add(new TitleBarButton(this, MINIMIZE_BUTTON_SPEC))
     if (this.resizable) this.add(new ResizeHandle(this))
     this.titleMachine = this.createTitleMachine()
     this.setupTitleGestures()
@@ -514,12 +514,10 @@ export class ModalWindow extends UIElement {
   private isInTitleBar(p: Vec2) {
     if (this.minimized.peek()) return false
     if (!pointInRect(p, this.titleBarRect())) return false
-    const close = this.children.find((c) => c instanceof CloseButton) as CloseButton | undefined
-    if (close && pointInRect(p, close.bounds())) return false
-    const max = this.children.find((c) => c instanceof MaximizeButton) as MaximizeButton | undefined
-    if (max && pointInRect(p, max.bounds())) return false
-    const min = this.children.find((c) => c instanceof MinimizeButton) as MinimizeButton | undefined
-    if (min && pointInRect(p, min.bounds())) return false
+    for (const child of this.children) {
+      if (!(child instanceof TitleBarButton)) continue
+      if (pointInRect(p, child.bounds())) return false
+    }
     return true
   }
 
@@ -697,157 +695,70 @@ export class SurfaceWindow extends ModalWindow {
   }
 }
 
-class CloseButton extends UIElement {
-  private readonly win: ModalWindow
-  private hover = false
-  private down = false
+type TitleBarButtonSpec = {
+  kind: "close" | "minimize" | "maximize"
+  visible: (win: ModalWindow) => boolean
+  slotFromRight: (win: ModalWindow) => number
+  draw: (ctx: CanvasRenderingContext2D, r: BoundsRect, win: ModalWindow, state: { hover: boolean; down: boolean }) => void
+  onClick: (win: ModalWindow) => void
+}
 
-  constructor(win: ModalWindow) {
-    super()
-    this.win = win
-    this.z = 100
-  }
-
-  bounds(): BoundsRect {
-    if (!this.win.open.get() || this.win.minimized.get()) return { x: 0, y: 0, w: 0, h: 0 }
-    return titleButtonRect(this.win, 0)
-  }
-
-  protected onDraw(ctx: CanvasRenderingContext2D) {
-    if (!this.win.open.peek()) return
-    const r = this.bounds()
+const CLOSE_BUTTON_SPEC: TitleBarButtonSpec = {
+  kind: "close",
+  visible: () => true,
+  slotFromRight: () => 0,
+  draw: (ctx, r, win, state) => {
     const bg =
-      this.win.chrome === "tool"
-        ? this.down
+      win.chrome === "tool"
+        ? state.down
           ? "rgba(233,237,243,0.12)"
-          : this.hover
+          : state.hover
             ? "rgba(233,237,243,0.08)"
             : "transparent"
-        : this.down
+        : state.down
           ? theme.colors.closeDownBg
-          : this.hover
+          : state.hover
             ? theme.colors.closeHoverBg
             : "transparent"
     if (bg !== "transparent") draw(ctx, Rect(r, { fill: { color: bg } }))
     const cx = r.x + r.w / 2
     const cy = r.y + r.h / 2
-    const color =
-      this.win.chrome === "tool" ? theme.colors.textPrimary : this.hover || this.down ? theme.colors.closeGlyphOnHover : theme.colors.closeGlyph
+    const color = win.chrome === "tool" ? theme.colors.textPrimary : state.hover || state.down ? theme.colors.closeGlyphOnHover : theme.colors.closeGlyph
     const d = Math.max(3.5, Math.min(5.5, r.w / 2 - 2.5))
     draw(
       ctx,
       Line({ x: cx - d, y: cy - d }, { x: cx + d, y: cy + d }, { color, width: 1.8, lineCap: "round" }),
       Line({ x: cx + d, y: cy - d }, { x: cx - d, y: cy + d }, { color, width: 1.8, lineCap: "round" }),
     )
-  }
-
-  onPointerEnter() {
-    this.hover = true
-  }
-
-  onPointerLeave() {
-    this.hover = false
-    this.down = false
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (e.button !== 0) return
-    this.down = true
-    e.capture()
-  }
-
-  onPointerUp(_e: PointerUIEvent) {
-    if (!this.down) return
-    this.down = false
-    if (!this.hover) return
-    this.win.closeWindow()
-  }
-
-  onPointerCancel() {
-    this.hover = false
-    this.down = false
-  }
+  },
+  onClick: (win) => win.closeWindow(),
 }
 
-class MinimizeButton extends UIElement {
-  private readonly win: ModalWindow
-  private hover = false
-  private down = false
-
-  constructor(win: ModalWindow) {
-    super()
-    this.win = win
-    this.z = 100
-  }
-
-  bounds(): BoundsRect {
-    if (!this.win.open.get() || this.win.minimized.get()) return { x: 0, y: 0, w: 0, h: 0 }
-    return titleButtonRect(this.win, this.win.chrome === "default" && this.win.resizable ? 2 : 1)
-  }
-
-  protected onDraw(ctx: CanvasRenderingContext2D) {
-    if (!this.win.open.peek() || this.win.minimized.peek()) return
-    const r = this.bounds()
-    const bg = this.down ? "rgba(11,15,23,0.22)" : this.hover ? "rgba(11,15,23,0.12)" : "transparent"
+const MINIMIZE_BUTTON_SPEC: TitleBarButtonSpec = {
+  kind: "minimize",
+  visible: (win) => win.minimizable,
+  slotFromRight: (win) => (win.chrome === "default" && win.resizable ? 2 : 1),
+  draw: (ctx, r, win, state) => {
+    const bg = state.down ? "rgba(11,15,23,0.22)" : state.hover ? "rgba(11,15,23,0.12)" : "transparent"
     if (bg !== "transparent") draw(ctx, Rect(r, { fill: { color: bg } }))
     const x0 = r.x + 5
     const x1 = r.x + r.w - 5
     const y = r.y + r.h - 6
-    draw(ctx, Line({ x: x0, y }, { x: x1, y }, { color: this.win.chrome === "tool" ? theme.colors.textPrimary : theme.colors.windowTitleText, width: 1.8, lineCap: "round" }))
-  }
-
-  onPointerEnter() {
-    this.hover = true
-  }
-
-  onPointerLeave() {
-    this.hover = false
-    this.down = false
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (e.button !== 0) return
-    this.down = true
-    e.capture()
-  }
-
-  onPointerUp(_e: PointerUIEvent) {
-    if (!this.down) return
-    this.down = false
-    if (!this.hover) return
-    this.win.minimize()
-  }
-
-  onPointerCancel() {
-    this.hover = false
-    this.down = false
-  }
+    draw(ctx, Line({ x: x0, y }, { x: x1, y }, { color: win.chrome === "tool" ? theme.colors.textPrimary : theme.colors.windowTitleText, width: 1.8, lineCap: "round" }))
+  },
+  onClick: (win) => win.minimize(),
 }
 
-class MaximizeButton extends UIElement {
-  private readonly win: ModalWindow
-  private hover = false
-  private down = false
-
-  constructor(win: ModalWindow) {
-    super()
-    this.win = win
-    this.z = 100
-  }
-
-  bounds(): BoundsRect {
-    if (!this.win.open.get() || this.win.minimized.get()) return { x: 0, y: 0, w: 0, h: 0 }
-    return titleButtonRect(this.win, 1)
-  }
-
-  protected onDraw(ctx: CanvasRenderingContext2D) {
-    if (!this.win.open.peek() || this.win.minimized.peek()) return
-    const r = this.bounds()
-    const bg = this.down ? "rgba(11,15,23,0.22)" : this.hover ? "rgba(11,15,23,0.12)" : "transparent"
+const MAXIMIZE_BUTTON_SPEC: TitleBarButtonSpec = {
+  kind: "maximize",
+  visible: (win) => win.chrome === "default" && win.resizable,
+  slotFromRight: () => 1,
+  draw: (ctx, r, win, state) => {
+    const bg = state.down ? "rgba(11,15,23,0.22)" : state.hover ? "rgba(11,15,23,0.12)" : "transparent"
     if (bg !== "transparent") draw(ctx, Rect(r, { fill: { color: bg } }))
 
-    const color = this.win.chrome === "tool" ? theme.colors.textPrimary : theme.colors.windowTitleText
-    if (this.win.maximized.peek() || this.win.screenUsage.peek() !== "none") {
+    const color = win.chrome === "tool" ? theme.colors.textPrimary : theme.colors.windowTitleText
+    if (win.maximized.peek() || win.screenUsage.peek() !== "none") {
       draw(
         ctx,
         Rect({ x: r.x + 5, y: r.y + 6, w: r.w - 10, h: r.h - 10 }, { stroke: { color, width: 1.4 }, pixelSnap: true }),
@@ -857,6 +768,36 @@ class MaximizeButton extends UIElement {
     }
 
     draw(ctx, Rect({ x: r.x + 5, y: r.y + 5, w: r.w - 10, h: r.h - 10 }, { stroke: { color, width: 1.4 }, pixelSnap: true }))
+  },
+  onClick: (win) => {
+    if (win.maximized.peek() || win.screenUsage.peek() !== "none") win.restoreScreenUsage()
+    else win.toggleMaximize()
+  },
+}
+
+class TitleBarButton extends UIElement {
+  private hover = false
+  private down = false
+
+  constructor(
+    private readonly win: ModalWindow,
+    private readonly spec: TitleBarButtonSpec,
+  ) {
+    super()
+    this.z = 100
+  }
+
+  bounds(): BoundsRect {
+    if (!this.spec.visible(this.win)) return { x: 0, y: 0, w: 0, h: 0 }
+    if (!this.win.open.get() || this.win.minimized.get()) return { x: 0, y: 0, w: 0, h: 0 }
+    return titleButtonRect(this.win, this.spec.slotFromRight(this.win))
+  }
+
+  protected onDraw(ctx: CanvasRenderingContext2D) {
+    if (!this.win.open.peek() || this.win.minimized.peek()) return
+    if (!this.spec.visible(this.win)) return
+    const r = this.bounds()
+    this.spec.draw(ctx, r, this.win, { hover: this.hover, down: this.down })
   }
 
   onPointerEnter() {
@@ -878,8 +819,7 @@ class MaximizeButton extends UIElement {
     if (!this.down) return
     this.down = false
     if (!this.hover) return
-    if (this.win.maximized.peek() || this.win.screenUsage.peek() !== "none") this.win.restoreScreenUsage()
-    else this.win.toggleMaximize()
+    this.spec.onClick(this.win)
   }
 
   onPointerCancel() {

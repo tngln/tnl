@@ -176,6 +176,39 @@ export class BuilderRuntime {
     else widget.onRuntimeDeactivate()
   }
 
+  private markAllUnused<TCell extends { used: boolean }>(map: Map<string, TCell>) {
+    for (const cell of map.values()) cell.used = false
+  }
+
+  private deactivateUnusedWidgetCells<TCell extends { widget: UIElement; active: boolean; used: boolean }>(map: Map<string, TCell>) {
+    for (const cell of map.values()) {
+      if (cell.used) continue
+      this.updateWidgetActive(cell.widget, cell.active, false)
+      cell.active = false
+    }
+  }
+
+  private mountWidgetCell<TCell extends { widget: UIElement; active: boolean; used: boolean }>(
+    map: Map<string, TCell>,
+    key: string,
+    create: () => TCell,
+    active: boolean,
+    update: (cell: TCell) => void,
+    z = 10,
+  ) {
+    let cell = map.get(key)
+    if (!cell) {
+      cell = create()
+      cell.widget.z = z
+      map.set(key, cell)
+      this.root.add(cell.widget)
+    }
+    update(cell)
+    this.updateWidgetActive(cell.widget, cell.active, active)
+    cell.active = active
+    cell.used = true
+  }
+
   debugCounts() {
     return {
       buttons: this.buttons.size,
@@ -193,32 +226,20 @@ export class BuilderRuntime {
   }
 
   beginFrame() {
-    for (const cell of this.buttons.values()) cell.used = false
-    for (const cell of this.checkboxes.values()) cell.used = false
-    for (const cell of this.radios.values()) cell.used = false
-    for (const cell of this.textboxes.values()) cell.used = false
-    for (const cell of this.rows.values()) cell.used = false
-    for (const cell of this.treeRows.values()) cell.used = false
+    this.markAllUnused(this.buttons)
+    this.markAllUnused(this.checkboxes)
+    this.markAllUnused(this.radios)
+    this.markAllUnused(this.textboxes)
+    this.markAllUnused(this.rows)
+    this.markAllUnused(this.treeRows)
     this.usedScrollAreas.clear()
   }
 
   endFrame() {
-    for (const cell of this.buttons.values()) if (!cell.used) {
-      this.updateWidgetActive(cell.widget, cell.active, false)
-      cell.active = false
-    }
-    for (const cell of this.checkboxes.values()) if (!cell.used) {
-      this.updateWidgetActive(cell.widget, cell.active, false)
-      cell.active = false
-    }
-    for (const cell of this.radios.values()) if (!cell.used) {
-      this.updateWidgetActive(cell.widget, cell.active, false)
-      cell.active = false
-    }
-    for (const cell of this.textboxes.values()) if (!cell.used) {
-      this.updateWidgetActive(cell.widget, cell.active, false)
-      cell.active = false
-    }
+    this.deactivateUnusedWidgetCells(this.buttons)
+    this.deactivateUnusedWidgetCells(this.checkboxes)
+    this.deactivateUnusedWidgetCells(this.radios)
+    this.deactivateUnusedWidgetCells(this.textboxes)
     for (const cell of this.rows.values()) {
       if (cell.used) continue
       cell.active = false
@@ -250,133 +271,141 @@ export class BuilderRuntime {
   }
 
   mountButton(key: string, rect: Rect, node: { text: string; title?: string; disabled?: boolean; onClick?: () => void }, active: boolean) {
-    let cell = this.buttons.get(key)
-    if (!cell) {
-      cell = {
-        rect,
-        text: node.text,
-        title: node.title,
-        active,
-        disabled: node.disabled ?? false,
-        onClick: node.onClick,
-        used: true,
-        widget: new Button({
-          rect: () => cell!.active ? cell!.rect : ZERO_RECT,
-          text: () => cell!.text,
-          title: () => cell!.title ?? cell!.text,
-          onClick: () => cell!.onClick?.(),
-          active: () => cell!.active,
-          disabled: () => cell!.disabled,
-        }),
-      }
-      cell.widget.z = 10
-      this.buttons.set(key, cell)
-      this.root.add(cell.widget)
-    }
-    cell.rect = rect
-    cell.text = node.text
-    cell.title = node.title
-    this.updateWidgetActive(cell.widget, cell.active, active)
-    cell.active = active
-    cell.disabled = node.disabled ?? false
-    cell.onClick = node.onClick
-    cell.used = true
+    this.mountWidgetCell(
+      this.buttons,
+      key,
+      () => {
+        let cell!: ButtonCell
+        cell = {
+          rect,
+          text: node.text,
+          title: node.title,
+          active,
+          disabled: node.disabled ?? false,
+          onClick: node.onClick,
+          used: false,
+          widget: new Button({
+            rect: () => cell.active ? cell.rect : ZERO_RECT,
+            text: () => cell.text,
+            title: () => cell.title ?? cell.text,
+            onClick: () => cell.onClick?.(),
+            active: () => cell.active,
+            disabled: () => cell.disabled,
+          }),
+        }
+        return cell
+      },
+      active,
+      (cell) => {
+        cell.rect = rect
+        cell.text = node.text
+        cell.title = node.title
+        cell.disabled = node.disabled ?? false
+        cell.onClick = node.onClick
+      },
+    )
   }
 
   mountCheckbox(key: string, rect: Rect, node: { label: string; checked: any; disabled?: boolean }, active: boolean) {
-    let cell = this.checkboxes.get(key)
-    if (!cell) {
-      cell = {
-        rect,
-        label: node.label,
-        checked: node.checked,
-        active,
-        disabled: node.disabled ?? false,
-        used: true,
-        widget: new Checkbox({
-          rect: () => cell!.active ? cell!.rect : ZERO_RECT,
-          label: () => cell!.label,
+    this.mountWidgetCell(
+      this.checkboxes,
+      key,
+      () => {
+        let cell!: CheckboxCell
+        cell = {
+          rect,
+          label: node.label,
           checked: node.checked,
-          active: () => cell!.active,
-          disabled: () => cell!.disabled,
-        }),
-      }
-      cell.widget.z = 10
-      this.checkboxes.set(key, cell)
-      this.root.add(cell.widget)
-    }
-    cell.rect = rect
-    cell.label = node.label
-    cell.checked = node.checked
-    this.updateWidgetActive(cell.widget, cell.active, active)
-    cell.active = active
-    cell.disabled = node.disabled ?? false
-    cell.used = true
+          active,
+          disabled: node.disabled ?? false,
+          used: false,
+          widget: new Checkbox({
+            rect: () => cell.active ? cell.rect : ZERO_RECT,
+            label: () => cell.label,
+            checked: node.checked,
+            active: () => cell.active,
+            disabled: () => cell.disabled,
+          }),
+        }
+        return cell
+      },
+      active,
+      (cell) => {
+        cell.rect = rect
+        cell.label = node.label
+        cell.checked = node.checked
+        cell.disabled = node.disabled ?? false
+      },
+    )
   }
 
   mountRadio(key: string, rect: Rect, node: { label: string; value: string; selected: any; disabled?: boolean }, active: boolean) {
-    let cell = this.radios.get(key)
-    if (!cell) {
-      cell = {
-        rect,
-        label: node.label,
-        value: node.value,
-        selected: node.selected,
-        active,
-        disabled: node.disabled ?? false,
-        used: true,
-        widget: new Radio({
-          rect: () => cell!.active ? cell!.rect : ZERO_RECT,
-          label: () => cell!.label,
+    this.mountWidgetCell(
+      this.radios,
+      key,
+      () => {
+        let cell!: RadioCell
+        cell = {
+          rect,
+          label: node.label,
           value: node.value,
           selected: node.selected,
-          active: () => cell!.active,
-          disabled: () => cell!.disabled,
-        }),
-      }
-      cell.widget.z = 10
-      this.radios.set(key, cell)
-      this.root.add(cell.widget)
-    }
-    cell.rect = rect
-    cell.label = node.label
-    cell.value = node.value
-    cell.selected = node.selected
-    this.updateWidgetActive(cell.widget, cell.active, active)
-    cell.active = active
-    cell.disabled = node.disabled ?? false
-    cell.used = true
+          active,
+          disabled: node.disabled ?? false,
+          used: false,
+          widget: new Radio({
+            rect: () => cell.active ? cell.rect : ZERO_RECT,
+            label: () => cell.label,
+            value: node.value,
+            selected: node.selected,
+            active: () => cell.active,
+            disabled: () => cell.disabled,
+          }),
+        }
+        return cell
+      },
+      active,
+      (cell) => {
+        cell.rect = rect
+        cell.label = node.label
+        cell.value = node.value
+        cell.selected = node.selected
+        cell.disabled = node.disabled ?? false
+      },
+    )
   }
 
   mountTextBox(key: string, rect: Rect, node: { value: any; placeholder?: string; disabled?: boolean }, active: boolean) {
-    let cell = this.textboxes.get(key)
-    if (!cell) {
-      cell = {
-        rect,
-        value: node.value,
-        placeholder: node.placeholder,
-        active,
-        disabled: node.disabled ?? false,
-        used: true,
-        widget: new TextBox({
-          rect: () => cell!.active ? cell!.rect : ZERO_RECT,
+    this.mountWidgetCell(
+      this.textboxes,
+      key,
+      () => {
+        let cell!: TextBoxCell
+        cell = {
+          rect,
           value: node.value,
-          placeholder: () => cell!.placeholder ?? "",
-          active: () => cell!.active,
-          disabled: () => cell!.disabled,
-        }),
-      }
-      cell.widget.z = 10
-      this.textboxes.set(key, cell)
-      this.root.add(cell.widget)
-    }
-    cell.rect = rect
-    cell.value = node.value
-    cell.placeholder = node.placeholder
-    this.updateWidgetActive(cell.widget, cell.active, active)
-    cell.active = active
-    cell.disabled = node.disabled ?? false
-    cell.used = true
+          placeholder: node.placeholder,
+          active,
+          disabled: node.disabled ?? false,
+          used: false,
+          widget: new TextBox({
+            rect: () => cell.active ? cell.rect : ZERO_RECT,
+            value: node.value,
+            placeholder: () => cell.placeholder ?? "",
+            active: () => cell.active,
+            disabled: () => cell.disabled,
+          }),
+        }
+        return cell
+      },
+      active,
+      (cell) => {
+        cell.rect = rect
+        cell.value = node.value
+        cell.placeholder = node.placeholder
+        cell.disabled = node.disabled ?? false
+      },
+    )
   }
 
   mountRow(key: string, rect: Rect, node: { leftText: string; rightText?: string; indent?: number; variant?: "group" | "item"; selected?: boolean; onClick?: () => void }, active: boolean) {
