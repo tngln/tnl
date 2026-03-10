@@ -88,6 +88,14 @@ export type KeyDispatchResult = {
   preventDefault: boolean
 }
 
+export type PointerDispatchResult = {
+  target: UIEventTargetNode | null
+  captureTarget: UIEventTargetNode | null
+  focusTarget: UIEventTargetNode | null
+  handled: boolean
+  propagationStopped: boolean
+}
+
 export type UIEventPhase = "target" | "bubble"
 
 export interface UIEventTargetNode {
@@ -354,7 +362,15 @@ export function dispatchPointerEvent(
   kind: "down" | "move" | "up",
   pointForTarget?: (node: UIEventTargetNode) => Vec2 | undefined,
 ) {
-  if (!target) return
+  if (!target) {
+    return {
+      target: null,
+      captureTarget: null,
+      focusTarget: null,
+      handled: false,
+      propagationStopped: false,
+    } satisfies PointerDispatchResult
+  }
   const path = buildEventPath(target)
   const originalTarget = path[0]
   for (let i = 0; i < path.length; i++) {
@@ -365,6 +381,13 @@ export function dispatchPointerEvent(
     else current.onPointerUp?.(event)
     if (event.propagationStopped) break
   }
+  return {
+    target: originalTarget,
+    captureTarget: event.didCapture ? originalTarget : null,
+    focusTarget: event.focusTarget ?? null,
+    handled: event.didHandle,
+    propagationStopped: event.propagationStopped,
+  } satisfies PointerDispatchResult
 }
 
 export function dispatchWheelEvent(target: UIEventTargetNode | null, event: WheelUIEvent, pointForTarget?: (node: UIEventTargetNode) => Vec2 | undefined) {
@@ -426,7 +449,7 @@ export abstract class UIElement {
   children: UIElement[] = []
   visible = true
   z = 0
-  private rt: { clip?: Rect; compositor?: Compositor; frameId: number; dpr: number } | null = null
+  private rt: { clip?: Rect; compositor?: Compositor; frameId: number; dpr: number; invalidateRect?: (rect: Rect, opts?: { pad?: number; force?: boolean }) => void } | null = null
 
   abstract bounds(): Rect
   
@@ -513,7 +536,7 @@ export abstract class UIElement {
     }
   }
 
-  draw(ctx: CanvasRenderingContext2D, rt?: { clip?: Rect; compositor?: Compositor; frameId: number; dpr: number }) {
+  draw(ctx: CanvasRenderingContext2D, rt?: { clip?: Rect; compositor?: Compositor; frameId: number; dpr: number; invalidateRect?: (rect: Rect, opts?: { pad?: number; force?: boolean }) => void }) {
     if (!this.visible) return
     this.rt = rt ?? null
     const clip = rt?.clip
@@ -547,10 +570,16 @@ export abstract class UIElement {
   }
   onFocus() {}
   onBlur() {}
+  onRuntimeActivate() {}
+  onRuntimeDeactivate() {}
   onKeyDown(_e: KeyUIEvent) {}
   onKeyUp(_e: KeyUIEvent) {}
   onPointerEnter() {}
   onPointerLeave() {}
+
+  protected invalidateSelf(opts?: { pad?: number; force?: boolean }) {
+    this.rt?.invalidateRect?.(this.bounds(), opts)
+  }
 }
 
 export class CursorRegion extends UIElement {
@@ -766,7 +795,7 @@ export class CanvasUI {
       ctx.clip()
       ctx.fillStyle = theme.colors.appBg
       ctx.fillRect(r.x, r.y, r.w, r.h)
-      this.root.draw(ctx, { clip: r, compositor: this.compositor, frameId, dpr: this.dpr })
+      this.root.draw(ctx, { clip: r, compositor: this.compositor, frameId, dpr: this.dpr, invalidateRect: (rect, opts) => this.invalidateRect(rect, opts) })
       ctx.restore()
     }
   }
@@ -838,10 +867,10 @@ export class CanvasUI {
       metaKey: e.metaKey,
     })
     const before = top.bounds()
-    dispatchPointerEvent(target, ev, "down")
-    const focusTarget = ev.focusTarget instanceof UIElement ? ev.focusTarget : ev.target instanceof UIElement ? ev.target : target
+    const dispatch = dispatchPointerEvent(target, ev, "down")
+    const focusTarget = dispatch.focusTarget instanceof UIElement ? dispatch.focusTarget : dispatch.target instanceof UIElement ? dispatch.target : target
     this.focusElement(this.resolveFocusableTarget(focusTarget))
-    if (ev.didCapture) this.capture = target
+    if (dispatch.captureTarget === dispatch.target && target instanceof UIElement) this.capture = target
     this.applyResolvedCursor(p, this.capture ?? target)
     const after = top.bounds()
     this.invalidateRect(unionRect(before, after), { pad: 24 })

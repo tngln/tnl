@@ -262,9 +262,9 @@ export class ViewportElement extends UIElement {
 
     const target = hit ?? this.surfaceBridge
     const le = toLocalEvent(e, local)
-    dispatchPointerEvent(target, le, "down", this.surfacePointForTarget(local))
+    const dispatch = dispatchPointerEvent(target, le, "down", this.surfacePointForTarget(local))
     le.requestFocus(hit ?? null)
-    if (le.didCapture) {
+    if (dispatch.captureTarget === dispatch.target) {
       this.capture = target
       e.capturePointer()
     }

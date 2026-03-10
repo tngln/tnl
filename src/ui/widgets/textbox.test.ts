@@ -173,4 +173,21 @@ describe("textbox", () => {
     textbox.onFocus()
     expect(bridge.session).toBe(null)
   })
+
+  it("releases the input bridge when deactivated by the host runtime", () => {
+    const value = signal("hello")
+    const bridge = new MockBridge()
+    const textbox = new TextBox({
+      rect: () => ({ x: 0, y: 0, w: 120, h: 28 }),
+      value,
+      inputBridge: bridge,
+    })
+
+    textbox.onFocus()
+    expect(bridge.session).toBeTruthy()
+
+    textbox.onRuntimeDeactivate()
+
+    expect(bridge.session).toBe(null)
+  })
 })

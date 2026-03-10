@@ -3,8 +3,7 @@ import { measureTextWidth } from "../../core/draw.text"
 import { toGetter, ZERO_RECT, type Rect } from "../../core/rect"
 import type { Signal } from "../../core/reactivity"
 import { font, theme } from "../../config/theme"
-import { invalidateAll } from "../invalidate"
-import { get1pxTextboxBridge, type OnePxTextboxBridge } from "../../platform/web"
+import { getTextInputBridge, type TextInputBridge } from "../../platform/web"
 import { createMeasureContext } from "../../platform/web/canvas"
 import { CursorRegion, KeyUIEvent, PointerUIEvent, UIElement, pointInRect, type Vec2 } from "../base/ui"
 
@@ -31,7 +30,7 @@ export class TextBox extends UIElement {
   private readonly placeholder: () => string
   private readonly active: () => boolean
   private readonly disabled: () => boolean
-  private readonly inputBridge: OnePxTextboxBridge
+  private readonly inputBridge: TextInputBridge
   private readonly sessionId = `${SESSION_PREFIX}.${nextSessionId++}`
 
   private hover = false
@@ -50,7 +49,7 @@ export class TextBox extends UIElement {
     placeholder?: string | (() => string)
     active?: () => boolean
     disabled?: () => boolean
-    inputBridge?: OnePxTextboxBridge
+    inputBridge?: TextInputBridge
   }) {
     super()
     this.rect = opts.rect
@@ -58,7 +57,7 @@ export class TextBox extends UIElement {
     this.placeholder = toGetter(opts.placeholder, "")
     this.active = opts.active ?? (() => true)
     this.disabled = opts.disabled ?? (() => false)
-    this.inputBridge = opts.inputBridge ?? get1pxTextboxBridge()
+    this.inputBridge = opts.inputBridge ?? getTextInputBridge()
     this.add(
       new CursorRegion({
         rect: () => this.bounds(),
@@ -89,7 +88,7 @@ export class TextBox extends UIElement {
     this.selectionEnd = caret
     this.resetCaretBlink()
     this.syncBridge()
-    invalidateAll()
+    this.invalidateSelf({ pad: 6 })
   }
 
   onBlur() {
@@ -100,7 +99,7 @@ export class TextBox extends UIElement {
     this.selectionEnd = caret
     this.stopCaretBlink()
     this.inputBridge.blur(this.sessionId)
-    invalidateAll()
+    this.invalidateSelf({ pad: 6 })
   }
 
   onPointerEnter() {
@@ -124,7 +123,7 @@ export class TextBox extends UIElement {
     this.setSelection(index, index)
     this.syncBridge()
     e.capture()
-    invalidateAll()
+    this.invalidateSelf({ pad: 6 })
   }
 
   onPointerMove(e: PointerUIEvent) {
@@ -133,7 +132,7 @@ export class TextBox extends UIElement {
     this.setSelection(this.dragAnchor, index)
     this.resetCaretBlink()
     this.syncBridge()
-    invalidateAll()
+    this.invalidateSelf({ pad: 6 })
   }
 
   onPointerUp(e: PointerUIEvent) {
@@ -143,7 +142,7 @@ export class TextBox extends UIElement {
     this.dragAnchor = null
     this.resetCaretBlink()
     this.syncBridge()
-    invalidateAll()
+    this.invalidateSelf({ pad: 6 })
   }
 
   onPointerCancel() {
@@ -361,12 +360,12 @@ export class TextBox extends UIElement {
           this.value.set(next.value)
           this.setSelection(next.selectionStart, next.selectionEnd)
           this.resetCaretBlink()
-          invalidateAll()
+          this.invalidateSelf({ pad: 6 })
         },
         onBlur: () => {
           this.focused = false
           this.stopCaretBlink()
-          invalidateAll()
+          this.invalidateSelf({ pad: 6 })
         },
       },
       state,
@@ -386,7 +385,7 @@ export class TextBox extends UIElement {
         return
       }
       this.caretVisible = !this.caretVisible
-      invalidateAll()
+      this.invalidateSelf({ pad: 6 })
     }, CARET_BLINK_MS)
   }
 
@@ -396,6 +395,16 @@ export class TextBox extends UIElement {
       this.caretBlinkTimer = null
     }
     this.caretVisible = false
+  }
+
+  onRuntimeDeactivate() {
+    this.hover = false
+    this.dragAnchor = null
+    if (this.focused) {
+      this.focused = false
+      this.inputBridge.blur(this.sessionId)
+    }
+    this.stopCaretBlink()
   }
 }
 

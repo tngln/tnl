@@ -170,6 +170,12 @@ export class BuilderRuntime {
 
   constructor(private readonly createTreeSurface: (id: string) => BuilderTreeSurfaceLike) {}
 
+  private updateWidgetActive(widget: UIElement, previous: boolean, next: boolean) {
+    if (previous === next) return
+    if (next) widget.onRuntimeActivate()
+    else widget.onRuntimeDeactivate()
+  }
+
   debugCounts() {
     return {
       buttons: this.buttons.size,
@@ -197,10 +203,22 @@ export class BuilderRuntime {
   }
 
   endFrame() {
-    for (const cell of this.buttons.values()) if (!cell.used) cell.active = false
-    for (const cell of this.checkboxes.values()) if (!cell.used) cell.active = false
-    for (const cell of this.radios.values()) if (!cell.used) cell.active = false
-    for (const cell of this.textboxes.values()) if (!cell.used) cell.active = false
+    for (const cell of this.buttons.values()) if (!cell.used) {
+      this.updateWidgetActive(cell.widget, cell.active, false)
+      cell.active = false
+    }
+    for (const cell of this.checkboxes.values()) if (!cell.used) {
+      this.updateWidgetActive(cell.widget, cell.active, false)
+      cell.active = false
+    }
+    for (const cell of this.radios.values()) if (!cell.used) {
+      this.updateWidgetActive(cell.widget, cell.active, false)
+      cell.active = false
+    }
+    for (const cell of this.textboxes.values()) if (!cell.used) {
+      this.updateWidgetActive(cell.widget, cell.active, false)
+      cell.active = false
+    }
     for (const cell of this.rows.values()) {
       if (cell.used) continue
       cell.active = false
@@ -258,6 +276,7 @@ export class BuilderRuntime {
     cell.rect = rect
     cell.text = node.text
     cell.title = node.title
+    this.updateWidgetActive(cell.widget, cell.active, active)
     cell.active = active
     cell.disabled = node.disabled ?? false
     cell.onClick = node.onClick
@@ -289,6 +308,7 @@ export class BuilderRuntime {
     cell.rect = rect
     cell.label = node.label
     cell.checked = node.checked
+    this.updateWidgetActive(cell.widget, cell.active, active)
     cell.active = active
     cell.disabled = node.disabled ?? false
     cell.used = true
@@ -322,6 +342,7 @@ export class BuilderRuntime {
     cell.label = node.label
     cell.value = node.value
     cell.selected = node.selected
+    this.updateWidgetActive(cell.widget, cell.active, active)
     cell.active = active
     cell.disabled = node.disabled ?? false
     cell.used = true
@@ -352,6 +373,7 @@ export class BuilderRuntime {
     cell.rect = rect
     cell.value = node.value
     cell.placeholder = node.placeholder
+    this.updateWidgetActive(cell.widget, cell.active, active)
     cell.active = active
     cell.disabled = node.disabled ?? false
     cell.used = true
