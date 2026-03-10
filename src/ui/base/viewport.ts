@@ -220,7 +220,6 @@ export class ViewportElement extends UIElement {
   }
 
   onPointerLeave() {
-    this.capture = null
     if (this.hover) this.hover.onPointerLeave()
     this.hover = null
   }

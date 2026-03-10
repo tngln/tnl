@@ -54,7 +54,7 @@ describe("docking manager", () => {
     expect(docking.listPanes().find((pane) => pane.id === "Developer")?.state).toBe("docked")
   })
 
-  it("cancels a no-op docked drag and clears the preview", () => {
+  it("undocks into a floating window when ending a docked drag without a target", () => {
     const root = new Root()
     const windows = new WindowManager(root)
     const docking = new DockingManager({ windows })
@@ -65,23 +65,11 @@ describe("docking manager", () => {
     docking.dockPane("Developer", containerId, null, "center")
     const leafId = firstLeaf(docking.getRoot(containerId))?.id ?? null
     expect(leafId).toBeTruthy()
-
-    ;(docking as any).dragSession = {
-      paneId: "Developer",
-      source: { kind: "docked", containerId, leafId },
-      preview: {
-        containerId,
-        leafId,
-        placement: "center",
-        rect: { x: 0, y: 0, w: 100, h: 100 },
-      },
-    }
-    expect(docking.getPreview(containerId)?.placement).toBe("center")
-
+    docking.beginDockedPaneDrag(containerId, "Developer", { x: 200, y: 120 })
     docking.endDrag({ x: 200, y: 120 })
 
     expect(docking.getPreview(containerId)).toBe(null)
-    expect(docking.listPanes().find((pane) => pane.id === "Developer")?.state).toBe("docked")
+    expect(docking.listPanes().find((pane) => pane.id === "Developer")?.state).toBe("floating")
   })
 
   it("does not expose a split preview when dragging the only pane in a leaf", () => {
@@ -96,12 +84,8 @@ describe("docking manager", () => {
     const leafId = firstLeaf(docking.getRoot(containerId))?.id ?? null
     expect(leafId).toBeTruthy()
 
-    const normalized = (docking as any).normalizePreview(
-      {
-        paneId: "Developer",
-        source: { kind: "docked", containerId, leafId },
-        preview: null,
-      },
+    const normalized = (docking as any).normalizeDockPreview(
+      { paneId: "Developer", source: { kind: "docked", containerId, leafId } },
       {
         containerId,
         leafId,
@@ -167,11 +151,11 @@ describe("docking manager", () => {
     const floatingId = "Dock.Float.Developer"
     windows.focus(floatingId)
     docking.beginFloatingPaneDrag("Developer", { x: 160, y: 96 })
-    expect((docking as any).dragSession).toBeTruthy()
+    expect((docking as any).drag.getActive()).toBeTruthy()
 
     windows.focus("Other")
 
-    expect((docking as any).dragSession).toBe(null)
+    expect((docking as any).drag.getActive()).toBe(null)
     const floating = windows.listWindows().find((win) => win.id === floatingId)
     expect(floating?.rect).toEqual({ x: 100, y: 80, w: 400, h: 240 })
   })
@@ -184,10 +168,10 @@ describe("docking manager", () => {
     docking.registerPane({ id: "Developer", surface: makeSurface("Developer.Surface"), floatingRect: { x: 100, y: 80, w: 400, h: 240 } })
     docking.floatPane("Developer")
     docking.beginFloatingPaneDrag("Developer", { x: 160, y: 96 })
-    expect((docking as any).dragSession).toBeTruthy()
+    expect((docking as any).drag.getActive()).toBeTruthy()
 
     windows.unregister("Dock.Float.Developer")
 
-    expect((docking as any).dragSession).toBe(null)
+    expect((docking as any).drag.getActive()).toBe(null)
   })
 })

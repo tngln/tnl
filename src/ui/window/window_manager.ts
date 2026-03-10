@@ -80,6 +80,13 @@ export class WindowManager implements WindowControlApi {
     this.root.add(this.snapPreview)
   }
 
+  registerOverlay(el: UIElement) {
+    this.root.add(el)
+    return () => {
+      if (el.parent === this.root) this.root.remove(el)
+    }
+  }
+
   register(win: ModalWindow) {
     if (this.windows.has(win.id)) throw new Error(`Window already registered: ${win.id}`)
     this.windows.set(win.id, win)

@@ -1,6 +1,5 @@
 import { signal, type Signal } from "../../core/reactivity"
-import { classifyClicks, createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "../../core/event_stream"
-import { createMachine, type Machine } from "../../core/fsm"
+import type { InteractionCancelReason } from "../../core/event_stream"
 import { draw, Line, Rect, Text } from "../../core/draw"
 import { clamp } from "../../core/rect"
 import { font, theme } from "../../config/theme"
@@ -39,31 +38,15 @@ type WindowDragHooks = {
   onTitleDragCancel?: (win: ModalWindow, pointer: Vec2) => void
 }
 
-type TitleState = "idle" | "pressed" | "dragging"
 type TitleContext = {
   originPointer: Vec2
-  lastPointer: Vec2
   dragOffset: Vec2
-  restoreFromAnchoredState: boolean
 }
-type TitleEvent =
-  | { type: "PRESS"; pointer: Vec2 }
-  | { type: "DRAG_START"; pointer: Vec2; dragOffset: Vec2; restoreFromAnchoredState: boolean }
-  | { type: "DRAG_MOVE"; pointer: Vec2 }
-  | { type: "RELEASE"; pointer: Vec2 }
-  | { type: "CANCEL"; reason: string }
-  | { type: "DOUBLE_CLICK" }
-type TitleSnapshot = { state: TitleState; context: TitleContext }
-type ResizeState = "idle" | "pressed" | "dragging"
-type ResizeContext = { originPointer: Vec2; lastPointer: Vec2; startSize: Vec2 }
-type ResizeEvent =
-  | { type: "PRESS"; pointer: Vec2; startSize: Vec2 }
-  | { type: "DRAG_START"; pointer: Vec2 }
-  | { type: "DRAG_MOVE"; pointer: Vec2 }
-  | { type: "RELEASE"; pointer: Vec2 }
-  | { type: "CANCEL"; reason: string }
 
 const TITLE_BUTTON_GAP = 2
+const TITLE_DRAG_THRESHOLD_SQ = 16
+const TITLE_DOUBLE_CLICK_WINDOW_MS = 320
+const TITLE_DOUBLE_CLICK_DIST_SQ = 36
 
 function titleButtonRect(win: ModalWindow, slotFromRight: number): BoundsRect {
   const pad = win.chrome === "tool" ? 6 : theme.ui.closeButtonPad
@@ -124,12 +107,21 @@ export class ModalWindow extends UIElement {
   private hooks: WindowHooks | null = null
   private dragHooks: WindowDragHooks | null = null
 
-  private readonly titleDownEvents = createEventStream<PointerUIEvent>()
-  private readonly titleMoveEvents = createEventStream<PointerUIEvent>()
-  private readonly titleUpEvents = createEventStream<PointerUIEvent>()
-  private readonly titleCancelEvents = createEventStream<string>()
-  private readonly titleClickEvents = createEventStream<Vec2>()
-  private readonly titleMachine: Machine<TitleState, TitleEvent, TitleContext>
+  private titleInteraction: {
+    pressed: boolean
+    dragging: boolean
+    context: TitleContext
+    lastPointer: Vec2
+    lastClickAt: number
+    lastClickPos: Vec2 | null
+  } = {
+    pressed: false,
+    dragging: false,
+    context: { originPointer: { x: 0, y: 0 }, dragOffset: { x: 0, y: 0 } },
+    lastPointer: { x: 0, y: 0 },
+    lastClickAt: 0,
+    lastClickPos: null,
+  }
 
   readonly titleBarHeight: number
 
@@ -184,8 +176,6 @@ export class ModalWindow extends UIElement {
     this.add(new TitleBarButton(this, MAXIMIZE_BUTTON_SPEC))
     this.add(new TitleBarButton(this, MINIMIZE_BUTTON_SPEC))
     if (this.resizable) this.add(new ResizeHandle(this))
-    this.titleMachine = this.createTitleMachine()
-    this.setupTitleGestures()
   }
 
   setHooks(hooks: WindowHooks | null) {
@@ -288,162 +278,38 @@ export class ModalWindow extends UIElement {
     return dragOffset
   }
 
-  private createTitleMachine() {
-    return createMachine<TitleState, TitleEvent, TitleContext>({
-      initial: "idle",
-      context: {
-        originPointer: { x: 0, y: 0 },
-        lastPointer: { x: 0, y: 0 },
-        dragOffset: { x: 0, y: 0 },
-        restoreFromAnchoredState: false,
-      },
-      states: {
-        idle: {
-          on: {
-            PRESS: {
-              target: "pressed",
-              reduce: (_snapshot: TitleSnapshot, event: Extract<TitleEvent, { type: "PRESS" }>) => ({
-                originPointer: event.pointer,
-                lastPointer: event.pointer,
-                dragOffset: { x: 0, y: 0 },
-                restoreFromAnchoredState: false,
-              }),
-            },
-            DOUBLE_CLICK: {
-              guard: () => this.resizable,
-              effect: () => {
-                this.toggleMaximize()
-              },
-            },
-          },
-        },
-        pressed: {
-          on: {
-            DRAG_START: {
-              target: "dragging",
-              reduce: (_snapshot: TitleSnapshot, event: Extract<TitleEvent, { type: "DRAG_START" }>) => ({
-                lastPointer: event.pointer,
-                dragOffset: event.dragOffset,
-                restoreFromAnchoredState: event.restoreFromAnchoredState,
-              }),
-              effect: (_snapshot: TitleSnapshot, event: Extract<TitleEvent, { type: "DRAG_START" }>) => {
-                if (event.restoreFromAnchoredState) return
-                this.hooks?.onTitleDragStart?.(this, event.pointer)
-                this.dragHooks?.onTitleDragStart?.(this, event.pointer)
-              },
-            },
-            RELEASE: {
-              target: "idle",
-              reduce: (_snapshot: TitleSnapshot, event: Extract<TitleEvent, { type: "RELEASE" }>) => ({
-                lastPointer: event.pointer,
-              }),
-            },
-            CANCEL: {
-              target: "idle",
-            },
-          },
-        },
-        dragging: {
-          on: {
-            DRAG_MOVE: {
-              reduce: (_snapshot: TitleSnapshot, event: Extract<TitleEvent, { type: "DRAG_MOVE" }>) => ({
-                lastPointer: event.pointer,
-              }),
-              effect: (snapshot: TitleSnapshot, event: Extract<TitleEvent, { type: "DRAG_MOVE" }>) => {
-                const nx = event.pointer.x - snapshot.context.dragOffset.x
-                const ny = event.pointer.y - snapshot.context.dragOffset.y
-                this.x.set(nx)
-                this.y.set(ny)
-                this.hooks?.onTitleDragMove?.(this, event.pointer)
-                this.dragHooks?.onTitleDragMove?.(this, event.pointer)
-              },
-            },
-            RELEASE: {
-              target: "idle",
-              reduce: (_snapshot: TitleSnapshot, event: Extract<TitleEvent, { type: "RELEASE" }>) => ({
-                lastPointer: event.pointer,
-              }),
-              effect: (_snapshot: TitleSnapshot, event: Extract<TitleEvent, { type: "RELEASE" }>) => {
-                this.hooks?.onTitleDragEnd?.(this, event.pointer)
-                this.dragHooks?.onTitleDragEnd?.(this, event.pointer)
-              },
-            },
-            CANCEL: {
-              target: "idle",
-              effect: (snapshot: TitleSnapshot) => {
-                this.hooks?.onTitleDragCancel?.(this, snapshot.context.lastPointer)
-                this.dragHooks?.onTitleDragCancel?.(this, snapshot.context.lastPointer)
-              },
-            },
-          },
-        },
-      },
-    })
-  }
-
-  private setupTitleGestures() {
-    classifyClicks({
-      clicks: this.titleClickEvents.stream,
-      windowMs: 320,
-      canPair: (a, b) => {
-        const dx = a.x - b.x
-        const dy = a.y - b.y
-        return dx * dx + dy * dy <= 36
-      },
-    })
-      .filter((event) => event.kind === "double")
-      .subscribe(() => {
-        this.titleMachine.send({ type: "DOUBLE_CLICK" })
-      })
-
-    const titleDragMoves = this.titleMoveEvents.stream.filter((event) => (event.buttons & 1) !== 0)
-    const titleCancel = interactionCancelStream({
-      cancel: this.titleCancelEvents.stream,
-      move: this.titleMoveEvents.stream,
-      buttons: (event) => event.buttons,
-    })
-
-    const titleDrag = dragSession({
-      down: this.titleDownEvents.stream,
-      move: titleDragMoves,
-      up: this.titleUpEvents.stream,
-      cancel: titleCancel,
-      point: (event) => ({ x: event.x, y: event.y }),
-      thresholdSq: 16,
-    })
-
-    titleDrag.subscribe((event) => {
-      if (event.kind === "start") {
-        const pointer = { x: event.current.x, y: event.current.y }
-        const restoreFromAnchoredState = this.maximized.peek() || this.screenUsage.peek() !== "none"
-        const dragOffset = restoreFromAnchoredState
-          ? this.startDragFromAnchoredState(pointer)
-          : { x: event.down.x - this.x.peek(), y: event.down.y - this.y.peek() }
-        this.titleMachine.send({
-          type: "DRAG_START",
-          pointer,
-          dragOffset,
-          restoreFromAnchoredState,
-        })
-        return
-      }
-
-      if (event.kind === "move") {
-        this.titleMachine.send({ type: "DRAG_MOVE", pointer: { x: event.current.x, y: event.current.y } })
-        return
-      }
-
-      if (event.kind === "cancel") {
-        this.titleMachine.send({ type: "CANCEL", reason: event.reason })
-        return
-      }
-      this.titleMachine.send({ type: "RELEASE", pointer: { x: event.up.x, y: event.up.y } })
-    })
-  }
-
   private cancelTitleInteraction(reason: string) {
-    if (this.titleMachine.matches("idle")) return
-    this.titleCancelEvents.emit(reason)
+    const s = this.titleInteraction
+    if (!s.pressed && !s.dragging) return
+    // Preserve the old behavior: only an active drag produces cancel hooks.
+    if (s.dragging) {
+      this.hooks?.onTitleDragCancel?.(this, s.lastPointer)
+      this.dragHooks?.onTitleDragCancel?.(this, s.lastPointer)
+    }
+    s.pressed = false
+    s.dragging = false
+    s.context.originPointer = { x: 0, y: 0 }
+    s.context.dragOffset = { x: 0, y: 0 }
+    s.lastPointer = { x: 0, y: 0 }
+    void reason
+  }
+
+  private handleTitleClick(point: Vec2) {
+    if (!this.resizable) return
+    const s = this.titleInteraction
+    const now = Date.now()
+    if (s.lastClickAt > 0 && now - s.lastClickAt <= TITLE_DOUBLE_CLICK_WINDOW_MS && s.lastClickPos) {
+      const dx = point.x - s.lastClickPos.x
+      const dy = point.y - s.lastClickPos.y
+      if (dx * dx + dy * dy <= TITLE_DOUBLE_CLICK_DIST_SQ) {
+        s.lastClickAt = 0
+        s.lastClickPos = null
+        this.toggleMaximize()
+        return
+      }
+    }
+    s.lastClickAt = now
+    s.lastClickPos = point
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
@@ -530,25 +396,62 @@ export class ModalWindow extends UIElement {
     }
     const p = { x: e.x, y: e.y }
     if (!this.isInTitleBar(p)) return
-    this.titleMachine.send({ type: "PRESS", pointer: p })
-    this.titleDownEvents.emit(e)
+    const s = this.titleInteraction
+    s.pressed = true
+    s.dragging = false
+    s.context.originPointer = p
+    s.context.dragOffset = { x: 0, y: 0 }
+    s.lastPointer = p
     e.capture()
   }
 
   onPointerMove(e: PointerUIEvent) {
-    if (this.titleMachine.matches("idle")) return
-    this.titleMoveEvents.emit(e)
+    const s = this.titleInteraction
+    if (!s.pressed && !s.dragging) return
+    if ((e.buttons & 1) === 0) return
+    const pointer = { x: e.x, y: e.y }
+    s.lastPointer = pointer
+
+    if (!s.dragging) {
+      const dx = pointer.x - s.context.originPointer.x
+      const dy = pointer.y - s.context.originPointer.y
+      if (dx * dx + dy * dy < TITLE_DRAG_THRESHOLD_SQ) return
+
+      const restoreFromAnchoredState = this.maximized.peek() || this.screenUsage.peek() !== "none"
+      const dragOffset = restoreFromAnchoredState
+        ? this.startDragFromAnchoredState(pointer)
+        : { x: s.context.originPointer.x - this.x.peek(), y: s.context.originPointer.y - this.y.peek() }
+      s.context.dragOffset = dragOffset
+      s.dragging = true
+      if (!restoreFromAnchoredState) {
+        this.hooks?.onTitleDragStart?.(this, pointer)
+        this.dragHooks?.onTitleDragStart?.(this, pointer)
+      }
+    }
+
+    const nx = pointer.x - s.context.dragOffset.x
+    const ny = pointer.y - s.context.dragOffset.y
+    this.x.set(nx)
+    this.y.set(ny)
+    this.hooks?.onTitleDragMove?.(this, pointer)
+    this.dragHooks?.onTitleDragMove?.(this, pointer)
   }
 
   onPointerUp(e: PointerUIEvent) {
-    const wasPressed = this.titleMachine.matches("pressed")
-    const wasDragging = this.titleMachine.matches("dragging")
-    if (!wasPressed && !wasDragging) return
-    this.titleUpEvents.emit(e)
-    if (wasPressed) {
-      this.titleMachine.send({ type: "RELEASE", pointer: { x: e.x, y: e.y } })
-      this.titleClickEvents.emit({ x: e.x, y: e.y })
+    const s = this.titleInteraction
+    if (!s.pressed && !s.dragging) return
+    const pointer = { x: e.x, y: e.y }
+    s.lastPointer = pointer
+
+    if (s.dragging) {
+      this.hooks?.onTitleDragEnd?.(this, pointer)
+      this.dragHooks?.onTitleDragEnd?.(this, pointer)
+    } else if (s.pressed) {
+      this.handleTitleClick(pointer)
     }
+
+    s.pressed = false
+    s.dragging = false
   }
 
   onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
@@ -830,11 +733,9 @@ class TitleBarButton extends UIElement {
 
 class ResizeHandle extends UIElement {
   private readonly win: ModalWindow
-  private readonly downEvents = createEventStream<PointerUIEvent>()
-  private readonly moveEvents = createEventStream<PointerUIEvent>()
-  private readonly upEvents = createEventStream<PointerUIEvent>()
-  private readonly cancelEvents = createEventStream<string>()
-  private readonly machine: Machine<ResizeState, ResizeEvent, ResizeContext>
+  private resizing = false
+  private originPointer: Vec2 = { x: 0, y: 0 }
+  private startSize: Vec2 = { x: 0, y: 0 }
 
   constructor(win: ModalWindow) {
     super()
@@ -846,60 +747,6 @@ class ResizeHandle extends UIElement {
         cursor: "nwse-resize",
       }),
     )
-    this.machine = createMachine<ResizeState, ResizeEvent, ResizeContext>({
-      initial: "idle",
-      context: { originPointer: { x: 0, y: 0 }, lastPointer: { x: 0, y: 0 }, startSize: { x: 0, y: 0 } },
-      states: {
-        idle: {
-          on: {
-            PRESS: {
-              target: "pressed",
-              reduce: (_snapshot, event) => ({
-                originPointer: event.pointer,
-                lastPointer: event.pointer,
-                startSize: event.startSize,
-              }),
-            },
-          },
-        },
-        pressed: {
-          on: {
-            DRAG_START: {
-              target: "dragging",
-              reduce: (_snapshot, event) => ({ lastPointer: event.pointer }),
-            },
-            RELEASE: {
-              target: "idle",
-              reduce: (_snapshot, event) => ({ lastPointer: event.pointer }),
-            },
-            CANCEL: {
-              target: "idle",
-            },
-          },
-        },
-        dragging: {
-          on: {
-            DRAG_MOVE: {
-              reduce: (_snapshot, event) => ({ lastPointer: event.pointer }),
-              effect: (snapshot, event) => {
-                const nw = clamp(snapshot.context.startSize.x + (event.pointer.x - snapshot.context.originPointer.x), this.win.minW, this.win.maxW)
-                const nh = clamp(snapshot.context.startSize.y + (event.pointer.y - snapshot.context.originPointer.y), this.win.minH, this.win.maxH)
-                this.win.w.set(nw)
-                this.win.h.set(nh)
-              },
-            },
-            RELEASE: {
-              target: "idle",
-              reduce: (_snapshot, event) => ({ lastPointer: event.pointer }),
-            },
-            CANCEL: {
-              target: "idle",
-            },
-          },
-        },
-      },
-    })
-    this.setupGestures()
   }
 
   bounds(): BoundsRect {
@@ -927,58 +774,33 @@ class ResizeHandle extends UIElement {
     return "nwse-resize" as const
   }
 
-  private setupGestures() {
-    const resizeMoves = this.moveEvents.stream.filter((event) => (event.buttons & 1) !== 0)
-    const resizeCancel = interactionCancelStream({
-      cancel: this.cancelEvents.stream,
-      move: this.moveEvents.stream,
-      buttons: (event) => event.buttons,
-    })
-
-    dragSession({
-      down: this.downEvents.stream,
-      move: resizeMoves,
-      up: this.upEvents.stream,
-      cancel: resizeCancel,
-      point: (event) => ({ x: event.x, y: event.y }),
-      thresholdSq: 0,
-    }).subscribe((event) => {
-      if (event.kind === "start") {
-        this.machine.send({ type: "DRAG_START", pointer: { x: event.current.x, y: event.current.y } })
-        return
-      }
-      if (event.kind === "move") {
-        this.machine.send({ type: "DRAG_MOVE", pointer: { x: event.current.x, y: event.current.y } })
-        return
-      }
-      if (event.kind === "end") {
-        this.machine.send({ type: "RELEASE", pointer: { x: event.up.x, y: event.up.y } })
-        return
-      }
-      this.machine.send({ type: "CANCEL", reason: event.reason })
-    })
-  }
-
   onPointerDown(e: PointerUIEvent) {
     if (this.win.maximized.peek()) return
     if (e.button !== 0) return
-    this.machine.send({ type: "PRESS", pointer: { x: e.x, y: e.y }, startSize: { x: this.win.w.peek(), y: this.win.h.peek() } })
-    this.downEvents.emit(e)
+    this.resizing = true
+    this.originPointer = { x: e.x, y: e.y }
+    this.startSize = { x: this.win.w.peek(), y: this.win.h.peek() }
     e.capture()
   }
 
   onPointerMove(e: PointerUIEvent) {
-    if (this.machine.matches("idle")) return
-    this.moveEvents.emit(e)
+    if (!this.resizing) return
+    if ((e.buttons & 1) === 0) return
+    const nw = clamp(this.startSize.x + (e.x - this.originPointer.x), this.win.minW, this.win.maxW)
+    const nh = clamp(this.startSize.y + (e.y - this.originPointer.y), this.win.minH, this.win.maxH)
+    this.win.w.set(nw)
+    this.win.h.set(nh)
   }
 
   onPointerUp(e: PointerUIEvent) {
-    if (this.machine.matches("idle")) return
-    this.upEvents.emit(e)
+    if (!this.resizing) return
+    void e
+    this.resizing = false
   }
 
   onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
-    this.cancelEvents.emit(reason)
+    void reason
+    this.resizing = false
   }
 }
 

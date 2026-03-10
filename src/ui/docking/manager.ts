@@ -1,9 +1,24 @@
 import type { Surface } from "../base/viewport"
 import { pointInRect, type Rect, type Vec2 } from "../base/ui"
+import { DragDropController, type ActiveDragSession, type DragBehavior, type DragImageSpec, type DragPayload, type DropCandidate, type DropProvider } from "../base/drag_drop"
+import { DragImageOverlay } from "../base/drag_drop_overlay"
 import { SurfaceWindow } from "../window/window"
 import { type WindowManager } from "../window/window_manager"
 import { clampRatio, findLeaf, findLeafByPane, firstLeaf, insertPane, removePane, type DockDropPlacement, type DockNode } from "./model"
 import { DockWorkspaceSurface, type DockDropPreview, type DockWorkspaceDriver } from "./workspace_surface"
+
+type DockPaneDragPayload = {
+  paneId: string
+  source:
+    | { kind: "docked"; containerId: string; leafId: string | null }
+    | { kind: "floating"; originRect: Rect; followPointer: boolean }
+}
+
+declare module "../base/drag_drop" {
+  interface DragPayloadByKind {
+    "dock.pane": DockPaneDragPayload
+  }
+}
 
 export type DockingPaneSnapshot = {
   id: string
@@ -33,6 +48,7 @@ type DockablePaneState = {
   surface: Surface
   title: string
   floatingRect: Rect
+  dragImage: DragImageSpec | (() => DragImageSpec) | null
   state: "docked" | "floating" | "hidden"
   hostContainerId: string | null
   leafId: string | null
@@ -49,18 +65,6 @@ type DockContainerRecord = {
   window: DockingContainerWindow
 }
 
-type DragSession =
-  | {
-      paneId: string
-      source: { kind: "docked"; containerId: string; leafId: string }
-      preview: DockDropPreview | null
-    }
-  | {
-      paneId: string
-      source: { kind: "floating"; originRect: Rect; followPointer: boolean }
-      preview: DockDropPreview | null
-    }
-
 type DockingManagerOptions = {
   windows: WindowManager
 }
@@ -69,6 +73,7 @@ export type DockablePaneInit = {
   id: string
   surface: Surface
   floatingRect: Rect
+  dragImage?: DragImageSpec | (() => DragImageSpec)
 }
 
 class DockingContainerWindow extends SurfaceWindow {
@@ -132,10 +137,11 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
   private readonly panes = new Map<string, DockablePaneState>()
   private readonly containers = new Map<string, DockContainerRecord>()
   private invalidate: (() => void) | null = null
+  private readonly drag = new DragDropController()
+  private readonly dragPointerId = 1
   private nextContainerId = 1
   private nextNodeId = 1
   private mainContainerId: string | null = null
-  private dragSession: DragSession | null = null
   private activePaneId: string | null = null
   private activeContainerId: string | null = null
   private readonly windowListener = {
@@ -148,6 +154,17 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
   constructor(opts: DockingManagerOptions) {
     this.windows = opts.windows
     this.windows.addListener(this.windowListener)
+    this.windows.registerOverlay(new DragImageOverlay(this.drag))
+    this.drag.registerProvider({
+      id: "dock.targets",
+      orderKey: () => 100,
+      resolve: (session, pGlobal) => this.resolveDockTargets(session, pGlobal),
+    })
+    this.drag.registerProvider({
+      id: "dock.fallback",
+      orderKey: () => 0,
+      resolve: (session, pGlobal) => this.resolveDockFallback(session, pGlobal),
+    })
   }
 
   setInvalidate(fn: (() => void) | null) {
@@ -161,6 +178,7 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
       surface: init.surface,
       title: inferPaneTitle(init.id),
       floatingRect: init.floatingRect,
+      dragImage: init.dragImage ?? null,
       state: "hidden",
       hostContainerId: null,
       leafId: null,
@@ -244,7 +262,7 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
   hidePane(id: string) {
     const pane = this.panes.get(id)
     if (!pane) return
-    if (this.dragSession?.paneId === id) this.cancelDrag()
+    if (this.activeDockPayload()?.paneId === id) this.cancelDrag()
     if (pane.state === "floating") {
       this.destroyFloatingWindow(pane)
     } else if (pane.state === "docked" && pane.hostContainerId) {
@@ -332,9 +350,11 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
   }
 
   getPreview(containerId: string) {
-    const session = this.dragSession
-    if (!session?.preview || session.preview.containerId !== containerId) return null
-    return session.preview
+    const active = this.activeDockSession()
+    if (!active) return null
+    const data = active.candidate?.preview?.data as DockDropPreview | undefined
+    if (!data || data.containerId !== containerId) return null
+    return data
   }
 
   selectPane(containerId: string, paneId: string) {
@@ -366,152 +386,194 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
 
   beginDockedPaneDrag(containerId: string, paneId: string, pointer: Vec2) {
     const pane = this.panes.get(paneId)
-    if (!pane || pane.state !== "docked" || !pane.hostContainerId || !pane.leafId) return
-    this.dragSession = {
+    if (!pane || pane.state !== "docked" || !pane.hostContainerId) return
+    const payload: DockPaneDragPayload = {
       paneId,
       source: { kind: "docked", containerId, leafId: pane.leafId },
-      preview: null,
     }
+    const dragImage = typeof pane.dragImage === "function" ? pane.dragImage() : pane.dragImage
+    this.drag.begin({
+      kind: "dock.pane",
+      payload,
+      pointerId: this.dragPointerId,
+      start: pointer,
+      behavior: this.createDockDragBehavior(payload),
+      dragImage,
+    })
     this.updateDrag(pointer)
   }
 
   beginFloatingPaneDrag(paneId: string, pointer: Vec2) {
     const pane = this.panes.get(paneId)
     if (!pane || pane.state !== "floating") return
-    this.dragSession = {
+    const payload: DockPaneDragPayload = {
       paneId,
       source: { kind: "floating", originRect: this.getFloatingWindowRect(pane) ?? pane.floatingRect, followPointer: false },
-      preview: null,
     }
+    const dragImage = typeof pane.dragImage === "function" ? pane.dragImage() : pane.dragImage
+    this.drag.begin({
+      kind: "dock.pane",
+      payload,
+      pointerId: this.dragPointerId,
+      start: pointer,
+      behavior: this.createDockDragBehavior(payload),
+      dragImage,
+    })
     this.updateDrag(pointer)
   }
 
   updateDrag(pointer: Vec2) {
-    const session = this.dragSession
-    if (!session) return
-    if (session.source.kind === "docked" && this.shouldUndock(session, pointer)) {
-      this.convertDockedDragToFloating(session.paneId, pointer)
-    }
-    if (!this.dragSession) return
-    if (this.dragSession.source.kind === "floating" && this.dragSession.source.followPointer) {
-      const pane = this.panes.get(this.dragSession.paneId)
-      if (pane) {
-        const rect = this.rectFromPointer(pointer, pane.floatingRect)
-        pane.floatingRect = rect
-        if (pane.floatingWindowId) this.windows.setRect(pane.floatingWindowId, rect)
-      }
-    }
-    this.dragSession.preview = this.normalizePreview(this.dragSession, this.resolvePreview(pointer))
+    if (!this.activeDockSession()) return
+    this.drag.move(this.dragPointerId, pointer, 1)
     this.invalidate?.()
   }
 
   endDrag(pointer: Vec2) {
-    const session = this.dragSession
-    if (!session) return
-    const pane = this.panes.get(session.paneId)
-    this.dragSession = null
-    if (!pane) {
-      this.invalidate?.()
-      return
-    }
-
-    if (session.preview) {
-      if (session.source.kind === "docked" && pane.hostContainerId === session.preview.containerId && pane.leafId === session.preview.leafId) {
-        const currentLeaf = pane.leafId ? findLeaf(this.containers.get(pane.hostContainerId!)?.root ?? null, pane.leafId) : null
-        if (session.preview.placement === "center" || (currentLeaf?.tabs.length ?? 0) <= 1) {
-          this.cancelDrag(session)
-          return
-        }
-      }
-      this.dockPane(pane.id, session.preview.containerId, session.preview.leafId, session.preview.placement)
-      this.windows.focus(session.preview.containerId)
-      return
-    }
-
-    if (session.source.kind === "docked") {
-      const rect = this.rectFromPointer(pointer, pane.floatingRect)
-      this.floatPane(pane.id, rect)
-      return
-    }
-
-    const nextRect = this.getFloatingWindowRect(pane) ?? this.rectFromPointer(pointer, pane.floatingRect)
-    if (this.sameRect(nextRect, session.source.originRect)) {
-      this.cancelDrag(session)
-      return
-    }
-    pane.floatingRect = nextRect
+    if (!this.activeDockSession()) return
+    this.drag.end(this.dragPointerId, pointer)
     this.invalidate?.()
   }
 
-  private cancelDrag(session: DragSession | null = this.dragSession) {
-    if (!session) return
-    if (this.dragSession === session) this.dragSession = null
-    if (session.source.kind === "floating") {
-      const pane = this.panes.get(session.paneId)
-      if (pane) {
-        pane.floatingRect = session.source.originRect
-        if (pane.floatingWindowId) this.windows.setRect(pane.floatingWindowId, session.source.originRect)
-      }
-    }
+  private cancelDrag(reason: "inactive" | InteractionCancelReason | (string & {}) = "inactive") {
+    if (!this.activeDockSession()) return
+    this.drag.cancel(reason)
     this.invalidate?.()
-  }
-
-  private normalizePreview(session: DragSession, preview: DockDropPreview | null) {
-    if (!preview) return null
-    if (session.source.kind !== "docked") return preview
-    if (session.source.containerId !== preview.containerId || session.source.leafId !== preview.leafId) return preview
-
-    const root = this.containers.get(session.source.containerId)?.root ?? null
-    const sourceLeaf = findLeaf(root, session.source.leafId)
-    const sourceTabCount = sourceLeaf?.tabs.length ?? 0
-    if (preview.placement === "center") return null
-    if (sourceTabCount <= 1) return null
-    return preview
   }
 
   private cancelDragForWindowInterruption(windowId: string) {
-    const session = this.dragSession
+    const session = this.activeDockSession()
     if (!session) return
-    const sourceWindowId = this.dragSourceWindowId(session)
-    const previewWindowId = session.preview?.containerId ?? null
+    const payload = session.payload
+    const sourceWindowId =
+      payload.source.kind === "docked" ? payload.source.containerId : this.panes.get(payload.paneId)?.floatingWindowId ?? null
+    const previewWindowId = (session.candidate?.preview?.data as DockDropPreview | undefined)?.containerId ?? null
     if (windowId !== sourceWindowId && windowId !== previewWindowId) return
-    this.cancelDrag(session)
+    this.cancelDrag("inactive")
   }
 
   private cancelDragForFocusChange(nextWindowId: string) {
-    const session = this.dragSession
+    const session = this.activeDockSession()
     if (!session) return
-    if (nextWindowId === this.dragSourceWindowId(session)) return
-    this.cancelDrag(session)
+    const payload = session.payload
+    const sourceWindowId =
+      payload.source.kind === "docked" ? payload.source.containerId : this.panes.get(payload.paneId)?.floatingWindowId ?? null
+    if (nextWindowId === sourceWindowId) return
+    this.cancelDrag("inactive")
   }
 
-  private resolvePreview(pointer: Vec2): DockDropPreview | null {
-    for (const container of [...this.containers.values()].sort((a, b) => b.window.z - a.window.z)) {
-      const body = container.window.getBodyBounds()
-      if (!pointInRect(pointer, body)) continue
-      const local = { x: pointer.x - body.x, y: pointer.y - body.y }
-      return container.surface.resolveDropTarget(local)
+  private activeDockSession(): ActiveDragSession<"dock.pane"> | null {
+    const active = this.drag.getActive()
+    if (!active || active.kind !== "dock.pane") return null
+    return active as ActiveDragSession<"dock.pane">
+  }
+
+  private activeDockPayload(): DockPaneDragPayload | null {
+    return this.activeDockSession()?.payload ?? null
+  }
+
+  private createDockDragBehavior(payload: DockPaneDragPayload): DragBehavior<"dock.pane"> {
+    return {
+      onMove: (pointer) => {
+        if (payload.source.kind === "docked" && this.shouldUndockDockedPayload(payload, pointer)) {
+          this.convertDockedPayloadToFloating(payload, pointer)
+        }
+        if (payload.source.kind === "floating" && payload.source.followPointer) {
+          const pane = this.panes.get(payload.paneId)
+          if (!pane) return
+          const rect = this.rectFromPointer(pointer, pane.floatingRect)
+          pane.floatingRect = rect
+          if (pane.floatingWindowId) this.windows.setRect(pane.floatingWindowId, rect)
+        }
+      },
+      onCancel: () => {
+        if (payload.source.kind !== "floating") return
+        const pane = this.panes.get(payload.paneId)
+        if (!pane) return
+        pane.floatingRect = payload.source.originRect
+        if (pane.floatingWindowId) this.windows.setRect(pane.floatingWindowId, payload.source.originRect)
+      },
     }
-    return null
   }
 
-  private shouldUndock(session: DragSession, pointer: Vec2) {
-    if (session.source.kind !== "docked") return false
-    const container = this.containers.get(session.source.containerId)
+  private shouldUndockDockedPayload(payload: DockPaneDragPayload, pointer: Vec2) {
+    if (payload.source.kind !== "docked") return false
+    const container = this.containers.get(payload.source.containerId)
     if (!container) return false
     return !pointInRect(pointer, container.window.bounds())
   }
 
-  private convertDockedDragToFloating(paneId: string, pointer: Vec2) {
-    const pane = this.panes.get(paneId)
+  private convertDockedPayloadToFloating(payload: DockPaneDragPayload, pointer: Vec2) {
+    const pane = this.panes.get(payload.paneId)
     if (!pane) return
     const rect = this.rectFromPointer(pointer, pane.floatingRect)
     this.floatPane(pane.id, rect, { focus: false })
-    this.dragSession = {
-      paneId: pane.id,
-      source: { kind: "floating", originRect: rect, followPointer: true },
-      preview: this.resolvePreview(pointer),
+    payload.source = { kind: "floating", originRect: rect, followPointer: true }
+  }
+
+  private resolveDockTargets(session: ActiveDragSession, pointer: Vec2): DropCandidate | null {
+    if (session.kind !== "dock.pane") return null
+    const payload = session.payload as DragPayload<"dock.pane">
+    for (const container of [...this.containers.values()].sort((a, b) => b.window.z - a.window.z)) {
+      const body = container.window.getBodyBounds()
+      if (!pointInRect(pointer, body)) continue
+      const local = { x: pointer.x - body.x, y: pointer.y - body.y }
+      const preview = container.surface.resolveDropTarget(local)
+      const normalized = this.normalizeDockPreview(payload, preview)
+      if (!normalized) return null
+      const targetId = `dock:${normalized.containerId}:${normalized.leafId ?? "root"}:${normalized.placement}`
+      return {
+        targetId,
+        effect: "move",
+        preview: { rect: normalized.rect, style: "dock", data: normalized },
+        commit: () => {
+          this.dockPane(payload.paneId, normalized.containerId, normalized.leafId, normalized.placement)
+          this.windows.focus(normalized.containerId)
+        },
+      }
     }
+    return null
+  }
+
+  private resolveDockFallback(session: ActiveDragSession, pointer: Vec2): DropCandidate | null {
+    if (session.kind !== "dock.pane") return null
+    const payload = session.payload as DragPayload<"dock.pane">
+    const pane = this.panes.get(payload.paneId)
+    if (!pane) return null
+    if (payload.source.kind === "docked") {
+      return {
+        targetId: `dock.float:${payload.paneId}`,
+        effect: "move",
+        commit: () => {
+          const rect = this.rectFromPointer(pointer, pane.floatingRect)
+          this.floatPane(pane.id, rect)
+        },
+      }
+    }
+    return {
+      targetId: `dock.fallback:${payload.paneId}`,
+      effect: "none",
+      commit: () => {
+        const nextRect = this.getFloatingWindowRect(pane) ?? this.rectFromPointer(pointer, pane.floatingRect)
+        if (this.sameRect(nextRect, payload.source.originRect)) {
+          pane.floatingRect = payload.source.originRect
+          if (pane.floatingWindowId) this.windows.setRect(pane.floatingWindowId, payload.source.originRect)
+          return
+        }
+        pane.floatingRect = nextRect
+      },
+    }
+  }
+
+  private normalizeDockPreview(payload: DockPaneDragPayload, preview: DockDropPreview | null) {
+    if (!preview) return null
+    if (payload.source.kind !== "docked") return preview
+    if (payload.source.containerId !== preview.containerId || payload.source.leafId !== preview.leafId) return preview
+    const root = this.containers.get(payload.source.containerId)?.root ?? null
+    const sourceLeaf = payload.source.leafId ? findLeaf(root, payload.source.leafId) : null
+    const sourceTabCount = sourceLeaf?.tabs.length ?? 0
+    if (preview.placement === "center") return null
+    if (sourceTabCount <= 1) return null
+    return preview
   }
 
   private rectFromPointer(pointer: Vec2, basis: Rect): Rect {
@@ -525,12 +587,6 @@ export class DockingManager implements DockingControlApi, DockWorkspaceDriver {
 
   private sameRect(a: Rect, b: Rect) {
     return a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
-  }
-
-  private dragSourceWindowId(session: DragSession) {
-    if (session.source.kind === "docked") return session.source.containerId
-    const pane = this.panes.get(session.paneId)
-    return pane?.floatingWindowId ?? null
   }
 
   private materializeFloatingWindow(pane: DockablePaneState, opts: { focus?: boolean } = {}) {

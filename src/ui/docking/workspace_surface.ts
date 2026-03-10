@@ -181,7 +181,10 @@ class DockTabHandle extends UIElement {
   protected onDraw(ctx: CanvasRenderingContext2D) {
     const r = this.rect()
     const selected = this.selected()
-    const active = this.machine.matches("pressed") || this.machine.matches("dragging")
+    // If the pointer leaves the tab while pressed, we still want to allow a drag
+    // to start (especially when dragging out of a window). Visual "pressed"
+    // feedback should only remain while hovering; dragging stays active.
+    const active = this.machine.matches("dragging") || (this.hover && this.machine.matches("pressed"))
     const bg = selected ? "rgba(255,255,255,0.08)" : active ? "rgba(255,255,255,0.05)" : this.hover ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.02)"
     draw(
       ctx,
@@ -245,9 +248,6 @@ class DockTabHandle extends UIElement {
 
   onPointerLeave() {
     this.hover = false
-    if (this.machine.matches("pressed")) {
-      this.cancelEvents.emit()
-    }
   }
 
   onPointerDown(e: PointerUIEvent) {
