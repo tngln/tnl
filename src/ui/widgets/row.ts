@@ -70,8 +70,8 @@ export class Row extends UIElement {
     const leftColor = isGroup ? theme.colors.textPrimary : theme.colors.textMuted
     const leftFont = `${isGroup ? 600 : 500} ${Math.max(10, theme.typography.body.size - 1)}px ${theme.typography.family}`
     const rightFont = `${400} ${Math.max(10, theme.typography.body.size - 2)}px ${theme.typography.family}`
-    const leftPad = 8
-    const rightPad = 8
+    const leftPad = theme.ui.controls.rowTextPadX
+    const rightPad = theme.ui.controls.rowTextPadX
     const contentW = Math.max(0, r.w - leftPad - rightPad)
 
     const right = this.layout.rightText
@@ -88,7 +88,7 @@ export class Row extends UIElement {
 
     ctx.save()
     ctx.font = leftFont
-    const leftMax = Math.max(0, contentW - indent - (rightText ? rightW + 12 : 0))
+    const leftMax = Math.max(0, contentW - indent - (rightText ? rightW + theme.ui.controls.rowRightTextGap : 0))
     const leftText = truncateToWidth(ctx, this.layout.leftText, leftMax)
     ctx.restore()
 

@@ -50,6 +50,18 @@ export type Theme = {
       treeRowHeight: number
       menuItemHeight: number
       minFieldWidth: number
+      labelPadX: number
+      caretPadX: number
+      rowTextPadX: number
+      rowRightTextGap: number
+      treeRow: {
+        leftPad: number
+        rightPad: number
+        indentStep: number
+        disclosureSlot: number
+        disclosureGap: number
+        rightTextGap: number
+      }
     }
   }
 }
@@ -110,6 +122,18 @@ export const theme: Theme = {
       treeRowHeight: 22,
       menuItemHeight: 22,
       minFieldWidth: 160,
+      labelPadX: 8,
+      caretPadX: 12,
+      rowTextPadX: 8,
+      rowRightTextGap: 12,
+      treeRow: {
+        leftPad: 8,
+        rightPad: 8,
+        indentStep: 12,
+        disclosureSlot: 12,
+        disclosureGap: 4,
+        rightTextGap: 12,
+      },
     },
   },
 }

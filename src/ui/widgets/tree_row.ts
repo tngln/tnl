@@ -6,11 +6,11 @@ import { PointerUIEvent, UIElement, pointInRect, type Rect } from "../base/ui"
 import type { RowVariant } from "./row"
 
 export const TREE_ROW_HEIGHT = theme.ui.controls.treeRowHeight
-export const TREE_ROW_INDENT_STEP = 12
-export const TREE_ROW_DISCLOSURE_SLOT = 12
-const TREE_ROW_DISCLOSURE_GAP = 4
-const TREE_ROW_LEFT_PAD = 8
-const TREE_ROW_RIGHT_PAD = 8
+export const TREE_ROW_INDENT_STEP = theme.ui.controls.treeRow.indentStep
+export const TREE_ROW_DISCLOSURE_SLOT = theme.ui.controls.treeRow.disclosureSlot
+const TREE_ROW_DISCLOSURE_GAP = theme.ui.controls.treeRow.disclosureGap
+const TREE_ROW_LEFT_PAD = theme.ui.controls.treeRow.leftPad
+const TREE_ROW_RIGHT_PAD = theme.ui.controls.treeRow.rightPad
 
 export type TreeRowLayout = {
   rect: Rect
@@ -129,7 +129,7 @@ export class TreeRow extends UIElement {
 
     ctx.save()
     ctx.font = leftFont
-    const leftMax = Math.max(0, r.w - (textX - r.x) - TREE_ROW_RIGHT_PAD - (rightText ? rightW + 12 : 0))
+    const leftMax = Math.max(0, r.w - (textX - r.x) - TREE_ROW_RIGHT_PAD - (rightText ? rightW + theme.ui.controls.treeRow.rightTextGap : 0))
     const leftText = truncateToWidth(ctx, this.layout.leftText, leftMax)
     ctx.restore()
 

@@ -126,7 +126,7 @@ export class DropdownMenu extends UIElement {
       draw(
         ctx,
         Text({
-          x: row.x + 8,
+          x: row.x + theme.ui.controls.rowTextPadX,
           y: row.y + row.h / 2 + 0.5,
           text: options[i].label,
           style: { color: theme.colors.textPrimary, font: f, baseline: "middle" },

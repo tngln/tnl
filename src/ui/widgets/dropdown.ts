@@ -151,12 +151,12 @@ export class Dropdown extends InteractiveElement {
         { fill: { color: bg }, stroke: { color: stroke, hairline: true }, pixelSnap: true },
       ),
       Text({
-        x: r.x + 8,
+        x: r.x + theme.ui.controls.labelPadX,
         y: r.y + r.h / 2 + 0.5,
         text: display,
         style: { color: textColor, font: f, baseline: "middle" },
       }),
-      caretDownShape(r.x + r.w - 12, r.y + r.h / 2, 10),
+      caretDownShape(r.x + r.w - theme.ui.controls.caretPadX, r.y + r.h / 2, 10),
     )
 
     if (this.topLayer.isOpen(this.menuId())) this.menuRectCache = this.computeMenuRect()
