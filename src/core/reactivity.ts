@@ -6,7 +6,7 @@ let activeEffect: EffectFn | null = null
 const effectStack: EffectFn[] = []
 let nextSignalId = 1
 const debugSignals = new Map<number, Signal<unknown>>()
-const debugMeta = new Map<number, { name?: string; scope?: string; hidden?: boolean; createdAt: number }>()
+const debugMeta = new Map<number, { name?: string; debugLabel?: string; scope?: string; hidden?: boolean; createdAt: number }>()
 
 export type Signal<T> = {
   get(): T
@@ -17,6 +17,7 @@ export type Signal<T> = {
 export type DebugSignalRecord = {
   id: number
   name?: string
+  debugLabel?: string
   scope?: string
   createdAt: number
   subscribers: number
@@ -32,6 +33,7 @@ export function listSignals(): DebugSignalRecord[] {
     out.push({
       id,
       name: meta?.name,
+      debugLabel: meta?.debugLabel,
       scope: meta?.scope,
       createdAt: meta?.createdAt ?? 0,
       subscribers: subs?.size ?? 0,
@@ -41,19 +43,20 @@ export function listSignals(): DebugSignalRecord[] {
   return out
 }
 
-export function setSignalMeta(sig: Signal<unknown>, meta: { name?: string; scope?: string; hidden?: boolean }) {
+export function setSignalMeta(sig: Signal<unknown>, meta: { name?: string; debugLabel?: string; scope?: string; hidden?: boolean }) {
   const id: number | undefined = (sig as any)._id
   if (!id) return
   const cur = debugMeta.get(id) ?? { createdAt: Date.now() }
   debugMeta.set(id, {
     createdAt: cur.createdAt,
     name: meta.name ?? cur.name,
+    debugLabel: meta.debugLabel ?? cur.debugLabel,
     scope: meta.scope ?? cur.scope,
     hidden: meta.hidden ?? cur.hidden,
   })
 }
 
-export function signal<T>(initial: T): Signal<T> {
+export function signal<T>(initial: T, opts: { debugLabel: string } | { debugLabel?: string } = {}): Signal<T> {
   let value = initial
   const subs = new Set<EffectFn>()
 
@@ -88,7 +91,7 @@ export function signal<T>(initial: T): Signal<T> {
   const id = nextSignalId++
   ;(sig as any)._id = id
   debugSignals.set(id, sig as Signal<unknown>)
-  debugMeta.set(id, { createdAt: Date.now() })
+  debugMeta.set(id, { createdAt: Date.now(), debugLabel: opts.debugLabel })
 
   return sig
 }

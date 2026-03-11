@@ -74,7 +74,7 @@ export class TabPanelSurface implements Surface {
   constructor(opts: { id: string; tabs: TabSpec[]; selectedId?: string; scrollbar?: boolean }) {
     this.id = opts.id
     this.tabs = opts.tabs
-    this.selectedId = signal(opts.selectedId ?? (opts.tabs[0]?.id ?? ""))
+    this.selectedId = signal(opts.selectedId ?? (opts.tabs[0]?.id ?? ""), { debugLabel: `${this.id}.selectedId` })
 
     const containerFill = "rgba(255,255,255,0.02)"
     const tabW = 82

@@ -358,8 +358,8 @@ export const ExplorerSurface = defineSurface({
     let busy = false
     let error: string | null = null
 
-    const viewMode = signal<"list" | "thumbs">("list")
-    const address = signal("")
+    const viewMode = signal<"list" | "thumbs">("list", { debugLabel: "explorer.viewMode" })
+    const address = signal("", { debugLabel: "explorer.address" })
     const history = { stack: [""], index: 0 }
 
     const thumbById = new Map<string, ThumbState>()

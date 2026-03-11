@@ -4,6 +4,14 @@ export type DataNode =
   | { kind: "group"; id: string; label: string; count: number; children: DataNode[] }
   | { kind: "signal"; id: string; label: string; valuePreview: string; subscribers: number }
 
+function labelForSignal(r: DebugSignalRecord) {
+  const name = r.name?.trim()
+  if (name) return name
+  const debugLabel = r.debugLabel?.trim()
+  if (debugLabel) return debugLabel
+  return `signal#${r.id}`
+}
+
 function preview(value: unknown) {
   if (value === null) return "null"
   if (value === undefined) return "undefined"
@@ -35,13 +43,12 @@ export function getStateTree(records: DebugSignalRecord[] = listSignals()): Data
 
   for (const scope of scopes) {
     const list = byScope.get(scope) ?? []
-    list.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "") || a.id - b.id)
+    list.sort((a, b) => labelForSignal(a).localeCompare(labelForSignal(b)) || a.id - b.id)
     const children: DataNode[] = list.map((r) => {
-      const name = r.name?.trim() ? r.name!.trim() : `signal#${r.id}`
       return {
         kind: "signal",
         id: `signal:${r.id}`,
-        label: name,
+        label: labelForSignal(r),
         valuePreview: preview(r.peek()),
         subscribers: r.subscribers,
       }

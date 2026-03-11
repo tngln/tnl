@@ -7,8 +7,8 @@ import { fakeCtx, withFakeDocument } from "./test_utils"
 
 describe("surface builder", () => {
   it("reuses mounted widget counts across renders", () => {
-    const checked = signal(false)
-    const text = signal("hello")
+    const checked = signal(false, { debugLabel: "test.builder.checked" })
+    const text = signal("hello", { debugLabel: "test.builder.text" })
     const surface = new BuilderSurface({
       id: "Builder.Test",
       build: () =>
@@ -78,7 +78,7 @@ describe("surface builder", () => {
       id: (props) => `Demo.${props.label}`,
       setup: (props) => {
         setupCount += 1
-        const clicks = signal(0)
+        const clicks = signal(0, { debugLabel: "test.builder.clicks" })
         bumpers.push(() => clicks.set((v) => v + 1))
         return (next) => buttonNode(`${next.label}:${clicks.peek()}`, { key: `btn.${props.label}` })
       },
@@ -140,7 +140,7 @@ describe("surface builder", () => {
   })
 
   it("invalidates mounted surfaces when tracked signals change", () => {
-    const clicks = signal(0)
+    const clicks = signal(0, { debugLabel: "test.builder.clicks" })
     const DemoSurface = defineSurface<{}>({
       id: "Demo.Reactive",
       setup: () => () => buttonNode(`Count:${clicks.get()}`, { key: "btn" }),

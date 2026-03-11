@@ -20,7 +20,7 @@ function pointer() {
 
 describe("choice controls", () => {
   it("does not toggle checkbox when disabled", () => {
-    const checked = signal(false)
+    const checked = signal(false, { debugLabel: "test.choice.checked" })
     const checkbox = new Checkbox({
       rect: () => ({ x: 0, y: 0, w: 120, h: 24 }),
       label: "Disabled",
@@ -36,7 +36,7 @@ describe("choice controls", () => {
   })
 
   it("does not select radio when disabled", () => {
-    const selected = signal("A")
+    const selected = signal("A", { debugLabel: "test.choice.selected" })
     const radio = new Radio({
       rect: () => ({ x: 0, y: 0, w: 120, h: 24 }),
       label: "Disabled",

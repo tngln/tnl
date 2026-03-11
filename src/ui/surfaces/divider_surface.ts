@@ -204,7 +204,7 @@ export class DividerSurface implements Surface {
     this.minA = opts.minA ?? 160
     this.minB = opts.minB ?? 160
     this.gutter = Math.max(8, opts.gutter ?? 10)
-    this.position = signal(opts.initial ?? 220)
+    this.position = signal(opts.initial ?? 220, { debugLabel: `divider.${opts.id}.position` })
 
     const aRect = () => {
       if (this.axis === "x") return { x: 0, y: 0, w: clamp(this.position.peek(), 0, Math.max(0, this.size.x - this.gutter)), h: this.size.y }

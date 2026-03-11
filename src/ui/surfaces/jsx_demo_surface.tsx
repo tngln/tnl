@@ -7,7 +7,7 @@ import { theme } from "../../config/theme"
 export const JsxDemoSurface = defineSurface({
   id: "JsxDemoSurface",
   setup: () => {
-    const clicks = signal(0)
+    const clicks = signal(0, { debugLabel: "jsx_demo.clicks" })
 
     return () => (
       <Column style={{ axis: "column", padding: theme.spacing.md, gap: theme.spacing.md, w: "auto", h: "auto" }}>

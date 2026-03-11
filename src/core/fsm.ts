@@ -73,7 +73,7 @@ export function createMachine<State extends string, Event extends MachineEvent, 
     state: config.initial,
     context: cloneContext(config.context),
   }
-  const stateSignal = signal<MachineSnapshot<State, Context>>(initialSnapshot)
+  const stateSignal = signal<MachineSnapshot<State, Context>>(initialSnapshot, { debugLabel: config.debug?.name ? `fsm.${config.debug.name}` : undefined })
   if (config.debug) setSignalMeta(stateSignal as Signal<unknown>, config.debug)
 
   function resolveTransition(snapshot: MachineSnapshot<State, Context>, event: Event) {

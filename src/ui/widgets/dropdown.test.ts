@@ -20,7 +20,7 @@ function pointer(x: number, y: number, buttons = 1) {
 
 describe("dropdown", () => {
   it("does not change selection when disabled", () => {
-    const selected = signal("A")
+    const selected = signal("A", { debugLabel: "test.dropdown.selected" })
     const topLayer = new TopLayerController({ rect: () => ({ x: -1e9, y: -1e9, w: 2e9, h: 2e9 }), invalidate: () => {}, z: 0 })
     const dd = new Dropdown({
       id: "test",
@@ -43,7 +43,7 @@ describe("dropdown", () => {
   })
 
   it("opens and selects an option from the menu", () => {
-    const selected = signal("A")
+    const selected = signal("A", { debugLabel: "test.dropdown.selected" })
     const topLayer = new TopLayerController({ rect: () => ({ x: -1e9, y: -1e9, w: 2e9, h: 2e9 }), invalidate: () => {}, z: 0 })
     const dd = new Dropdown({
       id: "test",
@@ -78,7 +78,7 @@ describe("dropdown", () => {
   })
 
   it("closes when blurred", () => {
-    const selected = signal("A")
+    const selected = signal("A", { debugLabel: "test.dropdown.selected" })
     const topLayer = new TopLayerController({ rect: () => ({ x: -1e9, y: -1e9, w: 2e9, h: 2e9 }), invalidate: () => {}, z: 0 })
     const dd = new Dropdown({
       id: "test",

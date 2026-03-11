@@ -61,7 +61,7 @@ function key(code: string, keyValue = code, opts: Partial<{ ctrlKey: boolean; me
 
 describe("textbox", () => {
   it("syncs focus and text changes through the hidden input bridge", () => {
-    const value = signal("abc")
+    const value = signal("abc", { debugLabel: "test.textbox.value" })
     const bridge = new MockBridge()
     const textbox = new TextBox({
       rect: () => ({ x: 0, y: 0, w: 120, h: 28 }),
@@ -78,7 +78,7 @@ describe("textbox", () => {
   })
 
   it("handles navigation and select-all locally while consuming clipboard shortcuts", () => {
-    const value = signal("hello")
+    const value = signal("hello", { debugLabel: "test.textbox.value" })
     const bridge = new MockBridge()
     const textbox = new TextBox({
       rect: () => ({ x: 0, y: 0, w: 120, h: 28 }),
@@ -108,7 +108,7 @@ describe("textbox", () => {
 
   it("supports pointer selection dragging", () => {
     withFakeDocument(() => {
-      const value = signal("hello")
+      const value = signal("hello", { debugLabel: "test.textbox.value" })
       const bridge = new MockBridge()
       const textbox = new TextBox({
         rect: () => ({ x: 0, y: 0, w: 120, h: 28 }),
@@ -126,7 +126,7 @@ describe("textbox", () => {
   })
 
   it("does not focus when disabled", () => {
-    const value = signal("hello")
+    const value = signal("hello", { debugLabel: "test.textbox.value" })
     const bridge = new MockBridge()
     const textbox = new TextBox({
       rect: () => ({ x: 0, y: 0, w: 120, h: 28 }),
@@ -141,7 +141,7 @@ describe("textbox", () => {
   })
 
   it("releases the input bridge when deactivated by the host runtime", () => {
-    const value = signal("hello")
+    const value = signal("hello", { debugLabel: "test.textbox.value" })
     const bridge = new MockBridge()
     const textbox = new TextBox({
       rect: () => ({ x: 0, y: 0, w: 120, h: 28 }),

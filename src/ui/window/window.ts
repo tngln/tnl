@@ -152,15 +152,15 @@ export class ModalWindow extends UIElement {
     this.minimizable = opts.minimizable ?? (this.chrome !== "tool")
     this.titleBarHeight = this.chrome === "tool" ? 24 : theme.ui.titleBarHeight
 
-    this.x = signal(opts.x)
-    this.y = signal(opts.y)
-    this.w = signal(clamp(opts.w, this.minW, this.maxW))
-    this.h = signal(clamp(opts.h, this.minH, this.maxH))
-    this.title = signal(opts.title)
-    this.open = signal(opts.open ?? true)
-    this.minimized = signal(false)
-    this.maximized = signal(false)
-    this.screenUsage = signal<"none" | "left-half" | "right-half">("none")
+    this.x = signal(opts.x, { debugLabel: `window.${opts.id}.x` })
+    this.y = signal(opts.y, { debugLabel: `window.${opts.id}.y` })
+    this.w = signal(clamp(opts.w, this.minW, this.maxW), { debugLabel: `window.${opts.id}.w` })
+    this.h = signal(clamp(opts.h, this.minH, this.maxH), { debugLabel: `window.${opts.id}.h` })
+    this.title = signal(opts.title, { debugLabel: `window.${opts.id}.title` })
+    this.open = signal(opts.open ?? true, { debugLabel: `window.${opts.id}.open` })
+    this.minimized = signal(false, { debugLabel: `window.${opts.id}.minimized` })
+    this.maximized = signal(false, { debugLabel: `window.${opts.id}.maximized` })
+    this.screenUsage = signal<"none" | "left-half" | "right-half">("none", { debugLabel: `window.${opts.id}.screenUsage` })
     this.bodyViewport = new ViewportElement({
       rect: () => this.bodyRect,
       target: this.bodySurface,
