@@ -46,6 +46,10 @@ export class BuilderTreeSurface implements Surface {
     return this.engine.hitTest(pSurface)
   }
 
+  lightDismiss(pSurface: Vec2) {
+    this.engine.runtime.topLayer.lightDismiss(pSurface)
+  }
+
   onWheel(e: WheelUIEvent) {
     this.wheelFallback?.(e)
   }
@@ -96,6 +100,10 @@ export class BuilderSurface implements Surface {
 
   hitTest(pSurface: Vec2) {
     return this.tree.hitTest(pSurface)
+  }
+
+  lightDismiss(pSurface: Vec2) {
+    this.tree.lightDismiss(pSurface)
   }
 
   onWheel(e: WheelUIEvent) {
@@ -156,6 +164,10 @@ export class FunctionalBuilderSurface<P> implements MountedSurface<P> {
 
   hitTest(pSurface: Vec2) {
     return this.tree.hitTest(pSurface)
+  }
+
+  lightDismiss(pSurface: Vec2) {
+    this.tree.lightDismiss(pSurface)
   }
 
   onWheel(e: WheelUIEvent) {

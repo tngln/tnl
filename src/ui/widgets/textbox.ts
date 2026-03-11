@@ -7,7 +7,7 @@ import { getTextInputBridge, type TextInputBridge } from "../../platform/web"
 import { createMeasureContext } from "../../platform/web/canvas"
 import { CursorRegion, KeyUIEvent, PointerUIEvent, UIElement, pointInRect, type Vec2 } from "../base/ui"
 
-const TEXTBOX_HEIGHT = 28
+const TEXTBOX_HEIGHT = theme.ui.controls.inputHeight
 const PAD_X = 8
 const SESSION_PREFIX = "textbox"
 const CARET_BLINK_MS = 530

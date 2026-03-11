@@ -8,7 +8,7 @@ import { TREE_ROW_HEIGHT } from "../widgets"
 import { textFont } from "./text"
 import { inheritedTextToRichTextStyle, resolveTextColor, resolveTextEmphasis, resolveTextStyle } from "./styles"
 import type { BuilderEngine } from "./engine"
-import type { AstNode, BuilderNode, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, SpacerNode, TextBoxNode, TextNode, TreeViewNode } from "./types"
+import type { AstNode, BuilderNode, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, DropdownNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, SpacerNode, TextBoxNode, TextNode, TreeViewNode } from "./types"
 import { flattenTreeItems } from "./runtime"
 
 export type MeasureSize = { w: number; h: number }
@@ -107,7 +107,7 @@ const buttonHandler: BuilderNodeHandler<ButtonNode> = {
       fontWeight: theme.typography.body.weight,
       lineHeight: theme.spacing.lg,
     }))
-    return { w: Math.min(max.w, w + 28), h: 32 }
+    return { w: Math.min(max.w, w + 28), h: theme.ui.controls.buttonHeight }
   },
   mount: (engine, _ctx, node, ast, path, active) => {
     engine.runtime.mountButton(path, ast.rect ?? ZERO_RECT, node, active)
@@ -131,10 +131,28 @@ const checkboxHandler: BuilderNodeHandler<CheckboxNode> = {
       fontWeight: theme.typography.body.weight,
       lineHeight: theme.spacing.lg,
     }))
-    return { w: Math.min(max.w, w + 28), h: 24 }
+    return { w: Math.min(max.w, w + 28), h: theme.ui.controls.choiceHeight }
   },
   mount: (engine, _ctx, node, ast, path, active) => {
     engine.runtime.mountCheckbox(path, ast.rect ?? ZERO_RECT, node, active)
+  },
+}
+
+const dropdownHandler: BuilderNodeHandler<DropdownNode> = {
+  kind: "dropdown",
+  measure: (_engine, ctx, node, max) => {
+    const f = textFont({
+      fontFamily: theme.typography.family,
+      fontSize: theme.typography.body.size,
+      fontWeight: theme.typography.body.weight,
+      lineHeight: theme.spacing.lg,
+    })
+    let w = 0
+    for (const opt of node.options) w = Math.max(w, measureTextWidth(ctx, opt.label, f))
+    return { w: Math.min(max.w, Math.max(theme.ui.controls.minFieldWidth, w + 28)), h: theme.ui.controls.inputHeight }
+  },
+  mount: (engine, _ctx, node, ast, path, active) => {
+    engine.runtime.mountDropdown(path, ast.rect ?? ZERO_RECT, node, active)
   },
 }
 
@@ -147,7 +165,7 @@ const radioHandler: BuilderNodeHandler<RadioNode> = {
       fontWeight: theme.typography.body.weight,
       lineHeight: theme.spacing.lg,
     }))
-    return { w: Math.min(max.w, w + 28), h: 24 }
+    return { w: Math.min(max.w, w + 28), h: theme.ui.controls.choiceHeight }
   },
   mount: (engine, _ctx, node, ast, path, active) => {
     engine.runtime.mountRadio(path, ast.rect ?? ZERO_RECT, node, active)
@@ -164,7 +182,7 @@ const textBoxHandler: BuilderNodeHandler<TextBoxNode> = {
       fontWeight: theme.typography.body.weight,
       lineHeight: theme.spacing.lg,
     }))
-    return { w: Math.min(max.w, Math.max(160, w + 16)), h: 28 }
+    return { w: Math.min(max.w, Math.max(theme.ui.controls.minFieldWidth, w + 16)), h: theme.ui.controls.inputHeight }
   },
   mount: (engine, _ctx, node, ast, path, active) => {
     engine.runtime.mountTextBox(path, ast.rect ?? ZERO_RECT, node, active)
@@ -173,7 +191,7 @@ const textBoxHandler: BuilderNodeHandler<TextBoxNode> = {
 
 const rowItemHandler: BuilderNodeHandler<RowNode> = {
   kind: "rowItem",
-  measure: () => ({ w: Number.POSITIVE_INFINITY, h: 22 }),
+  measure: () => ({ w: Number.POSITIVE_INFINITY, h: theme.ui.controls.rowHeight }),
   mount: (engine, _ctx, node, ast, path, active) => {
     engine.runtime.mountRow(path, ast.rect ?? ZERO_RECT, node, active)
   },
@@ -236,6 +254,7 @@ export function createDefaultBuilderRegistry() {
   registry.register(buttonHandler)
   registry.register(clickAreaHandler)
   registry.register(checkboxHandler)
+  registry.register(dropdownHandler)
   registry.register(radioHandler)
   registry.register(textBoxHandler)
   registry.register(rowItemHandler)

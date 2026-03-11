@@ -89,6 +89,13 @@ export type CheckboxNode = NodeBase & {
   disabled?: boolean
 }
 
+export type DropdownNode = NodeBase & {
+  kind: "dropdown"
+  options: Array<{ value: string; label: string }>
+  selected: Signal<string>
+  disabled?: boolean
+}
+
 export type RadioNode = NodeBase & {
   kind: "radio"
   label: string
@@ -161,6 +168,7 @@ export type BuilderNode =
   | ButtonNode
   | ClickAreaNode
   | CheckboxNode
+  | DropdownNode
   | RadioNode
   | TextBoxNode
   | RowNode

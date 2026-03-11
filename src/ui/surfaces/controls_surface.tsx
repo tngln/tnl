@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "../jsx"
-import { Button, Checkbox, FormRow, PanelColumn, PanelSection, Radio, RichText, Spacer, Text, TextBox } from "../builder/components"
+import { Button, Checkbox, Dropdown, FormRow, PanelColumn, PanelSection, Radio, RichText, Spacer, Text, TextBox } from "../builder/components"
 import { defineSurface } from "../builder/surface_builder"
 import { signal } from "../../core/reactivity"
 
@@ -10,6 +10,7 @@ export const ControlsSurface = defineSurface({
     const checked = signal(false)
     const radio = signal("A")
     const input = signal("")
+    const dropdown = signal("A")
 
     return () => (
       <PanelColumn>
@@ -30,7 +31,7 @@ export const ControlsSurface = defineSurface({
             }
           />
           <Text key="controls.status" tone="muted" style={{ margin: { l: 74, t: 4, r: 0, b: 0 } }}>
-            {`Checked: ${checked.get() ? "true" : "false"}, Radio: ${radio.get()}, Input: ${input.get() || "(empty)"}`}
+            {`Checked: ${checked.get() ? "true" : "false"}, Radio: ${radio.get()}, Dropdown: ${dropdown.get()}, Input: ${input.get() || "(empty)"}`}
           </Text>
           <FormRow
             key="controls.input"
@@ -43,6 +44,23 @@ export const ControlsSurface = defineSurface({
             label="Label"
             labelWidth={64}
             field={<Text key="controls.input.label">{input.get() || "(empty)"}</Text>}
+          />
+          <FormRow
+            key="controls.dropdown"
+            label="Dropdown"
+            labelWidth={64}
+            field={
+              <Dropdown
+                key="controls.dropdown.field"
+                style={{ fixed: 220 }}
+                selected={dropdown}
+                options={[
+                  { value: "A", label: "Option A" },
+                  { value: "B", label: "Option B" },
+                  { value: "C", label: "Option C" },
+                ]}
+              />
+            }
           />
           <Spacer style={{ fixed: 6 }} />
           <Checkbox key="controls.checkbox" checked={checked}>Checkbox: enable something</Checkbox>

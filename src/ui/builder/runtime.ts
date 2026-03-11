@@ -1,10 +1,12 @@
 import { theme } from "../../config/theme"
 import { createRichTextBlock } from "../../core/draw.text"
 import { ZERO_RECT } from "../../core/rect"
+import { invalidateAll } from "../invalidate"
 import { createMeasureContext } from "../../platform/web/canvas"
 import { SurfaceRoot, ViewportElement, type Surface } from "../base/viewport"
 import { UIElement, WheelUIEvent, type Rect, type Vec2 } from "../base/ui"
-import { Button, Checkbox, ClickArea, Radio, Row, Scrollbar, Slider, TextBox, TreeRow, TREE_ROW_HEIGHT } from "../widgets"
+import { TopLayerController } from "../base/top_layer"
+import { Button, Checkbox, ClickArea, Dropdown, Radio, Row, Scrollbar, Slider, TextBox, TreeRow, TREE_ROW_HEIGHT } from "../widgets"
 import { clamp } from "./utils"
 import type { BuilderNode, TreeItem, TreeViewNode } from "./types"
 
@@ -40,6 +42,16 @@ type CheckboxCell = {
   rect: Rect
   label: string
   checked: any
+  active: boolean
+  disabled: boolean
+  used: boolean
+}
+
+type DropdownCell = {
+  widget: Dropdown
+  rect: Rect
+  options: Array<{ value: string; label: string }>
+  selected: any
   active: boolean
   disabled: boolean
   used: boolean
@@ -179,9 +191,11 @@ class BuilderScrollAreaElement extends UIElement {
 
 export class BuilderRuntime {
   readonly root = new SurfaceRoot()
+  readonly topLayer = new TopLayerController({ rect: () => this.root.bounds(), invalidate: invalidateAll, z: 8_000_000 })
   private readonly buttons = new Map<string, ButtonCell>()
   private readonly clickAreas = new Map<string, ClickAreaCell>()
   private readonly checkboxes = new Map<string, CheckboxCell>()
+  private readonly dropdowns = new Map<string, DropdownCell>()
   private readonly radios = new Map<string, RadioCell>()
   private readonly textboxes = new Map<string, TextBoxCell>()
   private readonly sliders = new Map<string, SliderCell>()
@@ -191,7 +205,9 @@ export class BuilderRuntime {
   private readonly richBlocks = new Map<string, ReturnType<typeof createRichTextBlock>>()
   private readonly usedScrollAreas = new Set<string>()
 
-  constructor(private readonly createTreeSurface: (id: string) => BuilderTreeSurfaceLike) {}
+  constructor(private readonly createTreeSurface: (id: string) => BuilderTreeSurfaceLike) {
+    this.root.add(this.topLayer.host)
+  }
 
   private updateWidgetActive(widget: UIElement, previous: boolean, next: boolean) {
     if (previous === next) return
@@ -209,6 +225,20 @@ export class BuilderRuntime {
       this.updateWidgetActive(cell.widget, cell.active, false)
       cell.active = false
     }
+  }
+
+  private widgetRuntime(cell: { rect: Rect; active: boolean; disabled: boolean }) {
+    return {
+      rect: () => cell.active ? cell.rect : ZERO_RECT,
+      active: () => cell.active,
+      disabled: () => cell.disabled,
+    }
+  }
+
+  private initWidgetCell<TCell extends { widget: UIElement }>(init: Omit<TCell, "widget">, createWidget: (cell: TCell) => TCell["widget"]) {
+    const cell = init as unknown as TCell
+    ;(cell as any).widget = createWidget(cell)
+    return cell
   }
 
   private mountWidgetCell<TCell extends { widget: UIElement; active: boolean; used: boolean }>(
@@ -237,6 +267,7 @@ export class BuilderRuntime {
       buttons: this.buttons.size,
       clickAreas: this.clickAreas.size,
       checkboxes: this.checkboxes.size,
+      dropdowns: this.dropdowns.size,
       radios: this.radios.size,
       textboxes: this.textboxes.size,
       sliders: this.sliders.size,
@@ -254,6 +285,7 @@ export class BuilderRuntime {
     this.markAllUnused(this.buttons)
     this.markAllUnused(this.clickAreas)
     this.markAllUnused(this.checkboxes)
+    this.markAllUnused(this.dropdowns)
     this.markAllUnused(this.radios)
     this.markAllUnused(this.textboxes)
     this.markAllUnused(this.sliders)
@@ -266,6 +298,7 @@ export class BuilderRuntime {
     this.deactivateUnusedWidgetCells(this.buttons)
     this.deactivateUnusedWidgetCells(this.clickAreas)
     this.deactivateUnusedWidgetCells(this.checkboxes)
+    this.deactivateUnusedWidgetCells(this.dropdowns)
     this.deactivateUnusedWidgetCells(this.radios)
     this.deactivateUnusedWidgetCells(this.textboxes)
     this.deactivateUnusedWidgetCells(this.sliders)
@@ -304,25 +337,24 @@ export class BuilderRuntime {
       this.buttons,
       key,
       () => {
-        let cell!: ButtonCell
-        cell = {
-          rect,
-          text: node.text,
-          title: node.title,
-          active,
-          disabled: node.disabled ?? false,
-          onClick: node.onClick,
-          used: false,
-          widget: new Button({
-            rect: () => cell.active ? cell.rect : ZERO_RECT,
-            text: () => cell.text,
-            title: () => cell.title ?? cell.text,
-            onClick: () => cell.onClick?.(),
-            active: () => cell.active,
-            disabled: () => cell.disabled,
-          }),
-        }
-        return cell
+        return this.initWidgetCell<ButtonCell>(
+          {
+            rect,
+            text: node.text,
+            title: node.title,
+            active,
+            disabled: node.disabled ?? false,
+            onClick: node.onClick,
+            used: false,
+          },
+          (cell) =>
+            new Button({
+              ...this.widgetRuntime(cell),
+              text: () => cell.text,
+              title: () => cell.title ?? cell.text,
+              onClick: () => cell.onClick?.(),
+            }),
+        )
       },
       active,
       (cell) => {
@@ -340,21 +372,20 @@ export class BuilderRuntime {
       this.clickAreas,
       key,
       () => {
-        let cell!: ClickAreaCell
-        cell = {
-          rect,
-          active,
-          disabled: node.disabled ?? false,
-          onClick: node.onClick,
-          used: false,
-          widget: new ClickArea({
-            rect: () => cell.active ? cell.rect : ZERO_RECT,
-            onClick: () => cell.onClick?.(),
-            active: () => cell.active,
-            disabled: () => cell.disabled,
-          }),
-        }
-        return cell
+        return this.initWidgetCell<ClickAreaCell>(
+          {
+            rect,
+            active,
+            disabled: node.disabled ?? false,
+            onClick: node.onClick,
+            used: false,
+          },
+          (cell) =>
+            new ClickArea({
+              ...this.widgetRuntime(cell),
+              onClick: () => cell.onClick?.(),
+            }),
+        )
       },
       active,
       (cell) => {
@@ -371,23 +402,22 @@ export class BuilderRuntime {
       this.checkboxes,
       key,
       () => {
-        let cell!: CheckboxCell
-        cell = {
-          rect,
-          label: node.label,
-          checked: node.checked,
-          active,
-          disabled: node.disabled ?? false,
-          used: false,
-          widget: new Checkbox({
-            rect: () => cell.active ? cell.rect : ZERO_RECT,
-            label: () => cell.label,
+        return this.initWidgetCell<CheckboxCell>(
+          {
+            rect,
+            label: node.label,
             checked: node.checked,
-            active: () => cell.active,
-            disabled: () => cell.disabled,
-          }),
-        }
-        return cell
+            active,
+            disabled: node.disabled ?? false,
+            used: false,
+          },
+          (cell) =>
+            new Checkbox({
+              ...this.widgetRuntime(cell),
+              label: () => cell.label,
+              checked: node.checked,
+            }),
+        )
       },
       active,
       (cell) => {
@@ -399,30 +429,63 @@ export class BuilderRuntime {
     )
   }
 
+  mountDropdown(key: string, rect: Rect, node: { options: Array<{ value: string; label: string }>; selected: any; disabled?: boolean }, active: boolean) {
+    this.mountWidgetCell(
+      this.dropdowns,
+      key,
+      () => {
+        return this.initWidgetCell<DropdownCell>(
+          {
+            rect,
+            options: node.options,
+            selected: node.selected,
+            active,
+            disabled: node.disabled ?? false,
+            used: false,
+          },
+          (cell) =>
+            new Dropdown({
+              id: key,
+              ...this.widgetRuntime(cell),
+              options: () => cell.options,
+              selected: node.selected,
+              topLayer: this.topLayer,
+            }),
+        )
+      },
+      active,
+      (cell) => {
+        cell.rect = rect
+        cell.options = node.options
+        cell.selected = node.selected
+        cell.disabled = node.disabled ?? false
+      },
+    )
+  }
+
   mountRadio(key: string, rect: Rect, node: { label: string; value: string; selected: any; disabled?: boolean }, active: boolean) {
     this.mountWidgetCell(
       this.radios,
       key,
       () => {
-        let cell!: RadioCell
-        cell = {
-          rect,
-          label: node.label,
-          value: node.value,
-          selected: node.selected,
-          active,
-          disabled: node.disabled ?? false,
-          used: false,
-          widget: new Radio({
-            rect: () => cell.active ? cell.rect : ZERO_RECT,
-            label: () => cell.label,
+        return this.initWidgetCell<RadioCell>(
+          {
+            rect,
+            label: node.label,
             value: node.value,
             selected: node.selected,
-            active: () => cell.active,
-            disabled: () => cell.disabled,
-          }),
-        }
-        return cell
+            active,
+            disabled: node.disabled ?? false,
+            used: false,
+          },
+          (cell) =>
+            new Radio({
+              ...this.widgetRuntime(cell),
+              label: () => cell.label,
+              value: node.value,
+              selected: node.selected,
+            }),
+        )
       },
       active,
       (cell) => {
@@ -440,23 +503,22 @@ export class BuilderRuntime {
       this.textboxes,
       key,
       () => {
-        let cell!: TextBoxCell
-        cell = {
-          rect,
-          value: node.value,
-          placeholder: node.placeholder,
-          active,
-          disabled: node.disabled ?? false,
-          used: false,
-          widget: new TextBox({
-            rect: () => cell.active ? cell.rect : ZERO_RECT,
+        return this.initWidgetCell<TextBoxCell>(
+          {
+            rect,
             value: node.value,
-            placeholder: () => cell.placeholder ?? "",
-            active: () => cell.active,
-            disabled: () => cell.disabled,
-          }),
-        }
-        return cell
+            placeholder: node.placeholder,
+            active,
+            disabled: node.disabled ?? false,
+            used: false,
+          },
+          (cell) =>
+            new TextBox({
+              ...this.widgetRuntime(cell),
+              value: node.value,
+              placeholder: () => cell.placeholder ?? "",
+            }),
+        )
       },
       active,
       (cell) => {
@@ -473,27 +535,26 @@ export class BuilderRuntime {
       this.sliders,
       key,
       () => {
-        let cell!: SliderCell
-        cell = {
-          rect,
-          min: node.min,
-          max: node.max,
-          value: node.value,
-          active,
-          disabled: node.disabled ?? false,
-          onChange: node.onChange,
-          used: false,
-          widget: new Slider({
-            rect: () => cell.active ? cell.rect : ZERO_RECT,
-            min: () => cell.min,
-            max: () => cell.max,
-            value: () => cell.value,
-            onChange: (next) => cell.onChange?.(next),
-            active: () => cell.active,
-            disabled: () => cell.disabled,
-          }),
-        }
-        return cell
+        return this.initWidgetCell<SliderCell>(
+          {
+            rect,
+            min: node.min,
+            max: node.max,
+            value: node.value,
+            active,
+            disabled: node.disabled ?? false,
+            onChange: node.onChange,
+            used: false,
+          },
+          (cell) =>
+            new Slider({
+              ...this.widgetRuntime(cell),
+              min: () => cell.min,
+              max: () => cell.max,
+              value: () => cell.value,
+              onChange: (next) => cell.onChange?.(next),
+            }),
+        )
       },
       active,
       (cell) => {

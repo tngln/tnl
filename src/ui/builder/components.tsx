@@ -5,6 +5,7 @@ import {
   buttonNode,
   checkboxNode,
   clickAreaNode,
+  dropdownNode,
   column,
   formRow,
   paintNode,
@@ -68,6 +69,12 @@ type ClickAreaProps = JSXNodeProps & {
 type CheckboxProps = JSXNodeProps & {
   label?: string
   checked: Signal<boolean>
+  disabled?: boolean
+}
+
+type DropdownProps = Omit<JSXNodeProps, "children"> & {
+  options: Array<{ value: string; label: string }>
+  selected: Signal<string>
   disabled?: boolean
 }
 
@@ -266,6 +273,10 @@ export function ClickArea(props: ClickAreaProps) {
 
 export function Checkbox(props: CheckboxProps) {
   return checkboxNode(props.label ?? resolveTextContent(props), props.checked, { ...common(props), disabled: props.disabled })
+}
+
+export function Dropdown(props: DropdownProps) {
+  return dropdownNode(props.options, props.selected, { ...common(props), disabled: props.disabled })
 }
 
 export function Radio(props: RadioProps) {

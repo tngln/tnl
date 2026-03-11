@@ -5,7 +5,7 @@ import { theme } from "../../config/theme"
 import { PointerUIEvent, UIElement, pointInRect, type Rect } from "../base/ui"
 import type { RowVariant } from "./row"
 
-export const TREE_ROW_HEIGHT = 22
+export const TREE_ROW_HEIGHT = theme.ui.controls.treeRowHeight
 export const TREE_ROW_INDENT_STEP = 12
 export const TREE_ROW_DISCLOSURE_SLOT = 12
 const TREE_ROW_DISCLOSURE_GAP = 4

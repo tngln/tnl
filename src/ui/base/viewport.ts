@@ -249,6 +249,7 @@ export class ViewportElement extends UIElement {
     const s = this.target
     if (!s) return
     const { viewport: vp, local } = this.localPointFromPointer(e)
+    ;(s as any).lightDismiss?.(local)
     const hit = s.hitTest?.(local, vp) ?? null
     if (hit && hit !== this.hover) {
       this.hover?.onPointerLeave()

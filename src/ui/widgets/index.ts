@@ -1,6 +1,8 @@
 export { InteractiveElement } from "./interactive"
 export { Button } from "./button"
 export { ClickArea } from "./click_area"
+export { Dropdown, type DropdownOption } from "./dropdown"
+export { DropdownMenu, type DropdownMenuOption } from "./dropdown_menu"
 export { Label } from "./label"
 export { Paragraph } from "./paragraph"
 export { Checkbox } from "./checkbox"

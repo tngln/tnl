@@ -2,7 +2,7 @@ import { theme } from "../../config/theme"
 import type { Signal } from "../../core/reactivity"
 import type { RichTextSpan } from "../../core/draw.text"
 import type { LayoutStyle } from "../../core/layout"
-import type { BuilderNode, ButtonNode, CheckboxNode, ClickAreaNode, CommonNodeProps, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, TextBoxNode, TextNode, TreeItem, TreeViewNode } from "./types"
+import type { BuilderNode, ButtonNode, CheckboxNode, ClickAreaNode, CommonNodeProps, DropdownNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, TextBoxNode, TextNode, TreeItem, TreeViewNode } from "./types"
 
 type NodeBase = Omit<CommonNodeProps, "style">
 
@@ -40,6 +40,10 @@ export function clickAreaNode(opts: Omit<ClickAreaNode, "kind"> = {}): BuilderNo
 
 export function checkboxNode(label: string, checked: Signal<boolean>, opts: Omit<CheckboxNode, "kind" | "label" | "checked"> = {}): BuilderNode {
   return { kind: "checkbox", label, checked, ...opts }
+}
+
+export function dropdownNode(options: DropdownNode["options"], selected: Signal<string>, opts: Omit<DropdownNode, "kind" | "options" | "selected"> = {}): BuilderNode {
+  return { kind: "dropdown", options, selected, ...opts }
 }
 
 export function radioNode(label: string, value: string, selected: Signal<string>, opts: Omit<RadioNode, "kind" | "label" | "value" | "selected"> = {}): BuilderNode {

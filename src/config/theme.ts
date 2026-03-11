@@ -42,6 +42,15 @@ export type Theme = {
   ui: {
     titleBarHeight: number
     closeButtonPad: number
+    controls: {
+      buttonHeight: number
+      inputHeight: number
+      choiceHeight: number
+      rowHeight: number
+      treeRowHeight: number
+      menuItemHeight: number
+      minFieldWidth: number
+    }
   }
 }
 
@@ -93,5 +102,14 @@ export const theme: Theme = {
   ui: {
     titleBarHeight: 32,
     closeButtonPad: 6,
+    controls: {
+      buttonHeight: 32,
+      inputHeight: 28,
+      choiceHeight: 24,
+      rowHeight: 22,
+      treeRowHeight: 22,
+      menuItemHeight: 22,
+      minFieldWidth: 160,
+    },
   },
 }
