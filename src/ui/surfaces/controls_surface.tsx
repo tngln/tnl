@@ -26,11 +26,11 @@ export const ControlsSurface = defineSurface({
             label="Actions"
             labelWidth={64}
             field={
-              <Button key="controls.button" text={`Button (${clicks.peek()})`} style={{ fixed: 140 }} onClick={() => clicks.set((v) => v + 1)} />
+              <Button key="controls.button" text={`Button (${clicks.get()})`} style={{ fixed: 140 }} onClick={() => clicks.set((v) => v + 1)} />
             }
           />
           <Text key="controls.status" tone="muted" style={{ margin: { l: 74, t: 4, r: 0, b: 0 } }}>
-            {`Checked: ${checked.peek() ? "true" : "false"}, Radio: ${radio.peek()}, Input: ${input.peek() || "(empty)"}`}
+            {`Checked: ${checked.get() ? "true" : "false"}, Radio: ${radio.get()}, Input: ${input.get() || "(empty)"}`}
           </Text>
           <FormRow
             key="controls.input"
@@ -42,7 +42,7 @@ export const ControlsSurface = defineSurface({
             key="controls.label"
             label="Label"
             labelWidth={64}
-            field={<Text key="controls.input.label">{input.peek() || "(empty)"}</Text>}
+            field={<Text key="controls.input.label">{input.get() || "(empty)"}</Text>}
           />
           <Spacer style={{ fixed: 6 }} />
           <Checkbox key="controls.checkbox" checked={checked}>Checkbox: enable something</Checkbox>

@@ -31,10 +31,28 @@ function clampSelection(value: string, selectionStart: number, selectionEnd: num
   return { selectionStart: start, selectionEnd: end }
 }
 
+function normalizeState(state: OnePxTextboxState): OnePxTextboxState {
+  const selection = clampSelection(state.value, state.selectionStart, state.selectionEnd)
+  return {
+    value: state.value,
+    selectionStart: selection.selectionStart,
+    selectionEnd: selection.selectionEnd,
+  }
+}
+
+function sameState(a: OnePxTextboxState | null, b: OnePxTextboxState | null) {
+  if (!a || !b) return false
+  return a.value === b.value && a.selectionStart === b.selectionStart && a.selectionEnd === b.selectionEnd
+}
+
 function applyInputState(input: HTMLInputElement, state: OnePxTextboxSyncState) {
   if (input.value !== state.value) input.value = state.value
   const selection = clampSelection(state.value, state.selectionStart, state.selectionEnd)
-  input.setSelectionRange(selection.selectionStart, selection.selectionEnd)
+  const currentStart = input.selectionStart ?? 0
+  const currentEnd = input.selectionEnd ?? currentStart
+  if (currentStart !== selection.selectionStart || currentEnd !== selection.selectionEnd) {
+    input.setSelectionRange(selection.selectionStart, selection.selectionEnd)
+  }
 
   const caretRect = state.caretRectCss
   if (caretRect) {
@@ -50,6 +68,17 @@ function createBridge(): OnePxTextboxBridge {
   let input: HTMLInputElement | null = null
   let current: OnePxTextboxSession | null = null
   let focusToken = 0
+  let suppressNotify = 0
+  let lastForwardedState: OnePxTextboxState | null = null
+
+  const withSuppressedNotify = <T>(run: () => T) => {
+    suppressNotify += 1
+    try {
+      return run()
+    } finally {
+      suppressNotify -= 1
+    }
+  }
 
   const scheduleFocus = (node: HTMLInputElement, sessionId: string, state: OnePxTextboxSyncState) => {
     const token = ++focusToken
@@ -57,7 +86,7 @@ function createBridge(): OnePxTextboxBridge {
       if (token !== focusToken) return
       if (!current || current.id !== sessionId) return
       node.focus({ preventScroll: true })
-      applyInputState(node, state)
+      withSuppressedNotify(() => applyInputState(node, state))
     }, 0)
   }
 
@@ -86,12 +115,16 @@ function createBridge(): OnePxTextboxBridge {
     input = node
 
     const notifyState = () => {
+      if (suppressNotify > 0) return
       if (!current || !input) return
-      current.onStateChange({
+      const next = normalizeState({
         value: input.value,
         selectionStart: input.selectionStart ?? 0,
         selectionEnd: input.selectionEnd ?? input.selectionStart ?? 0,
       })
+      if (sameState(lastForwardedState, next)) return
+      lastForwardedState = next
+      current.onStateChange(next)
     }
 
     input.addEventListener("input", notifyState)
@@ -99,6 +132,7 @@ function createBridge(): OnePxTextboxBridge {
     input.addEventListener("blur", () => {
       const session = current
       current = null
+      lastForwardedState = null
       session?.onBlur?.()
     })
     return input
@@ -108,8 +142,9 @@ function createBridge(): OnePxTextboxBridge {
     focus(session, state) {
       const node = ensureInput()
       current = session
+      lastForwardedState = normalizeState(state)
       if (!node) return
-      applyInputState(node, state)
+      withSuppressedNotify(() => applyInputState(node, state))
       scheduleFocus(node, session.id, state)
     },
 
@@ -117,7 +152,8 @@ function createBridge(): OnePxTextboxBridge {
       if (!current || current.id !== sessionId) return
       const node = ensureInput()
       if (!node) return
-      applyInputState(node, state)
+      lastForwardedState = normalizeState(state)
+      withSuppressedNotify(() => applyInputState(node, state))
       if (typeof document !== "undefined" && document.activeElement !== node) {
         scheduleFocus(node, sessionId, state)
       }
@@ -128,6 +164,7 @@ function createBridge(): OnePxTextboxBridge {
       const node = ensureInput()
       focusToken += 1
       current = null
+      lastForwardedState = null
       node?.blur()
     },
 

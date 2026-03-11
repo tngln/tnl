@@ -139,4 +139,27 @@ describe("1px textbox bridge", () => {
       expect(bridge.isFocused("session-blur")).toBe(false)
     })
   })
+
+  it("does not echo synthetic select notifications triggered by sync", () => {
+    withFakeDocument((input) => {
+      const bridge = get1pxTextboxBridge()
+      let calls = 0
+      bridge.focus(
+        {
+          id: "session-sync",
+          onStateChange() {
+            calls += 1
+          },
+        },
+        { value: "hello", selectionStart: 5, selectionEnd: 5 },
+      )
+
+      bridge.sync("session-sync", { value: "hello", selectionStart: 1, selectionEnd: 3 })
+      input.dispatch("select")
+
+      expect(calls).toBe(0)
+      expect(input.selectionStart).toBe(1)
+      expect(input.selectionEnd).toBe(3)
+    })
+  })
 })

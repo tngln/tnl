@@ -1,3 +1,5 @@
+import { effect } from "../../core/reactivity"
+import { invalidateAll } from "../invalidate"
 import { createMeasureContext } from "../../platform/web/canvas"
 import { SurfaceRoot, type Surface, type ViewportContext } from "../base/viewport"
 import { WheelUIEvent, type DebugTreeNodeSnapshot, type Vec2 } from "../base/ui"
@@ -64,11 +66,21 @@ export class BuilderSurface implements Surface {
   readonly id: string
   private readonly tree: BuilderTreeSurface
   private readonly build: () => BuilderNode
+  private readonly stopWatching: () => void
 
   constructor(opts: { id: string; build: () => BuilderNode }) {
     this.id = opts.id
     this.tree = new BuilderTreeSurface(opts.id)
     this.build = opts.build
+    let ready = false
+    this.stopWatching = effect(() => {
+      this.build()
+      if (!ready) {
+        ready = true
+        return
+      }
+      invalidateAll()
+    })
   }
 
   contentSize(viewportSize: Vec2) {
@@ -104,6 +116,7 @@ export class FunctionalBuilderSurface<P> implements MountedSurface<P> {
   private readonly tree: BuilderTreeSurface
   private readonly renderNode: (props: P) => BuilderNode
   private props: P
+  private readonly stopWatching: () => void
 
   constructor(opts: { id: string; props: P; setup: SurfaceSetup<P> }) {
     this.id = opts.id
@@ -111,6 +124,15 @@ export class FunctionalBuilderSurface<P> implements MountedSurface<P> {
     this.props = opts.props
     const result = opts.setup(opts.props)
     this.renderNode = typeof result === "function" ? result : result.render
+    let ready = false
+    this.stopWatching = effect(() => {
+      this.buildNode()
+      if (!ready) {
+        ready = true
+        return
+      }
+      invalidateAll()
+    })
   }
 
   setProps(props: P) {

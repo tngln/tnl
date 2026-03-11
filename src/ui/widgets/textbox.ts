@@ -41,7 +41,8 @@ export class TextBox extends UIElement {
   private scrollX = 0
   private readonly measureCtx = createMeasureContext()
   private caretVisible = false
-  private caretBlinkTimer: ReturnType<typeof setInterval> | null = null
+  private caretBlinkTimer: ReturnType<typeof setTimeout> | null = null
+  private caretBlinkHoldUntil = 0
 
   constructor(opts: {
     rect: () => Rect
@@ -377,24 +378,55 @@ export class TextBox extends UIElement {
   }
 
   private resetCaretBlink() {
-    this.caretVisible = true
-    if (this.caretBlinkTimer !== null) clearInterval(this.caretBlinkTimer)
-    this.caretBlinkTimer = setInterval(() => {
-      if (!this.focused) {
-        this.stopCaretBlink()
-        return
-      }
-      this.caretVisible = !this.caretVisible
-      this.invalidateSelf({ pad: 6 })
-    }, CARET_BLINK_MS)
+    this.caretBlinkHoldUntil = Date.now() + CARET_BLINK_MS
+    this.updateCaretBlinkState(true)
+    this.scheduleCaretBlink()
   }
 
   private stopCaretBlink() {
     if (this.caretBlinkTimer !== null) {
-      clearInterval(this.caretBlinkTimer)
+      clearTimeout(this.caretBlinkTimer)
       this.caretBlinkTimer = null
     }
     this.caretVisible = false
+    this.caretBlinkHoldUntil = 0
+  }
+
+  private scheduleCaretBlink() {
+    if (this.caretBlinkTimer !== null) clearTimeout(this.caretBlinkTimer)
+    if (!this.focused) {
+      this.caretBlinkTimer = null
+      return
+    }
+    const now = Date.now()
+    const nextAt = this.nextCaretBlinkAt(now)
+    const delay = Math.max(16, nextAt - now)
+    this.caretBlinkTimer = setTimeout(() => {
+      this.caretBlinkTimer = null
+      if (!this.focused) {
+        this.stopCaretBlink()
+        return
+      }
+      this.updateCaretBlinkState()
+      this.scheduleCaretBlink()
+    }, delay)
+  }
+
+  private nextCaretBlinkAt(now: number) {
+    if (now < this.caretBlinkHoldUntil) return this.caretBlinkHoldUntil
+    const elapsed = now - this.caretBlinkHoldUntil
+    const phase = Math.floor(elapsed / CARET_BLINK_MS)
+    return this.caretBlinkHoldUntil + (phase + 1) * CARET_BLINK_MS
+  }
+
+  private updateCaretBlinkState(forceVisible = false) {
+    const now = Date.now()
+    const nextVisible = forceVisible || now < this.caretBlinkHoldUntil
+      ? true
+      : Math.floor((now - this.caretBlinkHoldUntil) / CARET_BLINK_MS) % 2 === 1
+    if (this.caretVisible === nextVisible) return
+    this.caretVisible = nextVisible
+    this.invalidateSelf({ pad: 6 })
   }
 
   onRuntimeDeactivate() {

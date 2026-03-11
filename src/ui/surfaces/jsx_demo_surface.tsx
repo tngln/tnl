@@ -14,7 +14,7 @@ export const JsxDemoSurface = defineSurface({
         <ToolbarRow>
           <Text color={theme.colors.textPrimary} emphasis={{ bold: true }}>JSX Builder Demo</Text>
           <Spacer style={{ fill: true }} />
-          <Text color={theme.colors.textMuted}>{`Clicks: ${clicks.peek()}`}</Text>
+          <Text color={theme.colors.textMuted}>{`Clicks: ${clicks.get()}`}</Text>
         </ToolbarRow>
         <Section title="Authoring">
           <Text color={theme.colors.textMuted}>This surface exists to validate TSX authoring on top of BuilderNode.</Text>

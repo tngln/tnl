@@ -135,7 +135,36 @@ describe("surface builder", () => {
     surface.render(ctx, viewport)
 
     expect(setupCount).toBe(1)
-    expect(seen).toEqual(["alpha", "beta"])
+    expect(seen.at(-1)).toBe("beta")
+    expect(seen.filter((label) => label === "beta")).toHaveLength(1)
+  })
+
+  it("invalidates mounted surfaces when tracked signals change", () => {
+    const clicks = signal(0)
+    const DemoSurface = defineSurface<{}>({
+      id: "Demo.Reactive",
+      setup: () => () => buttonNode(`Count:${clicks.get()}`, { key: "btn" }),
+    })
+
+    const prevDevtools = (globalThis as any).__TNL_DEVTOOLS__
+    let invalidations = 0
+    ;(globalThis as any).__TNL_DEVTOOLS__ = {
+      ...(prevDevtools ?? {}),
+      invalidate: () => {
+        invalidations += 1
+      },
+    }
+
+    try {
+      mountSurface(DemoSurface, {})
+      expect(invalidations).toBe(0)
+      clicks.set(1)
+      expect(invalidations).toBe(1)
+      clicks.set(2)
+      expect(invalidations).toBe(2)
+    } finally {
+      ;(globalThis as any).__TNL_DEVTOOLS__ = prevDevtools
+    }
   })
 
   it("applies inherited text style from parent containers", () => {
