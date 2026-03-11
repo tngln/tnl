@@ -8,7 +8,7 @@ import { TREE_ROW_HEIGHT } from "../widgets"
 import { textFont } from "./text"
 import { inheritedTextToRichTextStyle, resolveTextColor, resolveTextEmphasis, resolveTextStyle } from "./styles"
 import type { BuilderEngine } from "./engine"
-import type { AstNode, BuilderNode, ButtonNode, CheckboxNode, ContainerNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, SpacerNode, TextBoxNode, TextNode, TreeViewNode } from "./types"
+import type { AstNode, BuilderNode, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, SpacerNode, TextBoxNode, TextNode, TreeViewNode } from "./types"
 import { flattenTreeItems } from "./runtime"
 
 export type MeasureSize = { w: number; h: number }
@@ -111,6 +111,14 @@ const buttonHandler: BuilderNodeHandler<ButtonNode> = {
   },
   mount: (engine, _ctx, node, ast, path, active) => {
     engine.runtime.mountButton(path, ast.rect ?? ZERO_RECT, node, active)
+  },
+}
+
+const clickAreaHandler: BuilderNodeHandler<ClickAreaNode> = {
+  kind: "clickArea",
+  measure: () => ({ w: 0, h: 0 }),
+  mount: (engine, _ctx, node, ast, path, active) => {
+    engine.runtime.mountClickArea(path, ast.rect ?? ZERO_RECT, node, active)
   },
 }
 
@@ -226,6 +234,7 @@ export function createDefaultBuilderRegistry() {
   registry.register(textHandler)
   registry.register(richTextHandler)
   registry.register(buttonHandler)
+  registry.register(clickAreaHandler)
   registry.register(checkboxHandler)
   registry.register(radioHandler)
   registry.register(textBoxHandler)

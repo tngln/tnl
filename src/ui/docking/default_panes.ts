@@ -1,5 +1,6 @@
 import type { DeveloperContext } from "../window/developer"
 import { createDeveloperToolsSurface, DEVELOPER_WINDOW_ID } from "../window/developer/developer_tools_window"
+import { createExplorerSurface, EXPLORER_WINDOW_ID } from "../window/explorer_window"
 import { createPlaybackToolSurface, PLAYBACK_TOOL_WINDOW_ID } from "../window/playback_tool_window"
 import { createTimecodeToolSurface, TIMECODE_TOOL_WINDOW_ID } from "../window/timecode_tool_window"
 import { createTimelineToolSurface, TIMELINE_TOOL_WINDOW_ID } from "../window/timeline_tool_window"
@@ -58,6 +59,12 @@ export function createDefaultDockablePanes(ctx: DeveloperContext): DockablePaneI
       surface: createDeveloperToolsSurface(ctx),
       floatingRect: { x: 120, y: 100, w: 720, h: 480 },
       dragImage: () => makePaneDragImage("Developer"),
+    },
+    {
+      id: EXPLORER_WINDOW_ID,
+      surface: createExplorerSurface(),
+      floatingRect: { x: 160, y: 140, w: 860, h: 560 },
+      dragImage: () => makePaneDragImage("Explorer"),
     },
     {
       id: TOOLS_DIALOG_ID,

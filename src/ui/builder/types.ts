@@ -76,6 +76,12 @@ export type ButtonNode = NodeBase & {
   disabled?: boolean
 }
 
+export type ClickAreaNode = NodeBase & {
+  kind: "clickArea"
+  onClick?: () => void
+  disabled?: boolean
+}
+
 export type CheckboxNode = NodeBase & {
   kind: "checkbox"
   label: string
@@ -153,6 +159,7 @@ export type BuilderNode =
   | TextNode
   | RichTextNode
   | ButtonNode
+  | ClickAreaNode
   | CheckboxNode
   | RadioNode
   | TextBoxNode

@@ -1,5 +1,6 @@
 export { InteractiveElement } from "./interactive"
 export { Button } from "./button"
+export { ClickArea } from "./click_area"
 export { Label } from "./label"
 export { Paragraph } from "./paragraph"
 export { Checkbox } from "./checkbox"

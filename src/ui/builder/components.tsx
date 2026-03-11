@@ -4,6 +4,7 @@ import type { LayoutStyle } from "../../core/layout"
 import {
   buttonNode,
   checkboxNode,
+  clickAreaNode,
   column,
   formRow,
   paintNode,
@@ -55,6 +56,11 @@ type RichTextProps = Omit<JSXNodeProps, "children"> & {
 type ButtonProps = JSXNodeProps & {
   text?: string
   title?: string
+  onClick?: () => void
+  disabled?: boolean
+}
+
+type ClickAreaProps = JSXNodeProps & {
   onClick?: () => void
   disabled?: boolean
 }
@@ -252,6 +258,10 @@ export function RichText(props: RichTextProps) {
 
 export function Button(props: ButtonProps) {
   return buttonNode(props.text ?? resolveTextContent(props), { ...common(props), title: props.title, onClick: props.onClick, disabled: props.disabled })
+}
+
+export function ClickArea(props: ClickAreaProps) {
+  return clickAreaNode({ ...common(props), onClick: props.onClick, disabled: props.disabled })
 }
 
 export function Checkbox(props: CheckboxProps) {

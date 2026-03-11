@@ -9,6 +9,7 @@ import { WindowManager } from "./ui/window/window_manager"
 import { CanvasUI } from "./ui/base/ui"
 import { ABOUT_DIALOG_ID, createAboutDialog } from "./ui/window/about_dialog"
 import { DEVELOPER_WINDOW_ID } from "./ui/window/developer/developer_tools_window"
+import { EXPLORER_WINDOW_ID } from "./ui/window/explorer_window"
 import { PLAYBACK_TOOL_WINDOW_ID } from "./ui/window/playback_tool_window"
 import { TIMECODE_TOOL_WINDOW_ID } from "./ui/window/timecode_tool_window"
 import { unionRect } from "./core/rect"
@@ -130,6 +131,14 @@ shortcuts.registerCommand({
 })
 
 shortcuts.registerCommand({
+  id: "workspace.activateExplorer",
+  run(ctx) {
+    ctx.docking.activatePane(EXPLORER_WINDOW_ID)
+    ctx.ui.invalidate()
+  },
+})
+
+shortcuts.registerCommand({
   id: "workspace.activateTools",
   run(ctx) {
     ctx.docking.activatePane(TOOLS_DIALOG_ID)
@@ -163,6 +172,7 @@ shortcuts.registerCommand({
 
 shortcuts.registerBinding({ command: "app.toggleAbout", context: "global", trigger: { kind: "key-down", code: "F1" } })
 shortcuts.registerBinding({ command: "workspace.activateDeveloper", context: "global", trigger: { kind: "key-down", code: "F2" } })
+shortcuts.registerBinding({ command: "workspace.activateExplorer", context: "global", trigger: { kind: "key-down", code: "F7" } })
 shortcuts.registerBinding({ command: "workspace.activateTools", context: "global", trigger: { kind: "key-down", code: "F3" } })
 shortcuts.registerBinding({ command: "workspace.activateTimeline", context: "global", trigger: { kind: "key-down", code: "F4" } })
 shortcuts.registerBinding({ command: "workspace.activatePlayback", context: "global", trigger: { kind: "key-down", code: "F5" } })
@@ -174,6 +184,7 @@ const firstPaneId = DEVELOPER_WINDOW_ID
 docking.dockPane(firstPaneId, workspaceId, null, "center")
 const leftLeafId = firstLeaf(docking.getRoot(workspaceId))?.id ?? null
 if (leftLeafId) docking.dockPane(TOOLS_DIALOG_ID, workspaceId, leftLeafId, "center")
+if (leftLeafId) docking.dockPane(EXPLORER_WINDOW_ID, workspaceId, leftLeafId, "center")
 if (leftLeafId) docking.dockPane(TIMELINE_TOOL_WINDOW_ID, workspaceId, leftLeafId, "right")
 const timelineLeafId = findLeafByPane(docking.getRoot(workspaceId), TIMELINE_TOOL_WINDOW_ID)?.id ?? null
 if (timelineLeafId) docking.dockPane(PLAYBACK_TOOL_WINDOW_ID, workspaceId, timelineLeafId, "bottom")

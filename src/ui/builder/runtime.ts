@@ -4,7 +4,7 @@ import { ZERO_RECT } from "../../core/rect"
 import { createMeasureContext } from "../../platform/web/canvas"
 import { SurfaceRoot, ViewportElement, type Surface } from "../base/viewport"
 import { UIElement, WheelUIEvent, type Rect, type Vec2 } from "../base/ui"
-import { Button, Checkbox, Radio, Row, Scrollbar, Slider, TextBox, TreeRow, TREE_ROW_HEIGHT } from "../widgets"
+import { Button, Checkbox, ClickArea, Radio, Row, Scrollbar, Slider, TextBox, TreeRow, TREE_ROW_HEIGHT } from "../widgets"
 import { clamp } from "./utils"
 import type { BuilderNode, TreeItem, TreeViewNode } from "./types"
 
@@ -20,6 +20,15 @@ type ButtonCell = {
   rect: Rect
   text: string
   title?: string
+  active: boolean
+  disabled: boolean
+  onClick?: () => void
+  used: boolean
+}
+
+type ClickAreaCell = {
+  widget: ClickArea
+  rect: Rect
   active: boolean
   disabled: boolean
   onClick?: () => void
@@ -171,6 +180,7 @@ class BuilderScrollAreaElement extends UIElement {
 export class BuilderRuntime {
   readonly root = new SurfaceRoot()
   private readonly buttons = new Map<string, ButtonCell>()
+  private readonly clickAreas = new Map<string, ClickAreaCell>()
   private readonly checkboxes = new Map<string, CheckboxCell>()
   private readonly radios = new Map<string, RadioCell>()
   private readonly textboxes = new Map<string, TextBoxCell>()
@@ -225,6 +235,7 @@ export class BuilderRuntime {
   debugCounts() {
     return {
       buttons: this.buttons.size,
+      clickAreas: this.clickAreas.size,
       checkboxes: this.checkboxes.size,
       radios: this.radios.size,
       textboxes: this.textboxes.size,
@@ -241,6 +252,7 @@ export class BuilderRuntime {
 
   beginFrame() {
     this.markAllUnused(this.buttons)
+    this.markAllUnused(this.clickAreas)
     this.markAllUnused(this.checkboxes)
     this.markAllUnused(this.radios)
     this.markAllUnused(this.textboxes)
@@ -252,6 +264,7 @@ export class BuilderRuntime {
 
   endFrame() {
     this.deactivateUnusedWidgetCells(this.buttons)
+    this.deactivateUnusedWidgetCells(this.clickAreas)
     this.deactivateUnusedWidgetCells(this.checkboxes)
     this.deactivateUnusedWidgetCells(this.radios)
     this.deactivateUnusedWidgetCells(this.textboxes)
@@ -319,6 +332,37 @@ export class BuilderRuntime {
         cell.disabled = node.disabled ?? false
         cell.onClick = node.onClick
       },
+    )
+  }
+
+  mountClickArea(key: string, rect: Rect, node: { disabled?: boolean; onClick?: () => void }, active: boolean) {
+    this.mountWidgetCell(
+      this.clickAreas,
+      key,
+      () => {
+        let cell!: ClickAreaCell
+        cell = {
+          rect,
+          active,
+          disabled: node.disabled ?? false,
+          onClick: node.onClick,
+          used: false,
+          widget: new ClickArea({
+            rect: () => cell.active ? cell.rect : ZERO_RECT,
+            onClick: () => cell.onClick?.(),
+            active: () => cell.active,
+            disabled: () => cell.disabled,
+          }),
+        }
+        return cell
+      },
+      active,
+      (cell) => {
+        cell.rect = rect
+        cell.disabled = node.disabled ?? false
+        cell.onClick = node.onClick
+      },
+      12,
     )
   }
 
