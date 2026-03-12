@@ -1,5 +1,6 @@
 import { theme } from "../../config/theme"
 import { draw, RRect } from "../../core/draw"
+import { AppError } from "../../core/errors"
 import { layout, measureLayout, type Rect as LayoutRect } from "../../core/layout"
 import { ZERO_RECT } from "../../core/rect"
 import type { Rect, Vec2 } from "../base/ui"
@@ -39,6 +40,14 @@ export class BuilderEngine {
     }
     const children = handler.getChildren?.(node as never)
     if (children) {
+      if (devGuardEnabled() && node.kind === "row" && children.some((c) => c.kind === "rowItem")) {
+        throw new AppError({
+          domain: "builder",
+          code: "InvalidNodeNesting",
+          message: "RowItem/ListRow cannot be nested inside Row/HStack; use Column for lists or render ListRow directly.",
+          details: { parent: node.kind, child: "rowItem", path },
+        })
+      }
       ast.children = children.filter(nodeVisible).map((child, index) => this.toAst(child, ctx, `${path}/${index}`, nextInherited))
     } else {
       ast.measure = (max) => handler.measure?.(this, ctx, node as never, max, path, ast) ?? { w: 0, h: 0 }
@@ -114,4 +123,9 @@ export type BuilderTreeSurfaceLike = {
   setWheelFallback(fn: any): void
   contentSize(viewportSize: Vec2): Vec2
   measureWithContext(ctx: CanvasRenderingContext2D, viewportSize: Vec2): Vec2
+}
+
+function devGuardEnabled() {
+  const v = (globalThis as any).__TNL_DEBUG_LEVEL__
+  return v === "debug" || v === "trace"
 }

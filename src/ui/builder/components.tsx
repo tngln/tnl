@@ -231,6 +231,10 @@ export function Row(props: ContainerProps) {
   return row(resolveChildren(props), props.style, common(props))
 }
 
+export function HStack(props: ContainerProps) {
+  return Row(props)
+}
+
 export function Stack(props: ContainerProps) {
   return stack(resolveChildren(props), props.style, common(props))
 }
@@ -289,6 +293,10 @@ export function TextBox(props: TextBoxProps) {
 
 export function RowItem(props: RowItemProps) {
   return rowItemNode({ ...common(props), leftText: props.leftText, rightText: props.rightText, indent: props.indent, variant: props.variant, selected: props.selected, onClick: props.onClick })
+}
+
+export function ListRow(props: RowItemProps) {
+  return RowItem(props)
 }
 
 export function ScrollArea(props: ScrollAreaProps) {

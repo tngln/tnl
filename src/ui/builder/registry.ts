@@ -191,7 +191,7 @@ const textBoxHandler: BuilderNodeHandler<TextBoxNode> = {
 
 const rowItemHandler: BuilderNodeHandler<RowNode> = {
   kind: "rowItem",
-  measure: () => ({ w: Number.POSITIVE_INFINITY, h: theme.ui.controls.rowHeight }),
+  measure: (_engine, _ctx, _node, max) => ({ w: max.w, h: theme.ui.controls.rowHeight }),
   mount: (engine, _ctx, node, ast, path, active) => {
     engine.runtime.mountRow(path, ast.rect ?? ZERO_RECT, node, active)
   },

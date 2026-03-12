@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import { signal } from "../../core/reactivity"
 import { theme } from "../../config/theme"
-import { BuilderSurface, buttonNode, checkboxNode, column, defineSurface, flattenTreeItems, mountSurface, richTextNode, rowItemNode, scrollAreaNode, textBoxNode, textNode, treeItem, treeViewNode } from "./surface_builder"
+import { BuilderSurface, buttonNode, checkboxNode, column, defineSurface, flattenTreeItems, mountSurface, richTextNode, row, rowItemNode, scrollAreaNode, textBoxNode, textNode, treeItem, treeViewNode } from "./surface_builder"
 import { PointerUIEvent } from "../base/ui"
 import { fakeCtx, withFakeDocument } from "./test_utils"
 
@@ -69,6 +69,50 @@ describe("surface builder", () => {
       const size = surface.contentSize({ x: 180, y: 40 })
       expect(size.y).toBeGreaterThan(40)
     })
+  })
+
+  it("keeps row items visible when nested in row containers", () => {
+    const surface = new BuilderSurface({
+      id: "Builder.RowItem.Nesting",
+      build: () => column([row([rowItemNode({ key: "r1", leftText: "Nested" })])], { axis: "column" }),
+    })
+    const ctx = fakeCtx()
+    const viewport = {
+      rect: { x: 0, y: 0, w: 240, h: 120 },
+      contentRect: { x: 0, y: 0, w: 240, h: 120 },
+      clip: false,
+      scroll: { x: 0, y: 0 },
+      toSurface: (p: { x: number; y: number }) => p,
+      dpr: 1,
+    }
+    surface.render(ctx, viewport)
+    const snapshot = surface.debugSnapshot()
+    const rowNodes: any[] = []
+    const visit = (n: any) => {
+      if (n?.type === "Row") rowNodes.push(n)
+      for (const c of n?.children ?? []) visit(c)
+    }
+    visit(snapshot)
+    expect(rowNodes.length).toBeGreaterThan(0)
+    const bounds = rowNodes[0]!.bounds
+    expect(bounds.w).toBeGreaterThan(0)
+    expect(bounds.h).toBeGreaterThan(0)
+  })
+
+  it("guards against rowItem nested in row when debug level is enabled", () => {
+    const prev = (globalThis as any).__TNL_DEBUG_LEVEL__
+    ;(globalThis as any).__TNL_DEBUG_LEVEL__ = "debug"
+    try {
+      const surface = new BuilderSurface({
+        id: "Builder.RowItem.Guard",
+        build: () => column([row([rowItemNode({ key: "r1", leftText: "Nested" })])], { axis: "column" }),
+      })
+      withFakeDocument(() => {
+        expect(() => surface.contentSize({ x: 240, y: 120 })).toThrow()
+      })
+    } finally {
+      ;(globalThis as any).__TNL_DEBUG_LEVEL__ = prev
+    }
   })
 
   it("runs setup once per mounted instance and preserves instance-local state", () => {

@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "../../../jsx"
-import { Button, Column, PanelColumn, PanelScroll, PanelSection, PanelToolbar, RowItem, Spacer, Text, TextBox } from "../../../builder/components"
+import { Button, Column, ListRow, PanelColumn, PanelScroll, PanelSection, PanelToolbar, Spacer, Text, TextBox } from "../../../builder/components"
 import { defineSurface, mountSurface } from "../../../builder/surface_builder"
 import { signal } from "../../../../core/reactivity"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
@@ -127,7 +127,7 @@ export const SurfacePanelSurface = defineSurface<Props>({
               {visible.map((l: DebugLayerInfo) => {
                 const right = `${l.tag?.surfaceId ? l.tag.surfaceId : "-"} · ${l.wCss}×${l.hCss}@${l.dpr}`
                 return (
-                  <RowItem
+                  <ListRow
                     key={`surface.item.${l.id}`}
                     leftText={String(l.id)}
                     rightText={right}
