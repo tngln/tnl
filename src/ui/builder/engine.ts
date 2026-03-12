@@ -61,8 +61,8 @@ export class BuilderEngine {
     layout(ast, outer)
     this.mountAst(ctx, ast, "root")
     for (const op of this.drawOps) op(ctx)
-    this.runtime.root.draw(ctx)
     this.runtime.endFrame()
+    this.runtime.root.draw(ctx)
   }
 
   private mountAst(ctx: CanvasRenderingContext2D, ast: AstNode, path: string) {

@@ -121,6 +121,28 @@ class OverlappingCursorElement extends UIElement {
   }
 }
 
+class OcclusionLayer extends UIElement {
+  bounds(): Rect {
+    return { x: 0, y: 0, w: 100, h: 100 }
+  }
+}
+
+class OcclusionCursorRoot extends UIElement {
+  constructor() {
+    super()
+    const lower = new CursorElement({ x: 70, y: 70, w: 20, h: 20 }, "nwse-resize")
+    lower.z = 1
+    const upper = new OcclusionLayer()
+    upper.z = 2
+    this.add(lower)
+    this.add(upper)
+  }
+
+  bounds(): Rect {
+    return { x: -1000, y: -1000, w: 2000, h: 2000 }
+  }
+}
+
 describe("canvas ui pointer cancel", () => {
   it("cancels active capture on pointercancel and clears capture", () => {
     withFakeDom({ canvasRect: { width: 200, height: 120 }, includeDocumentCreateElement: false, trackPointerCapture: true }, ({ canvas, windowHost }) => {
@@ -182,6 +204,18 @@ describe("canvas ui pointer cancel", () => {
 
       ;(canvas as any).dispatch("pointermove", pointerEvent(20, 20, 0))
       expect((canvas as any).style.cursor).toBe("nwse-resize")
+
+      ui.destroy()
+    })
+  })
+
+  it("does not adopt a cursor from an occluded sibling", () => {
+    withFakeDom({ canvasRect: { width: 200, height: 120 }, includeDocumentCreateElement: false }, ({ canvas }) => {
+      const root = new OcclusionCursorRoot()
+      const ui = new CanvasUI(canvas, root)
+
+      ;(canvas as any).dispatch("pointermove", pointerEvent(75, 75, 0))
+      expect((canvas as any).style.cursor).toBe("default")
 
       ui.destroy()
     })

@@ -956,6 +956,7 @@ export class CanvasUI {
       top = this.topLevelTargetOf(top)
       const cursor = p ? top.cursorAt(p, this.ctx) : null
       if (cursor) return cursor
+      if (p && pointInRect(p, top.bounds())) return "default"
       if (this.capture && targetOverride === undefined) return this.capture.captureCursor() ?? "default"
     }
     if (p) {

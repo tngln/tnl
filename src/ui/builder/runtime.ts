@@ -633,8 +633,19 @@ export class BuilderRuntime {
           rightText: row.item.meta,
           variant: row.item.variant ?? "item",
           selected: node.selectedId === row.item.id,
-          onSelect: node.onSelect ? () => node.onSelect?.(row.item.id) : undefined,
-          onToggle: row.expandable && node.onToggle ? () => node.onToggle?.(row.item.id) : undefined,
+          onSelect: node.onSelect
+            ? () => {
+                node.onSelect?.(row.item.id)
+                invalidateAll()
+              }
+            : undefined,
+          onToggle:
+            row.expandable && node.onToggle
+              ? () => {
+                  node.onToggle?.(row.item.id)
+                  invalidateAll()
+                }
+              : undefined,
         },
         active,
       )

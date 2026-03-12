@@ -1,4 +1,4 @@
-import { createElement, Fragment } from "../../../jsx"
+import { createElement } from "../../../jsx"
 import { Column, PanelColumn, PanelScroll, PanelSection, PanelToolbar, RichText, Spacer, Text } from "../../../builder/components"
 import { defineSurface, mountSurface } from "../../../builder/surface_builder"
 import type { DeveloperPanelSpec } from "../index"

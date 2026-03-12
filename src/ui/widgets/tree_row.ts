@@ -182,6 +182,7 @@ export class TreeRow extends UIElement {
     if (!this.hover) return
     if (this.layout.expandable && pointInRect({ x: e.x, y: e.y }, this.disclosureRect())) {
       this.onToggle?.()
+      this.invalidateSelf({ force: true })
       return
     }
     this.onSelect?.()
