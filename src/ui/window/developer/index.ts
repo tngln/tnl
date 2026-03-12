@@ -1,6 +1,7 @@
 import type { Surface } from "../../base/viewport"
 import type { DebugTreeNodeSnapshot } from "../../base/ui"
 import type { CodecRuntimeEntry } from "../../../core/codecs"
+import type { WorkerRuntimeEntry } from "../../../core/workers"
 import type { DockingControlApi } from "../../docking/manager"
 import type { WindowControlApi } from "../window_manager"
 import type { DebugBlitInfo, DebugLayerInfo } from "../../base/compositor"
@@ -18,7 +19,7 @@ export type DeveloperContext = {
   reactivity?: { list?: () => unknown }
   storage?: { opfs?: FileSystemDirectoryHandle }
   wm?: WindowControlApi
-  workers?: { list?: () => unknown[] }
+  workers?: { info?: () => unknown; list?: () => WorkerRuntimeEntry[] }
   codecs?: { info?: () => unknown; list?: () => CodecRuntimeEntry[] }
   surface?: {
     listLayers?: () => DebugLayerInfo[]

@@ -23,6 +23,24 @@ class BoxElement extends UIElement {
   }
 }
 
+class PointerElement extends UIElement {
+  bounds() {
+    return { x: 0, y: 0, w: 10, h: 10 }
+  }
+
+  onPointerDown() {}
+}
+
+class ClickElement extends UIElement {
+  bounds() {
+    return { x: 0, y: 0, w: 10, h: 10 }
+  }
+
+  protected debugListeners() {
+    return [{ id: "click", label: "Click" }]
+  }
+}
+
 describe("ui debug snapshots", () => {
   it("includes viewport targets as surface nodes in the tree", () => {
     const root = new BoxElement({ x: 0, y: 0, w: 320, h: 180 }, "Root")
@@ -44,5 +62,18 @@ describe("ui debug snapshots", () => {
       id: "Demo.Surface",
       label: "Demo.Surface",
     })
+  })
+
+  it("includes debug listeners for elements", () => {
+    const root = new BoxElement({ x: 0, y: 0, w: 320, h: 180 }, "Root")
+    const pointer = new PointerElement()
+    const click = new ClickElement()
+    root.add(pointer)
+    root.add(click)
+
+    const snapshot = root.debugSnapshot()
+    expect(snapshot.children).toHaveLength(2)
+    expect(snapshot.children[0].listeners?.map((l) => l.id)).toEqual(["pointer.down"])
+    expect(snapshot.children[1].listeners?.map((l) => l.id)).toEqual(["click"])
   })
 })

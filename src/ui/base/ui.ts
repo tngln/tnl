@@ -411,7 +411,14 @@ export type DebugTreeNodeSnapshot = {
   z?: number
   visible?: boolean
   meta?: string
+  listeners?: DebugEventListenerSnapshot[]
   children: DebugTreeNodeSnapshot[]
+}
+
+export type DebugEventListenerSnapshot = {
+  id: string
+  label: string
+  detail?: string
 }
 
 export abstract class UIElement {
@@ -490,18 +497,42 @@ export abstract class UIElement {
     return this.children.map((child) => child.debugSnapshot())
   }
 
+  protected debugListeners(): DebugEventListenerSnapshot[] | null {
+    return null
+  }
+
+  private inferDebugListeners(): DebugEventListenerSnapshot[] | null {
+    const out: DebugEventListenerSnapshot[] = []
+    const add = (id: string, label: string) => out.push({ id, label })
+    const overridden = (fn: keyof UIElement) => (this as any)[fn] !== (UIElement.prototype as any)[fn]
+    if (overridden("onPointerDown")) add("pointer.down", "Pointer Down")
+    if (overridden("onPointerMove")) add("pointer.move", "Pointer Move")
+    if (overridden("onPointerUp")) add("pointer.up", "Pointer Up")
+    if (overridden("onPointerCancel")) add("pointer.cancel", "Pointer Cancel")
+    if (overridden("onPointerEnter")) add("pointer.enter", "Pointer Enter")
+    if (overridden("onPointerLeave")) add("pointer.leave", "Pointer Leave")
+    if (overridden("onWheel")) add("wheel", "Wheel")
+    if (overridden("onKeyDown")) add("key.down", "Key Down")
+    if (overridden("onKeyUp")) add("key.up", "Key Up")
+    if (overridden("canFocus") || this.canFocus()) add("focus", "Focus")
+    return out.length ? out : null
+  }
+
   debugSnapshot(): DebugTreeNodeSnapshot {
     const described = this.debugDescribe()
+    const listeners = this.debugListeners() ?? this.inferDebugListeners()
     if (!described) {
       return {
         kind: "element",
         type: this.constructor.name || "UIElement",
         label: this.constructor.name || "UIElement",
+        listeners: listeners ?? undefined,
         children: this.debugChildren(),
       }
     }
     return {
       ...described,
+      listeners: listeners ?? undefined,
       children: this.debugChildren(),
     }
   }

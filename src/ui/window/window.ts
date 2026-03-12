@@ -4,7 +4,7 @@ import { draw, Line, Rect, Text } from "../../core/draw"
 import { clamp } from "../../core/rect"
 import { font, theme } from "../../config/theme"
 import { isSurfaceMountSpec, mountSurface, type SurfaceMountSpec } from "../builder/surface_builder"
-import { CursorRegion, pointInRect, type Rect as BoundsRect, type Vec2, PointerUIEvent, UIElement } from "../base/ui"
+import { CursorRegion, pointInRect, type DebugEventListenerSnapshot, type Rect as BoundsRect, type Vec2, PointerUIEvent, UIElement } from "../base/ui"
 import { ViewportElement, type Surface } from "../base/viewport"
 
 export type WindowSnapshot = {
@@ -729,6 +729,10 @@ class TitleBarButton extends UIElement {
     this.hover = false
     this.down = false
   }
+
+  protected debugListeners(): DebugEventListenerSnapshot[] | null {
+    return [{ id: "click", label: "Click" }]
+  }
 }
 
 class ResizeHandle extends UIElement {
@@ -801,6 +805,10 @@ class ResizeHandle extends UIElement {
   onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
     void reason
     this.resizing = false
+  }
+
+  protected debugListeners(): DebugEventListenerSnapshot[] | null {
+    return [{ id: "drag.resize", label: "Drag (resize)" }]
   }
 }
 

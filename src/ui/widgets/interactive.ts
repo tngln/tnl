@@ -1,7 +1,7 @@
 import { ZERO_RECT, type Rect } from "../../core/rect"
 import type { InteractionCancelReason } from "../../core/event_stream"
 import { createPressMachine } from "../../core/fsm"
-import { PointerUIEvent, UIElement, pointInRect, type Vec2 } from "../base/ui"
+import { PointerUIEvent, UIElement, pointInRect, type DebugEventListenerSnapshot, type Vec2 } from "../base/ui"
 
 /**
  * Shared interactive state mixin for widgets that have hover/down/disabled/active states.
@@ -75,4 +75,8 @@ export class InteractiveElement extends UIElement {
 
   /** Override this to handle the "click" action when the pointer is released over the widget. */
   protected onActivate() {}
+
+  protected debugListeners(): DebugEventListenerSnapshot[] | null {
+    return [{ id: "click", label: "Click" }]
+  }
 }

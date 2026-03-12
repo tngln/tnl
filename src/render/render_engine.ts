@@ -1,5 +1,6 @@
 import { AutoQualityController } from "./auto_quality"
 import { quantizeFrame } from "./frame_time"
+import { workerRegistry } from "../core/workers"
 import type { FrameTime, RenderGraphSnapshotV1, RenderPlaybackIntent, RenderRequestOptions, RenderResult, RenderQuality } from "./types"
 import type { RenderWorkerRequest, RenderWorkerResponse } from "./worker_protocol"
 
@@ -11,13 +12,19 @@ type Pending = {
   quality: RenderQuality
 }
 
+let nextRenderEngineId = 1
+
 export class RenderEngine {
   private readonly worker: Worker
   private readonly pending = new Map<number, Pending>()
   private nextRequestId = 1
   private readonly autoQuality = new AutoQualityController()
+  private readonly runtimeId: string
+  private readonly createdAt: number
 
   constructor(opts?: { worker?: Worker }) {
+    this.createdAt = Date.now()
+    this.runtimeId = `render.${nextRenderEngineId++}`
     this.worker =
       opts?.worker ??
       new Worker(new URL("./render_worker.ts", import.meta.url), {
@@ -25,12 +32,21 @@ export class RenderEngine {
         name: "tnl-render-worker",
       })
     this.worker.addEventListener("message", (e: MessageEvent<RenderWorkerResponse>) => this.onWorkerMessage(e.data))
+    workerRegistry.register({
+      id: this.runtimeId,
+      name: "tnl-render-worker",
+      kind: "render",
+      createdAt: this.createdAt,
+      status: "running",
+      metrics: { inFlight: this.pending.size },
+    })
   }
 
   dispose() {
     for (const [, p] of this.pending) p.reject(new Error("RenderEngine disposed"))
     this.pending.clear()
     this.worker.terminate()
+    workerRegistry.update(this.runtimeId, { status: "stopped", metrics: { inFlight: 0, pending: 0 } })
   }
 
   setGraph(graph: RenderGraphSnapshotV1) {
@@ -58,6 +74,7 @@ export class RenderEngine {
     const promise = new Promise<RenderResult<ImageBitmap>>((resolve, reject) => {
       this.pending.set(requestId, { resolve, reject, startedAt, budgetMs, quality })
     })
+    workerRegistry.update(this.runtimeId, { metrics: { inFlight: this.pending.size, pending: this.pending.size } })
 
     const onAbort = () => {
       this.cancel(requestId)
@@ -91,6 +108,7 @@ export class RenderEngine {
     if (!p) return
     this.pending.delete(requestId)
     this.post({ type: "cancel", requestId })
+    workerRegistry.update(this.runtimeId, { metrics: { inFlight: this.pending.size, pending: this.pending.size } })
     p.reject(new DOMException("Aborted", "AbortError"))
   }
 
@@ -99,10 +117,12 @@ export class RenderEngine {
   }
 
   private onWorkerMessage(msg: RenderWorkerResponse) {
+    workerRegistry.update(this.runtimeId, { lastMessageAt: Date.now() })
     if (msg.type === "error") {
       const p = this.pending.get(msg.requestId)
       if (!p) return
       this.pending.delete(msg.requestId)
+      workerRegistry.update(this.runtimeId, { status: "error", metrics: { inFlight: this.pending.size, pending: this.pending.size, lastError: msg.message } })
       p.reject(new Error(msg.message))
       return
     }
@@ -117,6 +137,7 @@ export class RenderEngine {
       return
     }
     this.pending.delete(msg.requestId)
+    workerRegistry.update(this.runtimeId, { metrics: { inFlight: this.pending.size, pending: this.pending.size } })
     const now = performance.now()
     const late = now - p.startedAt > p.budgetMs
     const nextMode = this.autoQuality.observeFrame({ late })
@@ -137,4 +158,3 @@ export class RenderEngine {
     })
   }
 }
-

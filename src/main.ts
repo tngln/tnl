@@ -2,6 +2,7 @@ import { effect } from "./core/reactivity"
 import { createLogger } from "./core/debug"
 import { invariant, toErrorInfo } from "./core/errors"
 import { createCodecRegistry } from "./core/codecs"
+import { workerRegistry } from "./core/workers"
 import { ShortcutManager, type ShortcutContextResolver, type ShortcutExecutionContext } from "./core/shortcuts"
 import { theme } from "./config/theme"
 import { ModalWindow, Root } from "./ui/window/window"
@@ -55,6 +56,10 @@ const developerContext = {
   codecs: {
     info: () => codecs.summary(),
     list: () => codecs.list(),
+  },
+  workers: {
+    info: () => workerRegistry.summary(),
+    list: () => workerRegistry.list(),
   },
   surface: {
     listLayers: () => ui.debugCompositorLayers(),
