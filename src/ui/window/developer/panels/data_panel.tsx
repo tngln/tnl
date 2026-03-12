@@ -1,8 +1,9 @@
 import { createElement, Fragment } from "../../../jsx"
-import { Column, PanelColumn, PanelScroll, PanelToolbar, RowItem, Spacer, Text } from "../../../builder/components"
-import { defineSurface, mountSurface } from "../../../builder/surface_builder"
+import { Button, Column, PanelColumn, PanelScroll, PanelSection, PanelToolbar, Spacer, Text, TreeView } from "../../../builder/components"
+import { defineSurface, mountSurface, type TreeItem } from "../../../builder/surface_builder"
 import type { DeveloperPanelSpec } from "../index"
-import { getStateTree, type DataNode } from "../states"
+import { getStateTreeItems } from "../states"
+import { listSignals, type DebugSignalRecord } from "../../../../core/reactivity"
 
 export function createDataPanel(): DeveloperPanelSpec {
   return {
@@ -12,66 +13,144 @@ export function createDataPanel(): DeveloperPanelSpec {
   }
 }
 
-type FlatRow = { kind: "group" | "signal"; id: string; depth: number; label: string; right?: string }
+function collectIds(items: TreeItem[], ids: Set<string>) {
+  for (const item of items) {
+    ids.add(item.id)
+    if (item.children?.length) collectIds(item.children, ids)
+  }
+}
 
-function rows(tree: DataNode[], expanded: Set<string>): FlatRow[] {
-  const rows: FlatRow[] = []
-  for (const g of tree) {
-    if (g.kind !== "group") continue
-    rows.push({ kind: "group", id: g.id, depth: 0, label: `${g.label}`, right: `${g.count}` })
-    if (!expanded.has(g.id)) continue
-    for (const c of g.children) {
-      if (c.kind !== "signal") continue
-      rows.push({
-        kind: "signal",
-        id: c.id,
-        depth: 1,
-        label: c.label,
-        right: `${c.valuePreview}${c.subscribers ? ` · ${c.subscribers}` : ""}`,
-      })
+function collectExpandableIds(items: TreeItem[], ids: Set<string>) {
+  for (const item of items) {
+    if (item.children?.length) {
+      ids.add(item.id)
+      collectExpandableIds(item.children, ids)
     }
   }
-  return rows
+}
+
+function formatTime(ts: number) {
+  if (!Number.isFinite(ts) || ts <= 0) return "-"
+  try {
+    return new Date(ts).toLocaleString()
+  } catch {
+    return String(ts)
+  }
+}
+
+function formatStack(stack: string | undefined) {
+  if (!stack) return ""
+  const raw = stack.split("\n").map((l) => l.trim()).filter(Boolean)
+  const lines = raw.length && raw[0] === "Error" ? raw.slice(1) : raw
+  const filtered = lines.filter((l) =>
+    !l.includes("src/core/reactivity")
+    && !l.includes("reactivity.ts")
+    && !l.includes("Object.signal")
+    && !l.includes(" at signal ")
+    && !l.includes("\tsignal ")
+  )
+  return (filtered.length ? filtered : lines).slice(0, 6).join("\n")
+}
+
+function tryJson(value: unknown) {
+  try {
+    const s = JSON.stringify(value, (_k, v) => (typeof v === "bigint" ? String(v) : v), 2)
+    if (!s) return ""
+    if (s.length <= 2000) return s
+    return s.slice(0, 2000) + "\n…"
+  } catch {
+    return ""
+  }
 }
 
 export const DataPanelSurface = defineSurface({
   id: "Developer.Data.Surface",
   setup: () => {
     const expanded = new Set<string>()
+    let selectedId: string | null = null
     let initialized = false
 
-    const toggleGroup = (id: string) => {
-      if (expanded.has(id)) expanded.delete(id)
-      else expanded.add(id)
+    const pruneExpanded = (items: TreeItem[]) => {
+      const ids = new Set<string>()
+      collectIds(items, ids)
+      for (const id of [...expanded]) if (!ids.has(id)) expanded.delete(id)
+      if (selectedId && !ids.has(selectedId)) selectedId = null
+      if (!selectedId && items.length) selectedId = items[0]!.id
     }
 
     return () => {
-      const tree = getStateTree()
+      const records = listSignals()
+      const byId = new Map<string, DebugSignalRecord>()
+      for (const r of records) byId.set(`signal:${r.id}`, r)
+      const items = getStateTreeItems(records)
       if (!initialized) {
-        for (const n of tree) if (n.kind === "group") expanded.add(n.id)
+        for (const item of items) expanded.add(item.id)
         initialized = true
       }
-      const flatRows = rows(tree, expanded)
+      pruneExpanded(items)
+      const expandableIds = new Set<string>()
+      collectExpandableIds(items, expandableIds)
+      const hasCollapsed = [...expandableIds].some((id) => !expanded.has(id))
+      const selected = selectedId ? byId.get(selectedId) ?? null : null
+      const selectedValue = selected ? selected.peek() : null
+      const selectedJson = selected ? tryJson(selectedValue) : ""
+      const selectedStack = selected ? formatStack(selected.createdStack) : ""
       return (
         <PanelColumn>
           <PanelToolbar key="data.toolbar">
             <Text key="data.title" weight="bold">State Tree</Text>
+            <Spacer style={{ fixed: 8 }} />
+            <Button
+              key="data.expandCollapse"
+              text={hasCollapsed ? "Expand All" : "Collapse All"}
+              title={hasCollapsed ? "Expand all groups" : "Collapse all groups"}
+              style={{ fixed: 110 }}
+              disabled={!expandableIds.size}
+              onClick={() => {
+                if (hasCollapsed) {
+                  for (const id of expandableIds) expanded.add(id)
+                } else {
+                  expanded.clear()
+                }
+              }}
+            />
             <Spacer style={{ fill: true }} />
-            <Text key="data.meta" tone="muted" size="meta">{`${flatRows.length} rows`}</Text>
+            <Text key="data.meta" tone="muted" size="meta">{`${items.length} roots`}</Text>
           </PanelToolbar>
-          <PanelScroll key="data.scroll">
-            <Column key="data.rows" style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
-              {flatRows.map((row, index) => (
-                <RowItem
-                  key={`data.row.${row.id}.${index}`}
-                  leftText={row.label}
-                  rightText={row.right}
-                  indent={row.depth * 14}
-                  variant={row.kind === "group" ? "group" : "item"}
-                  onClick={row.kind === "group" ? () => toggleGroup(row.id) : undefined}
-                />
-              ))}
+          <PanelSection title="Selection" key="data.selection">
+            <Column style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
+              {selected ? (
+                <Fragment>
+                  <Text weight="bold">{selected.debugLabel ?? selected.name ?? `signal#${selected.id}`}</Text>
+                  <Text tone="muted" size="meta">{`scope: ${selected.scope ?? "unknown"} · id: ${selected.id} · subs: ${selected.subscribers} · created: ${formatTime(selected.createdAt)}`}</Text>
+                  {selectedJson ? <Text tone="muted" size="meta">{selectedJson}</Text> : <Text tone="muted" size="meta">{String(selectedValue)}</Text>}
+                  {selectedStack ? <Text tone="muted" size="meta">{selectedStack}</Text> : null}
+                </Fragment>
+              ) : (
+                <Text tone="muted" size="meta">Select a signal node to see details.</Text>
+              )}
             </Column>
+          </PanelSection>
+          <PanelScroll key="data.scroll">
+            {items.length ? (
+              <TreeView
+                key="data.treeview"
+                items={items}
+                expanded={expanded}
+                selectedId={selectedId}
+                onSelect={(id) => {
+                  selectedId = id
+                }}
+                onToggle={(id) => {
+                  if (expanded.has(id)) expanded.delete(id)
+                  else expanded.add(id)
+                }}
+              />
+            ) : (
+              <Column style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
+                <Text tone="muted" size="meta">No signals</Text>
+              </Column>
+            )}
           </PanelScroll>
         </PanelColumn>
       )

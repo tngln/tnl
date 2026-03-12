@@ -5,12 +5,13 @@ import { signal } from "../../core/reactivity"
 
 export const ControlsSurface = defineSurface({
   id: "ControlsSurface",
-  setup: () => {
-    const clicks = signal(0, { debugLabel: "controls.clicks" })
-    const checked = signal(false, { debugLabel: "controls.checked" })
-    const radio = signal("A", { debugLabel: "controls.radio" })
-    const input = signal("", { debugLabel: "controls.input" })
-    const dropdown = signal("A", { debugLabel: "controls.dropdown" })
+  setup: (props: { debugLabelPrefix: string }) => {
+    const p = (name: string) => `${props.debugLabelPrefix}.${name}`
+    const clicks = signal(0, { debugLabel: p("clicks") })
+    const checked = signal(false, { debugLabel: p("checked") })
+    const radio = signal("A", { debugLabel: p("radio") })
+    const input = signal("", { debugLabel: p("input") })
+    const dropdown = signal("A", { debugLabel: p("dropdown") })
 
     return () => (
       <PanelColumn>

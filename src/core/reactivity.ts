@@ -6,7 +6,7 @@ let activeEffect: EffectFn | null = null
 const effectStack: EffectFn[] = []
 let nextSignalId = 1
 const debugSignals = new Map<number, Signal<unknown>>()
-const debugMeta = new Map<number, { name?: string; debugLabel?: string; scope?: string; hidden?: boolean; createdAt: number }>()
+const debugMeta = new Map<number, { name?: string; debugLabel?: string; scope?: string; hidden?: boolean; createdAt: number; createdStack?: string }>()
 
 export type Signal<T> = {
   get(): T
@@ -20,6 +20,7 @@ export type DebugSignalRecord = {
   debugLabel?: string
   scope?: string
   createdAt: number
+  createdStack?: string
   subscribers: number
   peek: () => unknown
 }
@@ -36,6 +37,7 @@ export function listSignals(): DebugSignalRecord[] {
       debugLabel: meta?.debugLabel,
       scope: meta?.scope,
       createdAt: meta?.createdAt ?? 0,
+      createdStack: meta?.createdStack,
       subscribers: subs?.size ?? 0,
       peek: () => sig.peek(),
     })
@@ -53,6 +55,7 @@ export function setSignalMeta(sig: Signal<unknown>, meta: { name?: string; debug
     debugLabel: meta.debugLabel ?? cur.debugLabel,
     scope: meta.scope ?? cur.scope,
     hidden: meta.hidden ?? cur.hidden,
+    createdStack: cur.createdStack,
   })
 }
 
@@ -91,7 +94,8 @@ export function signal<T>(initial: T, opts: { debugLabel: string } | { debugLabe
   const id = nextSignalId++
   ;(sig as any)._id = id
   debugSignals.set(id, sig as Signal<unknown>)
-  debugMeta.set(id, { createdAt: Date.now(), debugLabel: opts.debugLabel })
+  const stack = new Error().stack
+  debugMeta.set(id, { createdAt: Date.now(), debugLabel: opts.debugLabel, createdStack: stack })
 
   return sig
 }

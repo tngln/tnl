@@ -70,6 +70,7 @@ export class Scrollbar extends UIElement {
     this.machine = createMachine<ScrollbarState, ScrollbarEvent, ScrollbarContext>({
       initial: "idle",
       context: { originPointer: { x: 0, y: 0 }, lastPointer: { x: 0, y: 0 }, dragOffset: 0 },
+      debug: { name: "scrollbar", scope: "ui.widgets" },
       states: {
         idle: {
           on: {

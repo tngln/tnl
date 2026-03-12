@@ -1,8 +1,5 @@
 import { listSignals, type DebugSignalRecord } from "../../../core/reactivity"
-
-export type DataNode =
-  | { kind: "group"; id: string; label: string; count: number; children: DataNode[] }
-  | { kind: "signal"; id: string; label: string; valuePreview: string; subscribers: number }
+import { treeItem, type TreeItem } from "../../builder/surface_builder"
 
 function labelForSignal(r: DebugSignalRecord) {
   const name = r.name?.trim()
@@ -26,35 +23,94 @@ function preview(value: unknown) {
   if (value instanceof Error) return `${value.name}: ${value.message}`
   const ctor = (value as any)?.constructor?.name
   if (ctor && ctor !== "Object") return `${ctor}{...}`
+  if (value && typeof value === "object") {
+    const keys = Object.keys(value as any)
+    if (!keys.length) return "Object{}"
+    const head = keys.slice(0, 4)
+    const tail = keys.length > head.length ? `,+${keys.length - head.length}` : ""
+    return `Object{${head.join(",")}${tail}}`
+  }
   return "{...}"
 }
 
-export function getStateTree(records: DebugSignalRecord[] = listSignals()): DataNode[] {
-  const byScope = new Map<string, DebugSignalRecord[]>()
+type TreeBuildNode = {
+  id: string
+  label: string
+  variant: "group" | "item"
+  meta?: string
+  children: Map<string, TreeBuildNode>
+  leafCount: number
+}
+
+function ensureChild(parent: TreeBuildNode, key: string, init: () => TreeBuildNode) {
+  const hit = parent.children.get(key)
+  if (hit) return hit
+  const next = init()
+  parent.children.set(key, next)
+  return next
+}
+
+function toTreeItemNode(node: TreeBuildNode): TreeItem {
+  const children = [...node.children.values()].sort((a, b) => a.label.localeCompare(b.label)).map(toTreeItemNode)
+  return treeItem(node.id, node.label, {
+    variant: node.variant,
+    meta: node.meta,
+    children: children.length ? children : undefined,
+  })
+}
+
+function computeLeafCounts(node: TreeBuildNode): number {
+  if (node.variant === "item") {
+    node.leafCount = 1
+    return 1
+  }
+  let sum = 0
+  for (const child of node.children.values()) sum += computeLeafCounts(child)
+  node.leafCount = sum
+  node.meta = `${sum}`
+  return sum
+}
+
+export function getStateTreeItems(records: DebugSignalRecord[] = listSignals()): TreeItem[] {
+  const roots = new Map<string, TreeBuildNode>()
+
   for (const r of records) {
-    const scope = r.scope?.trim() || "unknown"
-    const list = byScope.get(scope)
-    if (list) list.push(r)
-    else byScope.set(scope, [r])
+    const full = labelForSignal(r)
+    const inferredScope = full.includes(".") ? full.split(".")[0]!.trim() : ""
+    const scope = r.scope?.trim() || inferredScope || "unknown"
+    const root = roots.get(scope) ?? (() => {
+      const next: TreeBuildNode = { id: `scope:${scope}`, label: scope, variant: "group", children: new Map(), leafCount: 0 }
+      roots.set(scope, next)
+      return next
+    })()
+
+    const rawSegs = full.split(".").map((s) => s.trim()).filter(Boolean)
+    const segs = rawSegs.length ? rawSegs : [full]
+    let cur = root
+    for (let i = 0; i < segs.length - 1; i++) {
+      const prefix = segs.slice(0, i + 1).join(".")
+      cur = ensureChild(cur, prefix, () => ({
+        id: `prefix:${scope}:${prefix}`,
+        label: segs[i]!,
+        variant: "group",
+        children: new Map(),
+        leafCount: 0,
+      }))
+    }
+
+    const leafLabel = segs[segs.length - 1]!
+    const right = `${preview(r.peek())}${r.subscribers ? ` · ${r.subscribers}` : ""}`
+    ensureChild(cur, `signal:${r.id}`, () => ({
+      id: `signal:${r.id}`,
+      label: leafLabel,
+      variant: "item",
+      meta: right,
+      children: new Map(),
+      leafCount: 1,
+    }))
   }
 
-  const scopes = [...byScope.keys()].sort((a, b) => a.localeCompare(b))
-  const roots: DataNode[] = []
-
-  for (const scope of scopes) {
-    const list = byScope.get(scope) ?? []
-    list.sort((a, b) => labelForSignal(a).localeCompare(labelForSignal(b)) || a.id - b.id)
-    const children: DataNode[] = list.map((r) => {
-      return {
-        kind: "signal",
-        id: `signal:${r.id}`,
-        label: labelForSignal(r),
-        valuePreview: preview(r.peek()),
-        subscribers: r.subscribers,
-      }
-    })
-    roots.push({ kind: "group", id: `scope:${scope}`, label: scope, count: list.length, children })
-  }
-
-  return roots
+  const items = [...roots.values()].sort((a, b) => a.label.localeCompare(b.label))
+  for (const item of items) computeLeafCounts(item)
+  return items.map(toTreeItemNode)
 }

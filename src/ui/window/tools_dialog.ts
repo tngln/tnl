@@ -28,13 +28,13 @@ export function createToolsSurface(): Surface {
               "This text block repeats to force overflow. This text block repeats to force overflow. This text block repeats to force overflow.",
           }),
         },
-        { id: "controls", title: "Controls", surface: mountSurface(ControlsSurface, {}) },
+        { id: "controls", title: "Controls", surface: mountSurface(ControlsSurface, { debugLabelPrefix: "tools.controls" }) },
         {
           id: "split",
           title: "Split",
           surface: new DividerSurface({
             id: "Tools.Split",
-            a: mountSurface(ControlsSurface, {}),
+            a: mountSurface(ControlsSurface, { debugLabelPrefix: "tools.split.a.controls" }),
             b: TextSurface({
               id: "Tools.Split.Info",
               title: "Divider",

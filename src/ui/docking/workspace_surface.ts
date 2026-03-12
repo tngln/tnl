@@ -115,6 +115,7 @@ class DockTabHandle extends UIElement {
     this.machine = createMachine<HandleState, TabHandleEvent, HandleContext>({
       initial: "idle",
       context: { originPointer: { x: 0, y: 0 }, lastPointer: { x: 0, y: 0 } },
+      debug: { name: "tabHandle", scope: "ui.docking", hidden: true },
       states: {
         idle: {
           on: {
@@ -303,6 +304,7 @@ class DockSplitHandle extends UIElement {
     this.machine = createMachine<HandleState, SplitHandleEvent, HandleContext>({
       initial: "idle",
       context: { originPointer: { x: 0, y: 0 }, lastPointer: { x: 0, y: 0 } },
+      debug: { name: "splitHandle", scope: "ui.docking", hidden: true },
       states: {
         idle: {
           on: {
