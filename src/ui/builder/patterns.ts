@@ -18,7 +18,7 @@ export function section(title: string, body: BuilderNode[], opts: PatternBase = 
     { padding: theme.spacing.md, ...(opts.style ?? {}) },
     {
       key: opts.key,
-      box: opts.box ?? { fill: "rgba(255,255,255,0.02)", stroke: "rgba(255,255,255,0.08)" },
+      box: opts.box ?? { fill: theme.colors.white02, stroke: theme.colors.white08 },
       active: opts.active,
       visible: opts.visible,
       provideStyle: opts.provideStyle,

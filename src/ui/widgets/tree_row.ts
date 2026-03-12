@@ -1,10 +1,11 @@
-import { draw, Line, Rect as RectOp, Text } from "../../core/draw"
+import { draw, Rect as RectOp, Text } from "../../core/draw"
 import type { InteractionCancelReason } from "../../core/event_stream"
 import { createPressMachine } from "../../core/fsm"
 import { theme } from "../../config/theme"
 import { truncateToWidth } from "../../core/draw.text"
 import { PointerUIEvent, UIElement, pointInRect, type Rect } from "../base/ui"
 import { ZERO_RECT } from "../../core/rect"
+import { chevronDownIcon, chevronRightIcon, iconToShape, type IconDef } from "../icons"
 import type { RowVariant } from "./row"
 import type { WidgetDescriptor } from "../builder/widget_registry"
 
@@ -24,6 +25,10 @@ export type TreeRowLayout = {
   rightText?: string
   variant?: RowVariant
   selected?: boolean
+}
+
+export function treeRowDisclosureIcon(expanded: boolean): IconDef {
+  return expanded ? chevronDownIcon : chevronRightIcon
 }
 
 export class TreeRow extends UIElement {
@@ -70,7 +75,7 @@ export class TreeRow extends UIElement {
     if (r.w <= 0 || r.h <= 0) return
     const pressed = this.press.matches("pressed")
     const bg = this.layout.selected
-      ? "rgba(255,255,255,0.055)"
+      ? theme.colors.rowSelectedBg
       : this.hover
         ? theme.colors.controlHover
         : "transparent"
@@ -86,22 +91,20 @@ export class TreeRow extends UIElement {
     const contentW = Math.max(0, r.w - TREE_ROW_LEFT_PAD - TREE_ROW_RIGHT_PAD)
 
     if (this.layout.expandable) {
-      const cx = disclosureRect.x + disclosureRect.w / 2
-      const cy = disclosureRect.y + disclosureRect.h / 2
-      const d = 3.5
-      if (this.layout.expanded) {
-        draw(
-          ctx,
-          Line({ x: cx - d, y: cy - 1 }, { x: cx, y: cy + 2 }, { color: theme.colors.textMuted, width: 1.5, lineCap: "round" }),
-          Line({ x: cx + d, y: cy - 1 }, { x: cx, y: cy + 2 }, { color: theme.colors.textMuted, width: 1.5, lineCap: "round" }),
-        )
-      } else {
-        draw(
-          ctx,
-          Line({ x: cx - 1, y: cy - d }, { x: cx + 2, y: cy }, { color: theme.colors.textMuted, width: 1.5, lineCap: "round" }),
-          Line({ x: cx - 1, y: cy + d }, { x: cx + 2, y: cy }, { color: theme.colors.textMuted, width: 1.5, lineCap: "round" }),
-        )
-      }
+      const pad = 2
+      draw(
+        ctx,
+        iconToShape(
+          treeRowDisclosureIcon(this.layout.expanded),
+          {
+            x: disclosureRect.x + pad,
+            y: disclosureRect.y + pad,
+            w: Math.max(0, disclosureRect.w - pad * 2),
+            h: Math.max(0, disclosureRect.h - pad * 2),
+          },
+          { color: theme.colors.textMuted },
+        ),
+      )
     }
 
     const right = this.layout.rightText

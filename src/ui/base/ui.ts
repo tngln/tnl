@@ -818,8 +818,8 @@ export class CanvasUI {
       if (overlay && intersects(overlay, r)) {
         ctx.save()
         ctx.globalAlpha = 1
-        ctx.fillStyle = "rgba(100,160,255,0.12)"
-        ctx.strokeStyle = "rgba(120,180,255,0.90)"
+        ctx.fillStyle = theme.colors.accentOverlay
+        ctx.strokeStyle = theme.colors.accentOutlineStrong
         ctx.lineWidth = 1
         ctx.fillRect(overlay.x, overlay.y, overlay.w, overlay.h)
         ctx.strokeRect(overlay.x + 0.5, overlay.y + 0.5, Math.max(0, overlay.w - 1), Math.max(0, overlay.h - 1))

@@ -146,8 +146,8 @@ export class MenuBar extends UIElement {
 
     draw(
       ctx,
-      RectOp(r, { fill: { color: "rgba(255,255,255,0.02)" } }),
-      Line({ x: r.x, y: r.y + r.h }, { x: r.x + r.w, y: r.y + r.h }, { color: "rgba(255,255,255,0.10)", hairline: true }),
+      RectOp(r, { fill: { color: theme.colors.white02 } }),
+      Line({ x: r.x, y: r.y + r.h }, { x: r.x + r.w, y: r.y + r.h }, { color: theme.colors.white10, hairline: true }),
     )
 
     const f = font(theme, theme.typography.body)
@@ -166,7 +166,7 @@ export class MenuBar extends UIElement {
       const hovered = i === this.hoveredIndex
       const opened = this.openKey === m.key && this.topLayer.isOpen(this.menuId)
       if (hovered || opened) {
-        draw(ctx, RectOp({ x: rect.x, y: rect.y + 2, w: rect.w, h: Math.max(0, rect.h - 4) }, { fill: { color: "rgba(255,255,255,0.06)" } }))
+        draw(ctx, RectOp({ x: rect.x, y: rect.y + 2, w: rect.w, h: Math.max(0, rect.h - 4) }, { fill: { color: theme.colors.white06 } }))
       }
       draw(
         ctx,

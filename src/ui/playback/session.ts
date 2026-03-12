@@ -6,6 +6,7 @@ import { pickFiles } from "../../platform/web/file_io"
 import { PlaybackRuntime, type PlaybackRuntimeSnapshot } from "../../platform/web/playback"
 import { buildAcceptString } from "../../platform/web/media_formats"
 import { invalidateAll } from "../invalidate"
+import { baseNameOr } from "../../util/util"
 
 const DEFAULT_SOURCE_PATH = "media/bbb.mp4"
 const DEFAULT_FPS = 30
@@ -19,11 +20,7 @@ export type PlaybackSessionSnapshot = {
   runtime: PlaybackRuntimeSnapshot
 }
 
-function basename(path: string | null) {
-  if (!path) return "No source"
-  const idx = path.lastIndexOf("/")
-  return idx >= 0 ? path.slice(idx + 1) : path
-}
+const basename = (path: string | null) => baseNameOr(path, "No source")
 
 function isVideoEntry(entry: Pick<OpfsEntryV1, "path" | "type">) {
   if (entry.type.toLowerCase().startsWith("video/")) return true

@@ -24,11 +24,11 @@ export function defaultInheritedStyle(): InheritedStyle {
     surface: {
       tone: "default",
       density: "comfortable",
-      panelFill: "rgba(255,255,255,0.02)",
-      panelStroke: "rgba(255,255,255,0.10)",
-      sectionFill: "rgba(255,255,255,0.02)",
-      sectionStroke: "rgba(255,255,255,0.08)",
-      scrollFill: "rgba(255,255,255,0.01)",
+      panelFill: theme.colors.white02,
+      panelStroke: theme.colors.white10,
+      sectionFill: theme.colors.white02,
+      sectionStroke: theme.colors.white08,
+      scrollFill: theme.colors.white01,
     },
   }
 }

@@ -428,12 +428,12 @@ export function PanelScroll(props: PanelContainerProps) {
   return ScrollArea({
     ...props,
     style: mergeLayout({ fill: true }, props.style),
-    box: mergeBox({ fill: "rgba(255,255,255,0.01)" }, props.box),
+    box: mergeBox({ fill: theme.colors.white01 }, props.box),
     provideStyle: mergeInherited(
       {
         surface: {
           tone: "subtle",
-          scrollFill: "rgba(255,255,255,0.01)",
+          scrollFill: theme.colors.white01,
         },
       },
       props.provideStyle,
@@ -446,8 +446,8 @@ export function PanelSection(props: SectionProps) {
     ...props,
     box: mergeBox(
       {
-        fill: "rgba(255,255,255,0.02)",
-        stroke: "rgba(255,255,255,0.08)",
+        fill: theme.colors.white02,
+        stroke: theme.colors.white08,
       },
       props.box,
     ),

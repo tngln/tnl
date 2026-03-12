@@ -44,7 +44,7 @@ export class ListRow extends UIElement {
     if (r.w <= 0 || r.h <= 0) return
     const pressed = this.press.matches("pressed")
     const bg = this.layout.selected
-      ? "rgba(255,255,255,0.055)"
+      ? theme.colors.rowSelectedBg
       : this.hover
         ? theme.colors.controlHover
         : "transparent"

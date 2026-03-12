@@ -3,6 +3,7 @@ import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSe
 import { defineSurface, mountSurface } from "../../../builder/surface_builder"
 import { invalidateAll } from "../../../invalidate"
 import type { WorkerRuntimeEntry } from "../../../../core/workers"
+import { theme } from "../../../../config/theme"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 
 function formatTime(ms: number | undefined) {
@@ -118,7 +119,7 @@ const WorkerPanelSurface = defineSurface({
                       <ListRow key="worker.sel.last" leftText="Last Message" rightText={formatTime(selected.lastMessageAt)} />
                     </VStack>
                     {selected.metrics?.lastError ? (
-                      <Text color="rgba(255,120,120,0.95)" size="meta" style={{ margin: { t: 8, r: 0, b: 0, l: 0 } }}>
+                      <Text color={theme.colors.dangerText} size="meta" style={{ margin: { t: 8, r: 0, b: 0, l: 0 } }}>
                         {selected.metrics.lastError}
                       </Text>
                     ) : null}

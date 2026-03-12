@@ -61,9 +61,9 @@ class DividerHandle extends UIElement {
 
   private chrome(): DividerHandleChrome {
     return {
-      fill: this.down ? "rgba(255,255,255,0.08)" : this.hover ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.04)",
-      stroke: "rgba(255,255,255,0.10)",
-      grip: "rgba(255,255,255,0.18)",
+      fill: this.down ? theme.colors.white08 : this.hover ? theme.colors.white06 : theme.colors.white04,
+      stroke: theme.colors.white10,
+      grip: theme.colors.white18,
     }
   }
 

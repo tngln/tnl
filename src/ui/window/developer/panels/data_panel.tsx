@@ -4,6 +4,7 @@ import { defineSurface, mountSurface, type TreeItem } from "../../../builder/sur
 import type { DeveloperPanelSpec } from "../index"
 import { getStateTreeItems } from "../states"
 import { listSignals, type DebugSignalRecord } from "../../../../core/reactivity"
+import { collectIds, formatLocalTime } from "../../../../util/util"
 
 export function createDataPanel(): DeveloperPanelSpec {
   return {
@@ -13,28 +14,12 @@ export function createDataPanel(): DeveloperPanelSpec {
   }
 }
 
-function collectIds(items: TreeItem[], ids: Set<string>) {
-  for (const item of items) {
-    ids.add(item.id)
-    if (item.children?.length) collectIds(item.children, ids)
-  }
-}
-
 function collectExpandableIds(items: TreeItem[], ids: Set<string>) {
   for (const item of items) {
     if (item.children?.length) {
       ids.add(item.id)
       collectExpandableIds(item.children, ids)
     }
-  }
-}
-
-function formatTime(ts: number) {
-  if (!Number.isFinite(ts) || ts <= 0) return "-"
-  try {
-    return new Date(ts).toLocaleString()
-  } catch {
-    return String(ts)
   }
 }
 
@@ -122,7 +107,7 @@ export const DataPanelSurface = defineSurface({
               {selected ? (
                 <Fragment>
                   <Text weight="bold">{selected.debugLabel ?? selected.name ?? `signal#${selected.id}`}</Text>
-                  <Text tone="muted" size="meta">{`scope: ${selected.scope ?? "unknown"} · id: ${selected.id} · subs: ${selected.subscribers} · created: ${formatTime(selected.createdAt)}`}</Text>
+                  <Text tone="muted" size="meta">{`scope: ${selected.scope ?? "unknown"} · id: ${selected.id} · subs: ${selected.subscribers} · created: ${formatLocalTime(selected.createdAt)}`}</Text>
                   {selectedJson ? <Text tone="muted" size="meta">{selectedJson}</Text> : <Text tone="muted" size="meta">{String(selectedValue)}</Text>}
                   {selectedStack ? <Text tone="muted" size="meta">{selectedStack}</Text> : null}
                 </Fragment>

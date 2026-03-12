@@ -1,5 +1,6 @@
 import { estimateStorageUsage, getOpfsRootDirectory } from "../platform/web/opfs"
 import { AppError } from "./errors"
+import { baseName, dirName } from "../util/util"
 
 export type OpfsErrorCode = "NotFound" | "AlreadyExists" | "InvalidPath" | "DbCorrupted" | "PermissionDenied" | "Unsupported" | "Unknown"
 
@@ -40,16 +41,6 @@ export function normalizePath(input: string) {
   }
   if (!out.length) throw new OpfsError("InvalidPath", "Path resolves to empty")
   return out.join("/")
-}
-
-function baseName(path: string) {
-  const i = path.lastIndexOf("/")
-  return i >= 0 ? path.slice(i + 1) : path
-}
-
-function dirName(path: string) {
-  const i = path.lastIndexOf("/")
-  return i >= 0 ? path.slice(0, i) : ""
 }
 
 function isDomErr(e: unknown) {

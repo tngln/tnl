@@ -35,7 +35,7 @@ export class Button extends InteractiveElement {
         : this.hover
           ? theme.colors.controlHover
           : "transparent"
-    const stroke = disabled ? "rgba(255,255,255,0.10)" : theme.colors.windowBorder
+    const stroke = disabled ? theme.colors.white10 : theme.colors.windowBorder
     const textColor = disabled ? theme.colors.textMuted : theme.colors.textPrimary
     draw(
       ctx,
@@ -72,7 +72,7 @@ export class Button extends InteractiveElement {
       ctx,
       RRect(
         { x: tipX, y: tipY, w: tipW, h: tipH, r: theme.radii.sm },
-        { fill: { color: "rgba(11,15,23,0.96)" }, stroke: { color: "rgba(255,255,255,0.12)", hairline: true }, pixelSnap: true },
+        { fill: { color: theme.colors.appBg96 }, stroke: { color: theme.colors.white12, hairline: true }, pixelSnap: true },
       ),
       Text({
         x: tipX + tipW / 2,

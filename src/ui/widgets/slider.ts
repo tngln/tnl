@@ -125,13 +125,13 @@ export class Slider extends UIElement {
     const cy = r.y + r.h / 2
     const cx = r.x + r.w / 2
     const trackColor = this.disabledValue
-      ? "rgba(255,255,255,0.08)"
+      ? theme.colors.white08
       : this.dragging
-        ? "rgba(255,255,255,0.18)"
+        ? theme.colors.white18
         : this.hover
-          ? "rgba(255,255,255,0.14)"
-          : "rgba(255,255,255,0.10)"
-    const fillColor = this.disabledValue ? "rgba(145,170,210,0.22)" : "rgba(124,183,255,0.72)"
+          ? theme.colors.white14
+          : theme.colors.white10
+    const fillColor = this.disabledValue ? theme.colors.sliderFillDisabled : theme.colors.sliderFill
     const thumbColor = this.disabledValue
       ? theme.colors.controlDisabled
       : this.dragging
@@ -139,7 +139,7 @@ export class Slider extends UIElement {
         : this.hover
           ? theme.colors.controlHover
           : theme.colors.controlActive
-    const thumbStroke = this.disabledValue ? "rgba(255,255,255,0.12)" : "rgba(11,15,23,0.46)"
+    const thumbStroke = this.disabledValue ? theme.colors.white12 : theme.colors.appBg46
 
     if (this.axis === "y") {
       const x = cx

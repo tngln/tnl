@@ -7,13 +7,10 @@ import { createMeasureContext } from "../../platform/web/canvas"
 import { get1pxTextareaBridge } from "../../platform/web/1px_textarea"
 import type { TopLayerController } from "../base/top_layer"
 import { KeyUIEvent, PointerUIEvent, UIElement, pointInRect, type Vec2 } from "../base/ui"
+import { clamp } from "../builder/utils"
 import type { MenuItem } from "./menu"
 import { MenuStack } from "./menu_stack"
 import type { WidgetDescriptor } from "../builder/widget_registry"
-
-function clamp(v: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, v))
-}
 
 function hasShortcutModifier(e: { ctrlKey: boolean; metaKey: boolean }) {
   return e.ctrlKey || e.metaKey

@@ -57,8 +57,8 @@ class SnapPreviewOverlay extends UIElement {
       RRect(
         { x: this.rect.x, y: this.rect.y, w: this.rect.w, h: this.rect.h, r: theme.radii.sm },
         {
-          fill: { color: "rgba(100,160,255,0.12)" },
-          stroke: { color: "rgba(120,180,255,0.48)", width: 2 },
+          fill: { color: theme.colors.accentOverlay },
+          stroke: { color: theme.colors.accentOutline, width: 2 },
           pixelSnap: true,
         },
       ),

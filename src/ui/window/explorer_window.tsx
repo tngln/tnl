@@ -10,6 +10,7 @@ import { Button, ClickArea, HStack, ListRow, Paint, PanelActionRow, PanelColumn,
 import { defineSurface, mountSurface } from "../builder/surface_builder"
 import type { Surface } from "../base/viewport"
 import { invalidateAll } from "../invalidate"
+import { baseName, dirName, formatBytes, formatLocalTime } from "../../util/util"
 
 export const EXPLORER_WINDOW_ID = "Explorer"
 
@@ -34,39 +35,6 @@ function thumbDebugEnabled() {
 function thumbLog(...args: any[]) {
   if (!thumbDebugEnabled()) return
   console.log(...args)
-}
-
-function formatBytes(bytes: number) {
-  const b = Math.max(0, bytes)
-  if (b < 1024) return `${b} B`
-  const units = ["KB", "MB", "GB", "TB"] as const
-  let n = b / 1024
-  let u = 0
-  while (n >= 1024 && u < units.length - 1) {
-    n /= 1024
-    u++
-  }
-  const digits = n < 10 ? 2 : n < 100 ? 1 : 0
-  return `${n.toFixed(digits)} ${units[u]}`
-}
-
-function formatTime(ts: number) {
-  if (!Number.isFinite(ts) || ts <= 0) return "-"
-  try {
-    return new Date(ts).toLocaleString()
-  } catch {
-    return String(ts)
-  }
-}
-
-function baseName(path: string) {
-  const i = path.lastIndexOf("/")
-  return i >= 0 ? path.slice(i + 1) : path
-}
-
-function dirName(path: string) {
-  const i = path.lastIndexOf("/")
-  return i >= 0 ? path.slice(0, i) : ""
 }
 
 function isHiddenName(name: string) {
@@ -729,7 +697,7 @@ export const ExplorerSurface = defineSurface({
       const thumbStatusText = viewMode.get() === "thumbs" ? ` · thumbs ${thumbWorkerActive ? "busy" : "idle"} · q${thumbQueue.length}` : ""
       const debugThumbText = thumbLastEvent ? ` · ${thumbLastEvent}` : ""
       const statusText = busy ? "Working..." : error ? error : `${items.length} items${thumbStatusText}${debugThumbText}`
-      const statusColor = error ? "rgba(255,120,120,0.95)" : theme.colors.textMuted
+      const statusColor = error ? theme.colors.dangerText : theme.colors.textMuted
       const cwdMeta = cwdPrefix ? cwdPrefix : "opfs:/"
       const canBack = history.index > 0
       const canForward = history.index < history.stack.length - 1
@@ -823,8 +791,8 @@ export const ExplorerSurface = defineSurface({
                         key={`explorer.thumb.${e.path}`}
                         style={{ fixed: 168, padding: 6, w: "auto", h: "auto" }}
                         box={{
-                          fill: isSelected ? "rgba(120,180,255,0.10)" : "rgba(255,255,255,0.02)",
-                          stroke: isSelected ? "rgba(120,180,255,0.35)" : "rgba(255,255,255,0.08)",
+                          fill: isSelected ? theme.colors.selectionFill : theme.colors.white02,
+                          stroke: isSelected ? theme.colors.selectionStroke : theme.colors.white08,
                           radius: 8,
                         }}
                       >
@@ -834,7 +802,7 @@ export const ExplorerSurface = defineSurface({
                             measure={(max) => ({ w: Math.min(156, max.w), h: 88 })}
                             draw={(ctx, rect) => {
                               ctx.save()
-                              ctx.fillStyle = "rgba(0,0,0,0.22)"
+                              ctx.fillStyle = theme.colors.black22
                               ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
                               if (img) {
                                 const iw = img.naturalWidth || 1
@@ -926,7 +894,7 @@ export const ExplorerSurface = defineSurface({
               measure={(max) => ({ w: Math.min(240, max.w), h: 120 })}
               draw={(ctx, rect) => {
                 ctx.save()
-                ctx.fillStyle = "rgba(0,0,0,0.22)"
+                ctx.fillStyle = theme.colors.black22
                 ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
                 if (img) {
                   const iw = img.naturalWidth || 1
@@ -964,8 +932,8 @@ export const ExplorerSurface = defineSurface({
             <VStack style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
               <Text size="meta" tone="muted">{`Type: ${e.type}`}</Text>
               <Text size="meta" tone="muted">{`Size: ${formatBytes(e.size)}`}</Text>
-              <Text size="meta" tone="muted">{`Created: ${formatTime(e.createdAt)}`}</Text>
-              <Text size="meta" tone="muted">{`Updated: ${formatTime(e.updatedAt)}`}</Text>
+              <Text size="meta" tone="muted">{`Created: ${formatLocalTime(e.createdAt)}`}</Text>
+              <Text size="meta" tone="muted">{`Updated: ${formatLocalTime(e.updatedAt)}`}</Text>
               {isVideoEntry(e) ? (
                 <Fragment>
                   <Text size="meta" tone="muted">{`Duration: ${durationText}`}</Text>
@@ -1034,7 +1002,7 @@ export const ExplorerSurface = defineSurface({
             <VStack
               key="explorer.details"
               style={{ axis: "column", gap: 0, fixed: 280, w: "auto", h: "auto" }}
-              box={{ fill: "rgba(255,255,255,0.02)", stroke: "rgba(255,255,255,0.08)", radius: 10 }}
+              box={{ fill: theme.colors.white02, stroke: theme.colors.white08, radius: 10 }}
             >
               {details}
             </VStack>

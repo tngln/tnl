@@ -7,6 +7,7 @@ import { createElement, Fragment } from "../../../jsx"
 import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack } from "../../../builder/components"
 import { defineSurface, mountSurface } from "../../../builder/surface_builder"
 import { invalidateAll } from "../../../invalidate"
+import { formatBytes } from "../../../../util/util"
 import type { DeveloperPanelSpec } from "../index"
 
 export function createStoragePanel(): DeveloperPanelSpec {
@@ -16,21 +17,6 @@ export function createStoragePanel(): DeveloperPanelSpec {
     build: (_ctx) => mountSurface(StoragePanelSurface, {}),
   }
 }
-
-function formatBytes(bytes: number) {
-  const b = Math.max(0, bytes)
-  if (b < 1024) return `${b} B`
-  const units = ["KB", "MB", "GB", "TB"] as const
-  let n = b / 1024
-  let u = 0
-  while (n >= 1024 && u < units.length - 1) {
-    n /= 1024
-    u++
-  }
-  const digits = n < 10 ? 2 : n < 100 ? 1 : 0
-  return `${n.toFixed(digits)} ${units[u]}`
-}
-
 
 function formatUsageText(usage: { entries: number; bytes: number; quota?: number; usage?: number }) {
   const parts: string[] = []
@@ -211,7 +197,7 @@ export const StoragePanelSurface = defineSurface({
 
       const selected = selectedPath !== null
       const statusText = busy ? "Working..." : error ? error : formatUsageText(usage)
-      const statusColor = error ? "rgba(255,120,120,0.95)" : theme.colors.textMuted
+      const statusColor = error ? theme.colors.dangerText : theme.colors.textMuted
       const selectionMeta = selectedPath ? selectedPath : prefix ? `prefix: ${prefix}` : "root"
 
       return (

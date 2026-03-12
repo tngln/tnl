@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import { PointerUIEvent } from "../base/ui"
-import { TREE_ROW_DISCLOSURE_SLOT, TREE_ROW_HEIGHT, TREE_ROW_INDENT_STEP, TreeRow } from "./tree_row"
+import { chevronDownIcon, chevronRightIcon } from "../icons"
+import { TREE_ROW_DISCLOSURE_SLOT, TREE_ROW_HEIGHT, TREE_ROW_INDENT_STEP, TreeRow, treeRowDisclosureIcon } from "./tree_row"
 
 function pointer(x: number, y: number) {
   return new PointerUIEvent({
@@ -18,7 +19,7 @@ function pointer(x: number, y: number) {
 
 function fakeCtx() {
   let font = "400 12px system-ui"
-  const lines: Array<[number, number, number, number]> = []
+  const fills: any[] = []
   const ctx: any = {
     get font() {
       return font
@@ -33,18 +34,14 @@ function fakeCtx() {
     clip() {},
     fillRect() {},
     strokeRect() {},
-    fill() {},
+    fill(path?: any) {
+      fills.push(path ?? null)
+    },
     stroke() {},
     setLineDash() {},
     moveTo(x: number, y: number) {
-      lines.push([x, y, x, y])
     },
     lineTo(x: number, y: number) {
-      const last = lines[lines.length - 1]
-      if (last) {
-        last[2] = x
-        last[3] = y
-      }
     },
     fillText() {},
     measureText(text: string) {
@@ -56,7 +53,7 @@ function fakeCtx() {
       return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }
     },
   }
-  return { ctx: ctx as CanvasRenderingContext2D, lines }
+  return { ctx: ctx as CanvasRenderingContext2D, fills }
 }
 
 describe("tree row", () => {
@@ -151,6 +148,9 @@ describe("tree row", () => {
   })
 
   it("draws disclosure glyph orientation for expanded and collapsed states", () => {
+    expect(treeRowDisclosureIcon(true)).toBe(chevronDownIcon)
+    expect(treeRowDisclosureIcon(false)).toBe(chevronRightIcon)
+
     const expanded = new TreeRow()
     expanded.set({
       rect: { x: 0, y: 0, w: 180, h: TREE_ROW_HEIGHT },
@@ -173,8 +173,8 @@ describe("tree row", () => {
     const collapsedDraw = fakeCtx()
     collapsed.draw(collapsedDraw.ctx)
 
-    expect(expandedDraw.lines[0]?.[0]).toBeLessThan(expandedDraw.lines[0]?.[2] ?? 0)
-    expect(collapsedDraw.lines[0]?.[1]).toBeLessThan(collapsedDraw.lines[0]?.[3] ?? 0)
+    expect(expandedDraw.fills.length).toBeGreaterThan(0)
+    expect(collapsedDraw.fills.length).toBeGreaterThan(0)
   })
 
   it("positions disclosure area according to depth", () => {

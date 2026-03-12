@@ -36,7 +36,7 @@ export class Checkbox extends InteractiveElement {
         : this.hover
           ? theme.colors.controlHover
           : "transparent"
-    const stroke = disabled ? "rgba(255,255,255,0.10)" : theme.colors.windowBorder
+    const stroke = disabled ? theme.colors.white10 : theme.colors.windowBorder
     const textColor = disabled ? theme.colors.textMuted : theme.colors.textPrimary
 
     draw(

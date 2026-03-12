@@ -1,6 +1,7 @@
 import { createElement, Fragment } from "../../../jsx"
 import { PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, TreeView, VStack } from "../../../builder/components"
 import { defineSurface, mountSurface, treeItem, type TreeItem } from "../../../builder/surface_builder"
+import { collectIds } from "../../../../util/util"
 import type { DebugTreeNodeSnapshot } from "../../../base/ui"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 
@@ -122,13 +123,6 @@ function toTreeItem(node: DebugTreeNodeSnapshot, path: string): TreeItem {
 function seedDefaultExpansion(node: DebugTreeNodeSnapshot, expanded: Set<string>) {
   expanded.add("0")
   for (let i = 0; i < node.children.length; i++) expanded.add(`0.${i}`)
-}
-
-function collectIds(items: TreeItem[], ids: Set<string>) {
-  for (const item of items) {
-    ids.add(item.id)
-    if (item.children?.length) collectIds(item.children, ids)
-  }
 }
 
 function pruneExpanded(expanded: Set<string>, ids: Set<string>) {

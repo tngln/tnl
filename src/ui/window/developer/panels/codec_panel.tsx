@@ -3,6 +3,7 @@ import { Button, ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll,
 import { defineSurface, mountSurface } from "../../../builder/surface_builder"
 import type { CodecRuntimeEntry } from "../../../../core/codecs"
 import { getDebugLevel } from "../../../../core/debug"
+import { theme } from "../../../../config/theme"
 import { getWebNavigatorInfo, getWebRuntimeFlags } from "../../../../platform/web/navigator"
 import { probeCodecConfig } from "../../../../platform/web/webcodecs"
 import { invalidateAll } from "../../../invalidate"
@@ -326,7 +327,7 @@ const CodecPanelSurface = defineSurface({
 
               {error ? (
                 <PanelSection key="codec.error" title="Probe Error">
-                  <Text color="rgba(255,120,120,0.95)">{error}</Text>
+                  <Text color={theme.colors.dangerText}>{error}</Text>
                 </PanelSection>
               ) : null}
 

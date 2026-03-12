@@ -29,6 +29,49 @@ export type Theme = {
     accentHover: string
     accentPressed: string
     accentText: string
+    appBg12: string
+    appBg22: string
+    appBg46: string
+    appBg96: string
+    dangerText: string
+    warningText: string
+    playheadStroke: string
+    playheadFill: string
+    accentOverlay: string
+    accentOutline: string
+    accentOutlineStrong: string
+    selectionFill: string
+    selectionStroke: string
+    scrollbarThumb: string
+    scrollbarThumbHover: string
+    scrollbarThumbActive: string
+    rowSelectedBg: string
+    paneBg92: string
+    textDisabled: string
+    textFaint: string
+    textDim: string
+    sliderFill: string
+    sliderFillDisabled: string
+    white01: string
+    white015: string
+    white018: string
+    white02: string
+    white025: string
+    white03: string
+    white035: string
+    white04: string
+    white05: string
+    white06: string
+    white07: string
+    white08: string
+    white10: string
+    white12: string
+    white14: string
+    white18: string
+    white26: string
+    white78: string
+    white92: string
+    black22: string
   }
   spacing: {
     xs: number
@@ -123,6 +166,49 @@ export const theme: Theme = {
     accentHover: "#2563eb",
     accentPressed: "#1d4ed8",
     accentText: "#ffffff",
+    appBg12: "rgba(11,15,23,0.12)",
+    appBg22: "rgba(11,15,23,0.22)",
+    appBg46: "rgba(11,15,23,0.46)",
+    appBg96: "rgba(11,15,23,0.96)",
+    dangerText: "rgba(255,120,120,0.95)",
+    warningText: "rgba(255,196,92,0.95)",
+    playheadStroke: "rgba(255,116,116,0.95)",
+    playheadFill: "rgba(255,116,116,0.92)",
+    accentOverlay: "rgba(100,160,255,0.12)",
+    accentOutline: "rgba(120,180,255,0.48)",
+    accentOutlineStrong: "rgba(120,180,255,0.90)",
+    selectionFill: "rgba(120,180,255,0.10)",
+    selectionStroke: "rgba(120,180,255,0.35)",
+    scrollbarThumb: "rgba(233,237,243,0.30)",
+    scrollbarThumbHover: "rgba(233,237,243,0.38)",
+    scrollbarThumbActive: "rgba(233,237,243,0.46)",
+    rowSelectedBg: "rgba(255,255,255,0.055)",
+    paneBg92: "rgba(20,26,36,0.92)",
+    textDisabled: "rgba(233,237,243,0.38)",
+    textFaint: "rgba(233,237,243,0.28)",
+    textDim: "rgba(233,237,243,0.35)",
+    sliderFill: "rgba(124,183,255,0.72)",
+    sliderFillDisabled: "rgba(145,170,210,0.22)",
+    white01: "rgba(255,255,255,0.01)",
+    white015: "rgba(255,255,255,0.015)",
+    white018: "rgba(255,255,255,0.018)",
+    white02: "rgba(255,255,255,0.02)",
+    white025: "rgba(255,255,255,0.025)",
+    white03: "rgba(255,255,255,0.03)",
+    white035: "rgba(255,255,255,0.035)",
+    white04: "rgba(255,255,255,0.04)",
+    white05: "rgba(255,255,255,0.05)",
+    white06: "rgba(255,255,255,0.06)",
+    white07: "rgba(255,255,255,0.07)",
+    white08: "rgba(255,255,255,0.08)",
+    white10: "rgba(255,255,255,0.10)",
+    white12: "rgba(255,255,255,0.12)",
+    white14: "rgba(255,255,255,0.14)",
+    white18: "rgba(255,255,255,0.18)",
+    white26: "rgba(255,255,255,0.26)",
+    white78: "rgba(255,255,255,0.78)",
+    white92: "rgba(255,255,255,0.92)",
+    black22: "rgba(0,0,0,0.22)",
   },
   spacing: {
     xs: 6,

@@ -179,7 +179,7 @@ export class Menu extends UIElement {
       ctx,
       RRect(
         { x: menu.x, y: menu.y, w: menu.w, h: menu.h, r: theme.radii.sm },
-        { fill: { color: "rgba(11,15,23,0.96)" }, stroke: { color: "rgba(255,255,255,0.12)", hairline: true }, pixelSnap: true },
+        { fill: { color: theme.colors.appBg96 }, stroke: { color: theme.colors.white12, hairline: true }, pixelSnap: true },
       ),
     )
 
@@ -198,7 +198,7 @@ export class Menu extends UIElement {
             kind: "Line",
             a: { x: row.x + 10, y: cy },
             b: { x: row.x + row.w - 10, y: cy },
-            stroke: { color: "rgba(255,255,255,0.10)", hairline: true },
+            stroke: { color: theme.colors.white10, hairline: true },
           },
         )
         y += h
@@ -207,9 +207,9 @@ export class Menu extends UIElement {
       const hovered = i === this.hoveredIndex
       const selected = it.key === selectedKey
       if ((hovered && !it.disabled) || selected) {
-        draw(ctx, { kind: "Rect", rect: row, fill: { color: hovered ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.06)" } })
+        draw(ctx, { kind: "Rect", rect: row, fill: { color: hovered ? theme.colors.white08 : theme.colors.white06 } })
       }
-      const textColor = it.disabled ? "rgba(233,237,243,0.38)" : theme.colors.textPrimary
+      const textColor = it.disabled ? theme.colors.textDisabled : theme.colors.textPrimary
       draw(
         ctx,
         Text({
@@ -228,7 +228,7 @@ export class Menu extends UIElement {
             x: row.x + row.w - (hasSubmenu ? theme.ui.controls.rowTextPadX + 14 : theme.ui.controls.rowTextPadX),
             y: row.y + row.h / 2 + 0.5,
             text: rightText,
-            style: { color: it.disabled ? "rgba(233,237,243,0.28)" : theme.colors.textMuted, font: f, baseline: "middle", align: "right" },
+            style: { color: it.disabled ? theme.colors.textFaint : theme.colors.textMuted, font: f, baseline: "middle", align: "right" },
           }),
         )
       }
@@ -239,7 +239,7 @@ export class Menu extends UIElement {
             x: row.x + row.w - theme.ui.controls.rowTextPadX,
             y: row.y + row.h / 2 + 0.5,
             text: "›",
-            style: { color: it.disabled ? "rgba(233,237,243,0.28)" : theme.colors.textMuted, font: f, baseline: "middle", align: "right" },
+            style: { color: it.disabled ? theme.colors.textFaint : theme.colors.textMuted, font: f, baseline: "middle", align: "right" },
           }),
         )
       }

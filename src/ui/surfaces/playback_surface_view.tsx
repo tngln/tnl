@@ -6,6 +6,7 @@ import { Button, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeade
 import { defineSurface } from "../builder/surface_builder"
 import { getPlaybackSession } from "../playback/session"
 import { formatTimecode } from "../playback/timecode"
+import { baseNameOr } from "../../util/util"
 
 const DEBUG_LEVELS: DebugLevel[] = ["error", "warn", "info", "debug", "trace"]
 
@@ -19,15 +20,11 @@ export function formatPlaybackTime(seconds: number) {
   return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
 }
 
-function basename(path: string | null) {
-  if (!path) return "No source selected"
-  const index = path.lastIndexOf("/")
-  return index >= 0 ? path.slice(index + 1) : path
-}
+const basename = (path: string | null) => baseNameOr(path, "No source selected")
 
 function logColor(level: DebugLevel) {
-  if (level === "error") return "rgba(255,120,120,0.95)"
-  if (level === "warn") return "rgba(255,196,92,0.95)"
+  if (level === "error") return theme.colors.dangerText
+  if (level === "warn") return theme.colors.warningText
   if (level === "info") return theme.colors.textPrimary
   return theme.colors.textMuted
 }
@@ -86,7 +83,7 @@ export const PlaybackSurface = defineSurface({
       return (
         <PanelColumn>
           <PanelHeader title="Playback" meta={selectedLabel}>
-            <Text tone="muted" size="meta" color={state.error ? "rgba(255,120,120,0.95)" : theme.colors.textMuted}>{status}</Text>
+            <Text tone="muted" size="meta" color={state.error ? theme.colors.dangerText : theme.colors.textMuted}>{status}</Text>
           </PanelHeader>
           <PanelActionRow
             key="playback.actions"
@@ -137,12 +134,12 @@ export const PlaybackSurface = defineSurface({
                   <Paint
                     key="playback.preview.canvas"
                     style={{ w: "auto", h: "auto" }}
-                    box={{ fill: "#06090f", stroke: "rgba(255,255,255,0.08)", radius: 10 }}
+                    box={{ fill: "#06090f", stroke: theme.colors.white08, radius: 10 }}
                     measure={(max) => ({ w: max.w, h: Math.max(220, Math.min(360, Math.floor(max.w * 0.5625))) })}
                     draw={(ctx, rect) => {
                       draw(
                         ctx,
-                        RRect({ x: rect.x, y: rect.y, w: rect.w, h: rect.h, r: 10 }, { fill: { color: "#06090f" }, stroke: { color: "rgba(255,255,255,0.08)", hairline: true }, pixelSnap: true }),
+                        RRect({ x: rect.x, y: rect.y, w: rect.w, h: rect.h, r: 10 }, { fill: { color: "#06090f" }, stroke: { color: theme.colors.white08, hairline: true }, pixelSnap: true }),
                       )
                       const inner = { x: rect.x + 12, y: rect.y + 12, w: Math.max(0, rect.w - 24), h: Math.max(0, rect.h - 24) }
                       const drewVideo = session.drawVideo(ctx, inner)
@@ -243,7 +240,7 @@ export const PlaybackSurface = defineSurface({
                     ))}
                   </VStack>
                   {runtime.error ? (
-                    <Text color="rgba(255,120,120,0.95)" size="meta" style={{ margin: { t: 8, r: 0, b: 0, l: 0 } }}>{runtime.error}</Text>
+                    <Text color={theme.colors.dangerText} size="meta" style={{ margin: { t: 8, r: 0, b: 0, l: 0 } }}>{runtime.error}</Text>
                   ) : null}
                 </PanelSection>
 

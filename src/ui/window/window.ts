@@ -614,9 +614,9 @@ const CLOSE_BUTTON_SPEC: TitleBarButtonSpec = {
     const bg =
       win.chrome === "tool"
         ? state.down
-          ? "rgba(233,237,243,0.12)"
+          ? theme.colors.controlPressed
           : state.hover
-            ? "rgba(233,237,243,0.08)"
+            ? theme.colors.controlHover
             : "transparent"
         : state.down
           ? theme.colors.closeDownBg
@@ -642,7 +642,7 @@ const MINIMIZE_BUTTON_SPEC: TitleBarButtonSpec = {
   visible: (win) => win.minimizable,
   slotFromRight: (win) => (win.chrome === "default" && win.resizable ? 2 : 1),
   draw: (ctx, r, win, state) => {
-    const bg = state.down ? "rgba(11,15,23,0.22)" : state.hover ? "rgba(11,15,23,0.12)" : "transparent"
+    const bg = state.down ? theme.colors.appBg22 : state.hover ? theme.colors.appBg12 : "transparent"
     if (bg !== "transparent") draw(ctx, Rect(r, { fill: { color: bg } }))
     const x0 = r.x + 5
     const x1 = r.x + r.w - 5
@@ -657,7 +657,7 @@ const MAXIMIZE_BUTTON_SPEC: TitleBarButtonSpec = {
   visible: (win) => win.chrome === "default" && win.resizable,
   slotFromRight: () => 1,
   draw: (ctx, r, win, state) => {
-    const bg = state.down ? "rgba(11,15,23,0.22)" : state.hover ? "rgba(11,15,23,0.12)" : "transparent"
+    const bg = state.down ? theme.colors.appBg22 : state.hover ? theme.colors.appBg12 : "transparent"
     if (bg !== "transparent") draw(ctx, Rect(r, { fill: { color: bg } }))
 
     const color = win.chrome === "tool" ? theme.colors.textPrimary : theme.colors.windowTitleText
@@ -762,7 +762,7 @@ class ResizeHandle extends UIElement {
   protected onDraw(ctx: CanvasRenderingContext2D) {
     if (!this.win.open.peek()) return
     const r = this.bounds()
-    const color = "rgba(233,237,243,0.35)"
+    const color = theme.colors.textDim
     const x0 = r.x + 4
     const y0 = r.y + 4
     const x1 = r.x + r.w

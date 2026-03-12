@@ -27,8 +27,8 @@ class TabButton extends InteractiveElement {
   protected onDraw(ctx: CanvasRenderingContext2D) {
     const r = this._rect()
     const sel = this.selected()
-    const bg = sel ? "rgba(255,255,255,0.06)" : this.pressed() ? "rgba(255,255,255,0.05)" : this.hover ? "rgba(255,255,255,0.04)" : "transparent"
-    const stroke = sel || this.hover ? { color: "rgba(255,255,255,0.14)", hairline: true } : undefined
+    const bg = sel ? theme.colors.white06 : this.pressed() ? theme.colors.white05 : this.hover ? theme.colors.white04 : "transparent"
+    const stroke = sel || this.hover ? { color: theme.colors.white14, hairline: true } : undefined
     if (bg !== "transparent" || stroke) draw(ctx, RRect({ x: r.x, y: r.y, w: r.w, h: r.h, r: 6 }, { fill: bg !== "transparent" ? { color: bg } : undefined, stroke, pixelSnap: true }))
     draw(
       ctx,
@@ -76,7 +76,7 @@ export class TabPanelSurface implements Surface {
     this.tabs = opts.tabs
     this.selectedId = signal(opts.selectedId ?? (opts.tabs[0]?.id ?? ""), { debugLabel: `${this.id}.selectedId` })
 
-    const containerFill = "rgba(255,255,255,0.02)"
+    const containerFill = theme.colors.white02
     const tabW = 82
     const gap = 4
     const pad = theme.spacing.xs
@@ -162,8 +162,8 @@ export class TabPanelSurface implements Surface {
   render(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, viewport: ViewportContext) {
     this.size = { x: viewport.contentRect.w, y: viewport.contentRect.h }
 
-    draw(ctx as any, RRect({ x: 0, y: 0, w: this.size.x, h: this.size.y, r: theme.radii.sm }, { fill: { color: "rgba(255,255,255,0.02)" }, stroke: { color: "rgba(255,255,255,0.10)", hairline: true }, pixelSnap: true }))
-    draw(ctx as any, RectOp({ x: 0, y: 0, w: this.size.x, h: this.tabBarH }, { fill: { color: "rgba(255,255,255,0.015)" } }))
+    draw(ctx as any, RRect({ x: 0, y: 0, w: this.size.x, h: this.size.y, r: theme.radii.sm }, { fill: { color: theme.colors.white02 }, stroke: { color: theme.colors.white10, hairline: true }, pixelSnap: true }))
+    draw(ctx as any, RectOp({ x: 0, y: 0, w: this.size.x, h: this.tabBarH }, { fill: { color: theme.colors.white015 } }))
 
     const s = this.currentSurface()
     if (s !== this.lastSurface) {
@@ -223,6 +223,6 @@ class TabBarDivider extends UIElement {
   }
   protected onDraw(ctx: CanvasRenderingContext2D) {
     const r = this.rect()
-    draw(ctx, Line({ x: r.x, y: r.y }, { x: r.x + r.w, y: r.y }, { color: "rgba(255,255,255,0.10)", hairline: true }))
+    draw(ctx, Line({ x: r.x, y: r.y }, { x: r.x + r.w, y: r.y }, { color: theme.colors.white10, hairline: true }))
   }
 }

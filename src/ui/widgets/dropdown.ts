@@ -6,24 +6,11 @@ import { toGetter, type Rect, ZERO_RECT } from "../../core/rect"
 import type { TopLayerController } from "../base/top_layer"
 import type { WidgetDescriptor } from "../builder/widget_registry"
 import { PointerUIEvent } from "../base/ui"
+import { caretDownIcon, iconToShape } from "../icons"
 import { DropdownMenu, DROPDOWN_MENU_ROW_HEIGHT } from "./dropdown_menu"
 import { InteractiveElement } from "./interactive"
 
 export type DropdownOption = { value: string; label: string }
-
-function caretDownShape(x: number, y: number, size: number) {
-  const s = Math.max(1, size)
-  const path = new Path2D()
-  path.moveTo(x - s / 2, y - s / 4)
-  path.lineTo(x + s / 2, y - s / 4)
-  path.lineTo(x, y + s / 2)
-  path.closePath()
-  return {
-    kind: "Shape" as const,
-    shape: { viewBox: { x: x - s / 2, y: y - s / 4, w: s, h: (s * 3) / 4 }, path },
-    fill: { color: theme.colors.textMuted },
-  }
-}
 
 export class Dropdown extends InteractiveElement {
   private idValue: string = ""
@@ -122,7 +109,7 @@ export class Dropdown extends InteractiveElement {
         : this.hover
           ? theme.colors.controlHover
           : "transparent"
-    const stroke = disabled ? "rgba(255,255,255,0.10)" : theme.colors.windowBorder
+    const stroke = disabled ? theme.colors.white10 : theme.colors.windowBorder
     const textColor = disabled ? theme.colors.textMuted : theme.colors.textPrimary
     const f = font(theme, theme.typography.body)
 
@@ -148,7 +135,16 @@ export class Dropdown extends InteractiveElement {
         text: display,
         style: { color: textColor, font: f, baseline: "middle" },
       }),
-      caretDownShape(r.x + r.w - theme.ui.controls.caretPadX, r.y + r.h / 2, 10),
+      iconToShape(
+        caretDownIcon,
+        {
+          x: r.x + r.w - theme.ui.controls.caretPadX - 5,
+          y: r.y + r.h / 2 - 5,
+          w: 10,
+          h: 10,
+        },
+        { color: theme.colors.textMuted },
+      ),
     )
 
     if (this.topLayer?.isOpen(this.menuId())) this.menuRectCache = this.computeMenuRect()
