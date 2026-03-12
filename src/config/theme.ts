@@ -7,6 +7,7 @@ export type Theme = {
     windowBorder: string
     windowDivider: string
     textPrimary: string
+    textSecondary: string
     textMuted: string
     textOnLightMuted: string
     closeHoverBg: string
@@ -20,6 +21,14 @@ export type Theme = {
     inputPlaceholder: string
     inputSelectionBg: string
     inputDisabledBg: string
+    controlHover: string
+    controlPressed: string
+    controlActive: string
+    controlDisabled: string
+    accent: string
+    accentHover: string
+    accentPressed: string
+    accentText: string
   }
   spacing: {
     xs: number
@@ -70,6 +79,19 @@ export function font(theme: Theme, spec: { size: number; weight: number }) {
   return `${spec.weight} ${spec.size}px ${theme.typography.family}`
 }
 
+export function alpha(color: string, opacity: number) {
+  if (color.startsWith("#")) {
+    const r = parseInt(color.slice(1, 3), 16)
+    const g = parseInt(color.slice(3, 5), 16)
+    const b = parseInt(color.slice(5, 7), 16)
+    return `rgba(${r},${g},${b},${opacity})`
+  }
+  if (color.startsWith("rgba")) {
+    return color.replace(/,[\d.]+\)$/, `,${opacity})`)
+  }
+  return color
+}
+
 export const theme: Theme = {
   colors: {
     appBg: "#0b0f17",
@@ -79,7 +101,8 @@ export const theme: Theme = {
     windowBorder: "rgba(255,255,255,0.18)",
     windowDivider: "#1a2233",
     textPrimary: "#e9edf3",
-    textMuted: "rgba(233,237,243,0.75)",
+    textSecondary: "rgba(233,237,243,0.65)",
+    textMuted: "rgba(233,237,243,0.40)",
     textOnLightMuted: "rgba(11,15,23,0.65)",
     closeHoverBg: "#e81123",
     closeDownBg: "#b32020",
@@ -92,6 +115,14 @@ export const theme: Theme = {
     inputPlaceholder: "rgba(233,237,243,0.40)",
     inputSelectionBg: "rgba(120,170,255,0.34)",
     inputDisabledBg: "rgba(255,255,255,0.025)",
+    controlHover: "rgba(233,237,243,0.08)",
+    controlPressed: "rgba(233,237,243,0.12)",
+    controlActive: "rgba(233,237,243,0.16)",
+    controlDisabled: "rgba(233,237,243,0.03)",
+    accent: "#3b82f6",
+    accentHover: "#2563eb",
+    accentPressed: "#1d4ed8",
+    accentText: "#ffffff",
   },
   spacing: {
     xs: 6,

@@ -2,7 +2,10 @@ import { draw, Rect as RectOp, Text } from "../../core/draw"
 import type { InteractionCancelReason } from "../../core/event_stream"
 import { createPressMachine } from "../../core/fsm"
 import { theme } from "../../config/theme"
+import { truncateToWidth } from "../../core/draw.text"
 import { PointerUIEvent, UIElement, pointInRect, type Rect } from "../base/ui"
+import { ZERO_RECT } from "../../core/rect"
+import type { WidgetDescriptor } from "../builder/widget_registry"
 
 export type RowVariant = "group" | "item"
 
@@ -13,23 +16,6 @@ export type ListRowLayout = {
   rightText?: string
   variant?: RowVariant
   selected?: boolean
-}
-
-function truncateToWidth(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
-  if (maxWidth <= 0) return ""
-  if (ctx.measureText(text).width <= maxWidth) return text
-  const ellipsis = "..."
-  const ellipsisW = ctx.measureText(ellipsis).width
-  if (ellipsisW >= maxWidth) return ""
-  let low = 0
-  let high = text.length
-  while (low < high) {
-    const mid = Math.ceil((low + high) / 2)
-    const candidate = text.slice(0, mid) + ellipsis
-    if (ctx.measureText(candidate).width <= maxWidth) low = mid
-    else high = mid - 1
-  }
-  return text.slice(0, low) + ellipsis
 }
 
 export class ListRow extends UIElement {
@@ -60,9 +46,9 @@ export class ListRow extends UIElement {
     const bg = this.layout.selected
       ? "rgba(255,255,255,0.055)"
       : this.hover
-        ? "rgba(255,255,255,0.05)"
+        ? theme.colors.controlHover
         : "transparent"
-    const resolvedBg = pressed ? "rgba(255,255,255,0.06)" : bg
+    const resolvedBg = pressed ? theme.colors.controlPressed : bg
     if (resolvedBg !== "transparent") draw(ctx, RectOp(r, { fill: { color: resolvedBg } }))
 
     const indent = Math.max(0, this.layout.indent ?? 0)
@@ -149,3 +135,46 @@ export class ListRow extends UIElement {
   }
 }
 
+type ListRowState = {
+  widget: ListRow
+  rect: Rect
+  active: boolean
+  layout: ListRowLayout
+  onClick?: () => void
+}
+
+export const listRowDescriptor: WidgetDescriptor<ListRowState, {
+  leftText: string
+  rightText?: string
+  indent?: number
+  variant?: "group" | "item"
+  selected?: boolean
+  onClick?: () => void
+}> = {
+  id: "listRow",
+  initialZIndex: 10,
+  create: () => {
+    const state = {
+      rect: ZERO_RECT,
+      active: false,
+      layout: { rect: ZERO_RECT, leftText: "" },
+    } as ListRowState
+    state.widget = new ListRow()
+    return state
+  },
+  getWidget: (state) => state.widget,
+  mount: (state, props, rect, active) => {
+    state.rect = rect
+    state.active = active
+    state.onClick = props.onClick
+    state.layout = {
+      rect: active ? rect : ZERO_RECT,
+      leftText: active ? props.leftText : "",
+      rightText: active ? props.rightText : undefined,
+      indent: active ? props.indent : undefined,
+      variant: active ? props.variant : undefined,
+      selected: active ? props.selected : undefined,
+    }
+    state.widget.set(state.layout, state.active ? state.onClick : undefined)
+  },
+}

@@ -1,29 +1,15 @@
 import { draw, RRect, Text } from "../../core/draw"
 import { font, theme } from "../../config/theme"
-import { toGetter, type Rect } from "../../core/rect"
+import { truncateToWidth } from "../../core/draw.text"
+import { signal, type Signal } from "../../core/reactivity"
+import { toGetter, type Rect, ZERO_RECT } from "../../core/rect"
 import type { TopLayerController } from "../base/top_layer"
+import type { WidgetDescriptor } from "../builder/widget_registry"
 import { PointerUIEvent } from "../base/ui"
 import { DropdownMenu, DROPDOWN_MENU_ROW_HEIGHT } from "./dropdown_menu"
 import { InteractiveElement } from "./interactive"
 
 export type DropdownOption = { value: string; label: string }
-
-function truncateToWidth(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
-  if (maxWidth <= 0) return ""
-  if (ctx.measureText(text).width <= maxWidth) return text
-  const ellipsis = "..."
-  const ellipsisW = ctx.measureText(ellipsis).width
-  if (ellipsisW >= maxWidth) return ""
-  let low = 0
-  let high = text.length
-  while (low < high) {
-    const mid = Math.ceil((low + high) / 2)
-    const candidate = text.slice(0, mid) + ellipsis
-    if (ctx.measureText(candidate).width <= maxWidth) low = mid
-    else high = mid - 1
-  }
-  return text.slice(0, low) + ellipsis
-}
 
 function caretDownShape(x: number, y: number, size: number) {
   const s = Math.max(1, size)
@@ -40,10 +26,10 @@ function caretDownShape(x: number, y: number, size: number) {
 }
 
 export class Dropdown extends InteractiveElement {
-  private readonly id: string
-  private readonly options: () => DropdownOption[]
-  private readonly selected: any
-  private readonly topLayer: TopLayerController
+  private idValue: string = ""
+  private optionsValue: DropdownOption[] = []
+  private selected: any
+  private topLayer?: TopLayerController
 
   private menu: DropdownMenu | null = null
   private menuRectCache: Rect = { x: 0, y: 0, w: 0, h: 0 }
@@ -53,15 +39,20 @@ export class Dropdown extends InteractiveElement {
     rect: () => Rect
     options: DropdownOption[] | (() => DropdownOption[])
     selected: any
-    topLayer: TopLayerController
+    topLayer?: TopLayerController
     active?: () => boolean
     disabled?: () => boolean
   }) {
     super(opts)
-    this.id = opts.id
-    this.options = toGetter(opts.options)
     this.selected = opts.selected
-    this.topLayer = opts.topLayer
+    this.update(opts)
+  }
+
+  update(opts: { id: string; options: DropdownOption[] | (() => DropdownOption[]); selected: any; topLayer?: TopLayerController }) {
+    this.idValue = opts.id
+    this.optionsValue = typeof opts.options === "function" ? opts.options() : opts.options
+    this.selected = opts.selected
+    if (opts.topLayer) this.topLayer = opts.topLayer
   }
 
   private mainRect() {
@@ -73,7 +64,7 @@ export class Dropdown extends InteractiveElement {
   }
 
   onBlur() {
-    this.topLayer.close(this.menuId())
+    this.topLayer?.close(this.menuId())
   }
 
   onPointerDown(e: PointerUIEvent) {
@@ -83,17 +74,18 @@ export class Dropdown extends InteractiveElement {
   }
 
   private menuId() {
-    return `dropdown:${this.id}`
+    return `dropdown:${this.idValue}`
   }
 
   private computeMenuRect() {
     const r = this.mainRect()
-    const options = this.options()
+    const options = this.optionsValue
     const h = Math.max(0, options.length * DROPDOWN_MENU_ROW_HEIGHT)
     return { x: r.x, y: r.y + r.h + 2, w: r.w, h }
   }
 
   protected onActivate() {
+    if (!this.topLayer) return
     if (this.topLayer.isOpen(this.menuId())) {
       this.topLayer.close(this.menuId())
       return
@@ -102,20 +94,20 @@ export class Dropdown extends InteractiveElement {
     if (!this.menu) {
       this.menu = new DropdownMenu({
         rect: () => this.menuRectCache,
-        options: () => this.options(),
+        options: () => this.optionsValue,
         selected: this.selected,
         onSelect: (value) => {
           this.selected.set(value)
-          this.topLayer.close(this.menuId())
+          this.topLayer?.close(this.menuId())
         },
-        onDismiss: () => this.topLayer.close(this.menuId()),
+        onDismiss: () => this.topLayer?.close(this.menuId()),
       })
     }
     this.topLayer.open(this.menuId(), this.menu)
   }
 
   onRuntimeDeactivate() {
-    this.topLayer.close(this.menuId())
+    this.topLayer?.close(this.menuId())
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
@@ -124,17 +116,17 @@ export class Dropdown extends InteractiveElement {
     const disabled = this._disabled()
     const pressed = this.pressed()
     const bg = disabled
-      ? "rgba(233,237,243,0.03)"
+      ? theme.colors.controlDisabled
       : pressed
-        ? "rgba(233,237,243,0.12)"
+        ? theme.colors.controlPressed
         : this.hover
-          ? "rgba(233,237,243,0.08)"
-          : "rgba(233,237,243,0.06)"
+          ? theme.colors.controlHover
+          : "transparent"
     const stroke = disabled ? "rgba(255,255,255,0.10)" : theme.colors.windowBorder
-    const textColor = disabled ? "rgba(233,237,243,0.38)" : theme.colors.textPrimary
+    const textColor = disabled ? theme.colors.textMuted : theme.colors.textPrimary
     const f = font(theme, theme.typography.body)
 
-    const options = this.options()
+    const options = this.optionsValue
     const current = options.find((o) => o.value === this.selected.peek())
     const label = current ? current.label : ""
 
@@ -159,6 +151,42 @@ export class Dropdown extends InteractiveElement {
       caretDownShape(r.x + r.w - theme.ui.controls.caretPadX, r.y + r.h / 2, 10),
     )
 
-    if (this.topLayer.isOpen(this.menuId())) this.menuRectCache = this.computeMenuRect()
+    if (this.topLayer?.isOpen(this.menuId())) this.menuRectCache = this.computeMenuRect()
   }
+}
+
+type DropdownState = {
+  widget: Dropdown
+  id: string
+  rect: Rect
+  active: boolean
+  disabled: boolean
+}
+
+export const dropdownDescriptor: WidgetDescriptor<DropdownState, { options: DropdownOption[]; selected: Signal<string>; disabled?: boolean; topLayer?: TopLayerController }> = {
+  id: "dropdown",
+  create: (id) => {
+    const state = { id, rect: ZERO_RECT, active: false, disabled: false } as DropdownState
+    state.widget = new Dropdown({
+      id,
+      rect: () => state.rect,
+      options: [],
+      selected: signal(""),
+      active: () => state.active,
+      disabled: () => state.disabled,
+    })
+    return state
+  },
+  getWidget: (state) => state.widget,
+  mount: (state, props, rect, active) => {
+    state.rect = rect
+    state.active = active
+    state.disabled = props.disabled ?? false
+    state.widget.update({
+      id: state.id,
+      options: props.options,
+      selected: props.selected,
+      topLayer: props.topLayer,
+    })
+  },
 }

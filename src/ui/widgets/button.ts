@@ -1,22 +1,27 @@
 import { draw, RRect, Text } from "../../core/draw"
 import { font, theme } from "../../config/theme"
-import { toGetter, type Rect } from "../../core/rect"
+import { type Rect, ZERO_RECT } from "../../core/rect"
+import type { WidgetDescriptor } from "../builder/widget_registry"
 import { InteractiveElement } from "./interactive"
 
 export class Button extends InteractiveElement {
-  private readonly text: () => string
-  private readonly title: () => string
-  private readonly onClick: (() => void) | undefined
+  private textValue: string = ""
+  private titleValue?: string = ""
+  private onClickHandler?: () => void
 
   constructor(opts: { rect: () => Rect; text: string | (() => string); title?: string | (() => string); onClick?: () => void; active?: () => boolean; disabled?: () => boolean }) {
     super(opts)
-    this.text = toGetter(opts.text)
-    this.title = opts.title ? toGetter(opts.title) : this.text
-    this.onClick = opts.onClick
+    this.update(opts)
+  }
+
+  update(opts: { text: string | (() => string); title?: string | (() => string); onClick?: () => void }) {
+    this.textValue = typeof opts.text === "function" ? opts.text() : opts.text
+    this.titleValue = opts.title ? (typeof opts.title === "function" ? opts.title() : opts.title) : this.textValue
+    this.onClickHandler = opts.onClick
   }
 
   protected onActivate() {
-    this.onClick?.()
+    this.onClickHandler?.()
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
@@ -24,14 +29,14 @@ export class Button extends InteractiveElement {
     const r = this._rect()
     const disabled = this._disabled()
     const bg = disabled
-      ? "rgba(233,237,243,0.03)"
+      ? theme.colors.controlDisabled
       : this.pressed()
-        ? "rgba(233,237,243,0.12)"
+        ? theme.colors.controlPressed
         : this.hover
-          ? "rgba(233,237,243,0.08)"
-          : "rgba(233,237,243,0.06)"
+          ? theme.colors.controlHover
+          : "transparent"
     const stroke = disabled ? "rgba(255,255,255,0.10)" : theme.colors.windowBorder
-    const textColor = disabled ? "rgba(233,237,243,0.38)" : theme.colors.textPrimary
+    const textColor = disabled ? theme.colors.textMuted : theme.colors.textPrimary
     draw(
       ctx,
       RRect(
@@ -41,7 +46,7 @@ export class Button extends InteractiveElement {
       Text({
         x: r.x + r.w / 2,
         y: r.y + r.h / 2 + 0.5,
-        text: this.text(),
+        text: this.textValue,
         style: {
           color: textColor,
           font: font(theme, theme.typography.body),
@@ -51,8 +56,8 @@ export class Button extends InteractiveElement {
       }),
     )
 
-    const title = this.title().trim()
-    if (!title || !this.hover || this.pressed() || title === this.text()) return  // eslint-disable-line @typescript-eslint/prefer-nullish-coalescing
+    const title = this.titleValue?.trim()
+    if (!title || !this.hover || this.pressed() || title === this.textValue) return  // eslint-disable-line @typescript-eslint/prefer-nullish-coalescing
     ctx.save()
     ctx.font = font(theme, theme.typography.body)
     const metrics = ctx.measureText(title)
@@ -82,4 +87,36 @@ export class Button extends InteractiveElement {
       }),
     )
   }
+}
+
+type ButtonState = {
+  widget: Button
+  rect: Rect
+  active: boolean
+  disabled: boolean
+}
+
+export const buttonDescriptor: WidgetDescriptor<ButtonState, { text: string; title?: string; disabled?: boolean; onClick?: () => void }> = {
+  id: "button",
+  create: () => {
+    const state = { rect: ZERO_RECT, active: false, disabled: false } as ButtonState
+    state.widget = new Button({
+      rect: () => state.rect,
+      text: "",
+      active: () => state.active,
+      disabled: () => state.disabled,
+    })
+    return state
+  },
+  getWidget: (state) => state.widget,
+  mount: (state, props, rect, active) => {
+    state.rect = rect
+    state.active = active
+    state.disabled = props.disabled ?? false
+    state.widget.update({
+      text: props.text,
+      title: props.title,
+      onClick: props.onClick,
+    })
+  },
 }

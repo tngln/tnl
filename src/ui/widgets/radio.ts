@@ -1,17 +1,23 @@
 import { draw, Circle, Text } from "../../core/draw"
 import { font, theme } from "../../config/theme"
-import { type Signal } from "../../core/reactivity"
-import { toGetter, type Rect } from "../../core/rect"
+import { signal, type Signal } from "../../core/reactivity"
+import { type Rect, ZERO_RECT } from "../../core/rect"
+import type { WidgetDescriptor } from "../builder/widget_registry"
 import { InteractiveElement } from "./interactive"
 
 export class Radio extends InteractiveElement {
-  private readonly label: () => string
-  private readonly value: string
-  private readonly selected: Signal<string>
+  private labelValue: string = ""
+  private value: string = ""
+  private selected: Signal<string>
 
   constructor(opts: { rect: () => Rect; label: string | (() => string); value: string; selected: Signal<string>; active?: () => boolean; disabled?: () => boolean }) {
     super(opts)
-    this.label = toGetter(opts.label)
+    this.selected = opts.selected
+    this.update(opts)
+  }
+
+  update(opts: { label: string | (() => string); value: string; selected: Signal<string> }) {
+    this.labelValue = typeof opts.label === "function" ? opts.label() : opts.label
     this.value = opts.value
     this.selected = opts.selected
   }
@@ -27,17 +33,17 @@ export class Radio extends InteractiveElement {
     const cy = r.y + 10
     const disabled = this._disabled()
     const stroke = disabled
-      ? "rgba(233,237,243,0.12)"
+      ? theme.colors.controlDisabled
       : this.pressed()
-        ? "rgba(233,237,243,0.30)"
+        ? theme.colors.controlPressed
         : this.hover
-          ? "rgba(233,237,243,0.24)"
-          : "rgba(233,237,243,0.20)"
+          ? theme.colors.controlHover
+          : theme.colors.controlActive
 
     draw(ctx, Circle({ x: cx, y: cy, r: 8 }, { stroke: { color: stroke, hairline: true } }))
 
     if (this.selected.peek() === this.value) {
-      draw(ctx, Circle({ x: cx, y: cy, r: 4 }, { fill: { color: disabled ? "rgba(233,237,243,0.38)" : theme.colors.textPrimary } }))
+      draw(ctx, Circle({ x: cx, y: cy, r: 4 }, { fill: { color: disabled ? theme.colors.textMuted : theme.colors.textPrimary } }))
     }
 
     draw(
@@ -45,9 +51,43 @@ export class Radio extends InteractiveElement {
       Text({
         x: r.x + 24,
         y: r.y,
-        text: this.label(),
-        style: { color: disabled ? "rgba(233,237,243,0.38)" : theme.colors.textPrimary, font: font(theme, theme.typography.body), baseline: "top" },
+        text: this.labelValue,
+        style: { color: disabled ? theme.colors.textMuted : theme.colors.textPrimary, font: font(theme, theme.typography.body), baseline: "top" },
       }),
     )
   }
+}
+
+type RadioState = {
+  widget: Radio
+  rect: Rect
+  active: boolean
+  disabled: boolean
+}
+
+export const radioDescriptor: WidgetDescriptor<RadioState, { label: string; value: string; selected: Signal<string>; disabled?: boolean }> = {
+  id: "radio",
+  create: () => {
+    const state = { rect: ZERO_RECT, active: false, disabled: false } as RadioState
+    state.widget = new Radio({
+      rect: () => state.rect,
+      label: "",
+      value: "",
+      selected: signal(""),
+      active: () => state.active,
+      disabled: () => state.disabled,
+    })
+    return state
+  },
+  getWidget: (state) => state.widget,
+  mount: (state, props, rect, active) => {
+    state.rect = rect
+    state.active = active
+    state.disabled = props.disabled ?? false
+    state.widget.update({
+      label: props.label,
+      value: props.value,
+      selected: props.selected,
+    })
+  },
 }

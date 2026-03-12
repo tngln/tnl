@@ -1,16 +1,22 @@
 import { draw, Line, RRect, Text } from "../../core/draw"
 import { font, theme } from "../../config/theme"
-import { type Signal } from "../../core/reactivity"
-import { toGetter, type Rect } from "../../core/rect"
+import { signal, type Signal } from "../../core/reactivity"
+import { type Rect, ZERO_RECT } from "../../core/rect"
+import type { WidgetDescriptor } from "../builder/widget_registry"
 import { InteractiveElement } from "./interactive"
 
 export class Checkbox extends InteractiveElement {
-  private readonly label: () => string
-  private readonly checked: Signal<boolean>
+  private labelValue: string = ""
+  private checked: Signal<boolean>
 
   constructor(opts: { rect: () => Rect; label: string | (() => string); checked: Signal<boolean>; active?: () => boolean; disabled?: () => boolean }) {
     super(opts)
-    this.label = toGetter(opts.label)
+    this.checked = opts.checked
+    this.update(opts)
+  }
+
+  update(opts: { label: string | (() => string); checked: Signal<boolean> }) {
+    this.labelValue = typeof opts.label === "function" ? opts.label() : opts.label
     this.checked = opts.checked
   }
 
@@ -24,14 +30,14 @@ export class Checkbox extends InteractiveElement {
     const box = { x: r.x, y: r.y + 2, w: 16, h: 16, r: 4 }
     const disabled = this._disabled()
     const bg = disabled
-      ? "rgba(233,237,243,0.03)"
+      ? theme.colors.controlDisabled
       : this.pressed()
-        ? "rgba(233,237,243,0.10)"
+        ? theme.colors.controlPressed
         : this.hover
-          ? "rgba(233,237,243,0.08)"
-          : "rgba(233,237,243,0.06)"
+          ? theme.colors.controlHover
+          : "transparent"
     const stroke = disabled ? "rgba(255,255,255,0.10)" : theme.colors.windowBorder
-    const textColor = disabled ? "rgba(233,237,243,0.38)" : theme.colors.textPrimary
+    const textColor = disabled ? theme.colors.textMuted : theme.colors.textPrimary
 
     draw(
       ctx,
@@ -39,7 +45,7 @@ export class Checkbox extends InteractiveElement {
       Text({
         x: r.x + 24,
         y: r.y,
-        text: this.label(),
+        text: this.labelValue,
         style: { color: textColor, font: font(theme, theme.typography.body), baseline: "top" },
       }),
     )
@@ -53,9 +59,41 @@ export class Checkbox extends InteractiveElement {
       const y2 = box.y + 5
       draw(
         ctx,
-        Line({ x: x0, y: y0 }, { x: x1, y: y1 }, { color: disabled ? "rgba(233,237,243,0.38)" : theme.colors.textPrimary, width: 2.0, lineCap: "round" }),
-        Line({ x: x1, y: y1 }, { x: x2, y: y2 }, { color: disabled ? "rgba(233,237,243,0.38)" : theme.colors.textPrimary, width: 2.0, lineCap: "round" }),
+        Line({ x: x0, y: y0 }, { x: x1, y: y1 }, { color: disabled ? theme.colors.textMuted : theme.colors.textPrimary, width: 2.0, lineCap: "round" }),
+        Line({ x: x1, y: y1 }, { x: x2, y: y2 }, { color: disabled ? theme.colors.textMuted : theme.colors.textPrimary, width: 2.0, lineCap: "round" }),
       )
     }
   }
+}
+
+type CheckboxState = {
+  widget: Checkbox
+  rect: Rect
+  active: boolean
+  disabled: boolean
+}
+
+export const checkboxDescriptor: WidgetDescriptor<CheckboxState, { label: string; checked: Signal<boolean>; disabled?: boolean }> = {
+  id: "checkbox",
+  create: () => {
+    const state = { rect: ZERO_RECT, active: false, disabled: false } as CheckboxState
+    state.widget = new Checkbox({
+      rect: () => state.rect,
+      label: "",
+      checked: signal(false),
+      active: () => state.active,
+      disabled: () => state.disabled,
+    })
+    return state
+  },
+  getWidget: (state) => state.widget,
+  mount: (state, props, rect, active) => {
+    state.rect = rect
+    state.active = active
+    state.disabled = props.disabled ?? false
+    state.widget.update({
+      label: props.label,
+      checked: props.checked,
+    })
+  },
 }

@@ -1,9 +1,10 @@
 import { draw, RRect } from "../../core/draw"
 import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "../../core/event_stream"
 import { createMachine, type Machine } from "../../core/fsm"
-import { clamp } from "../../core/rect"
+import { clamp, ZERO_RECT } from "../../core/rect"
 import { theme } from "../../config/theme"
 import { PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "../base/ui"
+import type { WidgetDescriptor } from "../builder/widget_registry"
 
 type Axis = "x" | "y"
 
@@ -28,15 +29,15 @@ type ScrollbarEvent =
   | { type: "CANCEL"; reason: string }
 
 export class Scrollbar extends UIElement {
-  private readonly rect: () => Rect
-  private readonly axis: Axis
-  private readonly viewportSize: () => number
-  private readonly contentSize: () => number
-  private readonly value: () => number
-  private readonly onChange: (next: number) => void
-  private readonly minThumb: number
-  private readonly active: () => boolean
-  private readonly autoHide: boolean
+  private rectValue: Rect = ZERO_RECT
+  private axis: Axis = "y"
+  private viewportSize: number = 0
+  private contentSize: number = 0
+  private value: number = 0
+  private onChange: (next: number) => void = () => {}
+  private minThumb: number = 20
+  private autoHide: boolean = true
+  private activeValue: boolean = true
 
   private hover = false
   private readonly downEvents = createEventStream<PointerUIEvent>()
@@ -57,15 +58,7 @@ export class Scrollbar extends UIElement {
     active?: () => boolean
   }) {
     super()
-    this.rect = opts.rect
-    this.axis = opts.axis ?? "y"
-    this.viewportSize = opts.viewportSize
-    this.contentSize = opts.contentSize
-    this.value = opts.value
-    this.onChange = opts.onChange
-    this.minThumb = Math.max(10, opts.minThumb ?? 20)
-    this.autoHide = opts.autoHide ?? true
-    this.active = opts.active ?? (() => true)
+    this.update(opts)
     this.z = 40
     this.machine = createMachine<ScrollbarState, ScrollbarEvent, ScrollbarContext>({
       initial: "idle",
@@ -124,10 +117,32 @@ export class Scrollbar extends UIElement {
     this.setupGestures()
   }
 
+  update(opts: {
+    rect: () => Rect
+    axis?: Axis
+    viewportSize: () => number
+    contentSize: () => number
+    value: () => number
+    onChange: (next: number) => void
+    minThumb?: number
+    autoHide?: boolean
+    active?: () => boolean
+  }) {
+    this.rectValue = opts.rect()
+    this.axis = opts.axis ?? "y"
+    this.viewportSize = opts.viewportSize()
+    this.contentSize = opts.contentSize()
+    this.value = opts.value()
+    this.onChange = opts.onChange
+    this.minThumb = Math.max(10, opts.minThumb ?? 20)
+    this.autoHide = opts.autoHide ?? true
+    this.activeValue = opts.active ? opts.active() : true
+  }
+
   private metrics(): ThumbMetrics {
-    const r = this.rect()
-    const viewport = Math.max(0, this.viewportSize())
-    const content = Math.max(0, this.contentSize())
+    const r = this.rectValue
+    const viewport = Math.max(0, this.viewportSize)
+    const content = Math.max(0, this.contentSize)
     const trackLength = Math.max(0, this.axis === "y" ? r.h : r.w)
     const maxValue = Math.max(0, content - viewport)
     if (trackLength <= 0 || maxValue <= 0 || content <= 0 || viewport <= 0) {
@@ -135,26 +150,26 @@ export class Scrollbar extends UIElement {
     }
     const thumbLength = clamp((viewport / content) * trackLength, this.minThumb, trackLength)
     const span = Math.max(0, trackLength - thumbLength)
-    const value = clamp(this.value(), 0, maxValue)
+    const value = clamp(this.value, 0, maxValue)
     const thumbOffset = span <= 0 ? 0 : (value / maxValue) * span
     return { maxValue, trackLength, thumbLength, thumbOffset }
   }
 
   private hidden() {
-    if (!this.active()) return true
+    if (!this.activeValue) return true
     if (!this.autoHide) return false
     return this.metrics().maxValue <= 0
   }
 
   private thumbRect() {
-    const r = this.rect()
+    const r = this.rectValue
     const m = this.metrics()
     if (this.axis === "y") return { x: r.x, y: r.y + m.thumbOffset, w: r.w, h: m.thumbLength }
     return { x: r.x + m.thumbOffset, y: r.y, w: m.thumbLength, h: r.h }
   }
 
   private setByPointer(pointer: number, dragOffset: number) {
-    const r = this.rect()
+    const r = this.rectValue
     const m = this.metrics()
     if (m.maxValue <= 0) return
     const trackPos = this.axis === "y" ? pointer - r.y : pointer - r.x
@@ -198,7 +213,7 @@ export class Scrollbar extends UIElement {
 
   bounds(): Rect {
     if (this.hidden()) return { x: 0, y: 0, w: 0, h: 0 }
-    return this.rect()
+    return this.rectValue
   }
 
   protected containsPoint(p: Vec2) {
@@ -207,7 +222,7 @@ export class Scrollbar extends UIElement {
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
     if (this.hidden()) return
-    const r = this.rect()
+    const r = this.rectValue
     const t = this.thumbRect()
     const active = this.machine.matches("pressed") || this.machine.matches("dragging")
     const track = active ? "rgba(255,255,255,0.07)" : this.hover ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.04)"
@@ -263,4 +278,51 @@ export class Scrollbar extends UIElement {
     this.hover = false
     this.cancelEvents.emit(reason)
   }
+}
+
+type ScrollbarStateData = {
+  widget: Scrollbar
+  rect: Rect
+  active: boolean
+}
+
+export const scrollbarDescriptor: WidgetDescriptor<ScrollbarStateData, {
+  axis?: Axis
+  viewportSize: number
+  contentSize: number
+  value: number
+  onChange: (next: number) => void
+  minThumb?: number
+  autoHide?: boolean
+}> = {
+  id: "scrollbar",
+  initialZIndex: 40,
+  create: () => {
+    const state = { rect: ZERO_RECT, active: false } as ScrollbarStateData
+    state.widget = new Scrollbar({
+      rect: () => state.rect,
+      viewportSize: () => 0,
+      contentSize: () => 0,
+      value: () => 0,
+      onChange: () => {},
+      active: () => state.active,
+    })
+    return state
+  },
+  getWidget: (state) => state.widget,
+  mount: (state, props, rect, active) => {
+    state.rect = rect
+    state.active = active
+    state.widget.update({
+      rect: () => state.rect,
+      axis: props.axis,
+      viewportSize: () => props.viewportSize,
+      contentSize: () => props.contentSize,
+      value: () => props.value,
+      onChange: props.onChange,
+      minThumb: props.minThumb,
+      autoHide: props.autoHide,
+      active: () => state.active,
+    })
+  },
 }

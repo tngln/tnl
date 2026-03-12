@@ -1,10 +1,11 @@
 import { draw, RRect, Text } from "../../core/draw"
 import { measureTextWidth } from "../../core/draw.text"
 import { toGetter, ZERO_RECT, type Rect } from "../../core/rect"
-import type { Signal } from "../../core/reactivity"
+import { signal, type Signal } from "../../core/reactivity"
 import { font, theme } from "../../config/theme"
 import { getTextInputBridge, type TextInputBridge } from "../../platform/web"
 import { createMeasureContext } from "../../platform/web/canvas"
+import type { WidgetDescriptor } from "../builder/widget_registry"
 import { CursorRegion, KeyUIEvent, PointerUIEvent, UIElement, pointInRect, type Vec2 } from "../base/ui"
 
 const TEXTBOX_HEIGHT = theme.ui.controls.inputHeight
@@ -25,12 +26,12 @@ function hasShortcutModifier(e: { ctrlKey: boolean; metaKey: boolean }) {
 }
 
 export class TextBox extends UIElement {
-  private readonly rect: () => Rect
-  private readonly value: Signal<string>
-  private readonly placeholder: () => string
-  private readonly active: () => boolean
-  private readonly disabled: () => boolean
-  private readonly inputBridge: TextInputBridge
+  private rectValue: Rect = ZERO_RECT
+  private value: Signal<string>
+  private placeholderValue: string = ""
+  private activeValue: boolean = true
+  private disabledValue: boolean = false
+  private inputBridge: TextInputBridge
   private readonly sessionId = `${SESSION_PREFIX}.${nextSessionId++}`
 
   private hover = false
@@ -53,12 +54,9 @@ export class TextBox extends UIElement {
     inputBridge?: TextInputBridge
   }) {
     super()
-    this.rect = opts.rect
     this.value = opts.value
-    this.placeholder = toGetter(opts.placeholder, "")
-    this.active = opts.active ?? (() => true)
-    this.disabled = opts.disabled ?? (() => false)
     this.inputBridge = opts.inputBridge ?? getTextInputBridge()
+    this.update(opts)
     this.add(
       new CursorRegion({
         rect: () => this.bounds(),
@@ -68,9 +66,25 @@ export class TextBox extends UIElement {
     )
   }
 
+  update(opts: {
+    rect: () => Rect
+    value: Signal<string>
+    placeholder?: string | (() => string)
+    active?: () => boolean
+    disabled?: () => boolean
+    inputBridge?: TextInputBridge
+  }) {
+    this.rectValue = opts.rect()
+    this.value = opts.value
+    this.placeholderValue = typeof opts.placeholder === "function" ? opts.placeholder() : (opts.placeholder ?? "")
+    this.activeValue = opts.active ? opts.active() : true
+    this.disabledValue = opts.disabled ? opts.disabled() : false
+    if (opts.inputBridge) this.inputBridge = opts.inputBridge
+  }
+
   bounds(): Rect {
-    if (!this.active()) return ZERO_RECT
-    return this.rect()
+    if (!this.activeValue) return ZERO_RECT
+    return this.rectValue
   }
 
   protected containsPoint(p: Vec2) {
@@ -80,6 +94,8 @@ export class TextBox extends UIElement {
   canFocus() {
     return this.interactive()
   }
+
+  // ... (keep rest of methods but replace rect(), active(), disabled() calls with property access)
 
   onFocus() {
     if (!this.interactive()) return
@@ -206,14 +222,14 @@ export class TextBox extends UIElement {
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
-    if (!this.active()) return
-    const rect = this.rect()
-    const disabled = this.disabled()
+    if (!this.activeValue) return
+    const rect = this.rectValue
+    const disabled = this.disabledValue
     const focused = this.focused && !disabled
     const bg = disabled ? theme.colors.inputDisabledBg : theme.colors.inputBg
     const stroke = focused ? theme.colors.inputBorderFocus : theme.colors.inputBorder
     const textValue = this.value.get()
-    const placeholder = this.placeholder()
+    const placeholder = this.placeholderValue
     const display = textValue || placeholder
     const isPlaceholder = !textValue
     const fontSpec = font(theme, theme.typography.body)
@@ -268,7 +284,7 @@ export class TextBox extends UIElement {
   }
 
   private interactive() {
-    return this.active() && !this.disabled()
+    return this.activeValue && !this.disabledValue
   }
 
   private normalizedSelection() {
@@ -283,7 +299,7 @@ export class TextBox extends UIElement {
   }
 
   private indexFromPoint(x: number) {
-    const rect = this.rect()
+    const rect = this.rectValue
     const value = this.value.get()
     const localX = x - rect.x - PAD_X + this.scrollX
     const context = this.measureCtx
@@ -337,7 +353,7 @@ export class TextBox extends UIElement {
 
   private syncBridge() {
     if (!this.focused || !this.interactive()) return
-    const rect = this.rect()
+    const rect = this.rectValue
     const caretRectCss = {
       x: rect.x + PAD_X,
       y: rect.y + rect.h / 2,
@@ -419,7 +435,7 @@ export class TextBox extends UIElement {
     return this.caretBlinkHoldUntil + (phase + 1) * CARET_BLINK_MS
   }
 
-  private updateCaretBlinkState(forceVisible = false) {
+  updateCaretBlinkState(forceVisible = false) {
     const now = Date.now()
     const nextVisible = forceVisible || now < this.caretBlinkHoldUntil
       ? true
@@ -438,6 +454,40 @@ export class TextBox extends UIElement {
     }
     this.stopCaretBlink()
   }
+}
+
+type TextBoxState = {
+  widget: TextBox
+  rect: Rect
+  active: boolean
+  disabled: boolean
+}
+
+export const textBoxDescriptor: WidgetDescriptor<TextBoxState, { value: Signal<string>; placeholder?: string; disabled?: boolean }> = {
+  id: "textbox",
+  create: () => {
+    const state = { rect: ZERO_RECT, active: false, disabled: false } as TextBoxState
+    state.widget = new TextBox({
+      rect: () => state.rect,
+      value: signal(""),
+      active: () => state.active,
+      disabled: () => state.disabled,
+    })
+    return state
+  },
+  getWidget: (state) => state.widget,
+  mount: (state, props, rect, active) => {
+    state.rect = rect
+    state.active = active
+    state.disabled = props.disabled ?? false
+    state.widget.update({
+      rect: () => state.rect,
+      value: props.value,
+      placeholder: props.placeholder,
+      active: () => state.active,
+      disabled: () => state.disabled,
+    })
+  },
 }
 
 export { TEXTBOX_HEIGHT }

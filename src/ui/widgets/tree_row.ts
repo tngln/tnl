@@ -2,8 +2,11 @@ import { draw, Line, Rect as RectOp, Text } from "../../core/draw"
 import type { InteractionCancelReason } from "../../core/event_stream"
 import { createPressMachine } from "../../core/fsm"
 import { theme } from "../../config/theme"
+import { truncateToWidth } from "../../core/draw.text"
 import { PointerUIEvent, UIElement, pointInRect, type Rect } from "../base/ui"
+import { ZERO_RECT } from "../../core/rect"
 import type { RowVariant } from "./row"
+import type { WidgetDescriptor } from "../builder/widget_registry"
 
 export const TREE_ROW_HEIGHT = theme.ui.controls.treeRowHeight
 export const TREE_ROW_INDENT_STEP = theme.ui.controls.treeRow.indentStep
@@ -23,24 +26,8 @@ export type TreeRowLayout = {
   selected?: boolean
 }
 
-function truncateToWidth(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
-  if (maxWidth <= 0) return ""
-  if (ctx.measureText(text).width <= maxWidth) return text
-  const ellipsis = "..."
-  const ellipsisW = ctx.measureText(ellipsis).width
-  if (ellipsisW >= maxWidth) return ""
-  let low = 0
-  let high = text.length
-  while (low < high) {
-    const mid = Math.ceil((low + high) / 2)
-    const candidate = text.slice(0, mid) + ellipsis
-    if (ctx.measureText(candidate).width <= maxWidth) low = mid
-    else high = mid - 1
-  }
-  return text.slice(0, low) + ellipsis
-}
-
 export class TreeRow extends UIElement {
+  private activeValue: boolean = true
   private layout: TreeRowLayout = {
     rect: { x: 0, y: 0, w: 0, h: 0 },
     depth: 0,
@@ -53,15 +40,17 @@ export class TreeRow extends UIElement {
   private hover = false
   private readonly press = createPressMachine()
 
-  set(layout: TreeRowLayout, handlers?: { onSelect?: () => void; onToggle?: () => void }) {
+  set(layout: TreeRowLayout, handlers?: { onSelect?: () => void; onToggle?: () => void }, active?: boolean) {
     this.layout = layout
     this.onSelect = handlers?.onSelect
     this.onToggle = handlers?.onToggle
+    if (active !== undefined) this.activeValue = active
   }
 
   bounds(): Rect {
     const r = this.layout.rect
-    if (r.w <= 0 || r.h <= 0) return { x: 0, y: 0, w: 0, h: 0 }
+    if (r.w <= 0 || r.h <= 0) return ZERO_RECT
+    if (!this.activeValue) return ZERO_RECT
     return r
   }
 
@@ -83,9 +72,9 @@ export class TreeRow extends UIElement {
     const bg = this.layout.selected
       ? "rgba(255,255,255,0.055)"
       : this.hover
-        ? "rgba(255,255,255,0.05)"
+        ? theme.colors.controlHover
         : "transparent"
-    const resolvedBg = pressed ? "rgba(255,255,255,0.06)" : bg
+    const resolvedBg = pressed ? theme.colors.controlPressed : bg
     if (resolvedBg !== "transparent") draw(ctx, RectOp(r, { fill: { color: resolvedBg } }))
 
     const isGroup = (this.layout.variant ?? "item") === "group"
@@ -193,4 +182,65 @@ export class TreeRow extends UIElement {
     if (!this.press.matches("pressed")) return
     this.press.send({ type: "CANCEL", reason })
   }
+}
+
+type TreeRowState = {
+  widget: TreeRow
+  rect: Rect
+  active: boolean
+  layout: TreeRowLayout
+  onSelect?: () => void
+  onToggle?: () => void
+}
+
+export const treeRowDescriptor: WidgetDescriptor<TreeRowState, {
+  depth: number
+  expandable: boolean
+  expanded: boolean
+  leftText: string
+  rightText?: string
+  variant?: RowVariant
+  selected?: boolean
+  onSelect?: () => void
+  onToggle?: () => void
+}> = {
+  id: "treeRow",
+  initialZIndex: 10,
+  create: () => {
+    const state = {
+      rect: ZERO_RECT,
+      active: false,
+      layout: {
+        rect: ZERO_RECT,
+        depth: 0,
+        expandable: false,
+        expanded: false,
+        leftText: "",
+      },
+    } as TreeRowState
+    state.widget = new TreeRow()
+    return state
+  },
+  getWidget: (state) => state.widget,
+  mount: (state, props, rect, active) => {
+    state.rect = rect
+    state.active = active
+    state.onSelect = props.onSelect
+    state.onToggle = props.onToggle
+    state.layout = {
+      rect: active ? rect : ZERO_RECT,
+      depth: active ? props.depth : 0,
+      expandable: active ? props.expandable : false,
+      expanded: active ? props.expanded : false,
+      leftText: active ? props.leftText : "",
+      rightText: active ? props.rightText : undefined,
+      variant: active ? props.variant : undefined,
+      selected: active ? props.selected : undefined,
+    }
+    state.widget.set(state.layout, active ? { onSelect: state.onSelect, onToggle: state.onToggle } : undefined, active)
+  },
+  unmount: (state) => {
+    state.active = false
+    state.widget.set(state.layout, undefined, false)
+  },
 }

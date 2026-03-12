@@ -130,6 +130,23 @@ export function measureTextLine(ctx: Any2DContext, text: string, font: string, l
   return { w, h: lineHeight }
 }
 
+export function truncateToWidth(ctx: Any2DContext, text: string, maxWidth: number) {
+  if (maxWidth <= 0) return ""
+  if (ctx.measureText(text).width <= maxWidth) return text
+  const ellipsis = "..."
+  const ellipsisW = ctx.measureText(ellipsis).width
+  if (ellipsisW >= maxWidth) return ""
+  let low = 0
+  let high = text.length
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2)
+    const candidate = text.slice(0, mid) + ellipsis
+    if (ctx.measureText(candidate).width <= maxWidth) low = mid
+    else high = mid - 1
+  }
+  return text.slice(0, low) + ellipsis
+}
+
 function fontMetrics(ctx: Any2DContext, font: string): FontMetrics {
   const hit = metricsCache.get(font)
   if (hit) return hit

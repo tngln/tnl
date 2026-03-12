@@ -9,6 +9,7 @@ import type { TopLayerController } from "../base/top_layer"
 import { KeyUIEvent, PointerUIEvent, UIElement, pointInRect, type Vec2 } from "../base/ui"
 import type { MenuItem } from "./menu"
 import { MenuStack } from "./menu_stack"
+import type { WidgetDescriptor } from "../builder/widget_registry"
 
 function clamp(v: number, min: number, max: number) {
   return Math.max(min, Math.min(max, v))
@@ -97,8 +98,8 @@ function offsetForLineX(ctx: Any2DContext, line: RichTextLine, x: number) {
 export class RichTextSelectable extends UIElement {
   private rect: Rect = ZERO_RECT
   private active = false
-  private readonly block: () => RichTextBlock
-  private readonly topLayer: TopLayerController
+  private block: () => RichTextBlock
+  private topLayer: TopLayerController | null = null
   private readonly sessionId: string
   private readonly measureCtx: Any2DContext | null = createMeasureContext()
 
@@ -112,22 +113,34 @@ export class RichTextSelectable extends UIElement {
   private selectionEnd = 0
 
   private readonly menuId: string
-  private readonly stack: MenuStack
+  private stack: MenuStack | null = null
 
   constructor(opts: {
     id: string
     rect: () => Rect
     active: () => boolean
     block: () => RichTextBlock
-    topLayer: TopLayerController
+    topLayer?: TopLayerController
   }) {
     super()
     this.block = opts.block
-    this.topLayer = opts.topLayer
     this.sessionId = `richtext.${opts.id}`
     this.menuId = `richtext:menu:${opts.id}`
-    this.stack = new MenuStack({ id: this.menuId, topLayer: this.topLayer, viewport: () => this.topLayer.host.bounds() })
-    this.set({ rect: opts.rect(), active: opts.active() })
+    if (opts.topLayer) {
+      this.topLayer = opts.topLayer
+      this.stack = new MenuStack({ id: this.menuId, topLayer: opts.topLayer, viewport: () => opts.topLayer!.host.bounds() })
+    }
+    this.update({ rect: opts.rect, active: opts.active, block: opts.block, topLayer: opts.topLayer })
+  }
+
+  update(next: { rect: () => Rect; active: () => boolean; block: () => RichTextBlock; topLayer?: TopLayerController }) {
+    this.rect = next.rect()
+    this.active = next.active() && this.rect.w > 0 && this.rect.h > 0
+    this.block = next.block
+    if (next.topLayer) {
+      this.topLayer = next.topLayer
+      if (!this.stack) this.stack = new MenuStack({ id: this.menuId, topLayer: next.topLayer, viewport: () => next.topLayer!.host.bounds() })
+    }
   }
 
   set(next: { rect: Rect; active: boolean }) {
@@ -227,6 +240,7 @@ export class RichTextSelectable extends UIElement {
   }
 
   private openContextMenu(p: Vec2) {
+    if (!this.stack) return
     const selected = this.selectedText()
     if (!selected) return
     const anchor = { x: p.x, y: p.y, w: 1, h: 1 }
@@ -236,7 +250,7 @@ export class RichTextSelectable extends UIElement {
         text: "Copy",
         onSelect: () => {
           void writeTextToClipboard(selected)
-          this.stack.closeAll()
+          this.stack?.closeAll()
         },
       },
     ]
@@ -353,4 +367,38 @@ export class RichTextSelectable extends UIElement {
 
     block.draw(ctx, { x: r.x, y: r.y })
   }
+}
+
+type RichTextSelectableState = {
+  widget: RichTextSelectable
+  id: string
+  rect: Rect
+  active: boolean
+}
+
+export const richTextSelectableDescriptor: WidgetDescriptor<RichTextSelectableState, { block: RichTextBlock; topLayer: TopLayerController }> = {
+  id: "richTextSelectable",
+  initialZIndex: 10,
+  create: (id) => {
+    const emptyBlock = { measure: () => ({ w: 0, h: 0 }), getLayout: () => null, draw: () => {} } as RichTextBlock
+    const state = { id, rect: ZERO_RECT, active: false } as RichTextSelectableState
+    state.widget = new RichTextSelectable({
+      id,
+      rect: () => state.rect,
+      active: () => state.active,
+      block: () => emptyBlock,
+    })
+    return state
+  },
+  getWidget: (state) => state.widget,
+  mount: (state, props, rect, active) => {
+    state.rect = rect
+    state.active = active
+    state.widget.update({
+      rect: () => state.rect,
+      active: () => state.active,
+      block: () => props.block,
+      topLayer: props.topLayer,
+    })
+  },
 }

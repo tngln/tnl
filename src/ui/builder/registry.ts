@@ -4,12 +4,26 @@ import { draw, RRect, Text } from "../../core/draw"
 import { measureTextWidth } from "../../core/draw.text"
 import { measureLayout, type LayoutStyle } from "../../core/layout"
 import { ZERO_RECT } from "../../core/rect"
-import { TREE_ROW_HEIGHT } from "../widgets"
+import { TREE_ROW_HEIGHT, buttonDescriptor, checkboxDescriptor, clickAreaDescriptor, dropdownDescriptor, listRowDescriptor, radioDescriptor, richTextSelectableDescriptor, scrollAreaDescriptor, scrollbarDescriptor, sliderDescriptor, textBoxDescriptor, treeRowDescriptor } from "../widgets"
 import { textFont } from "./text"
 import { inheritedTextToRichTextStyle, resolveTextColor, resolveTextEmphasis, resolveTextStyle } from "./styles"
 import type { BuilderEngine } from "./engine"
 import type { AstNode, BuilderNode, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, DropdownNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, SpacerNode, TextBoxNode, TextNode, TreeViewNode } from "./types"
 import { flattenTreeItems } from "./runtime"
+import { widgetRegistry } from "./widget_registry"
+
+widgetRegistry.register(buttonDescriptor)
+widgetRegistry.register(clickAreaDescriptor)
+widgetRegistry.register(checkboxDescriptor)
+widgetRegistry.register(dropdownDescriptor)
+widgetRegistry.register(listRowDescriptor)
+widgetRegistry.register(radioDescriptor)
+widgetRegistry.register(richTextSelectableDescriptor)
+widgetRegistry.register(scrollAreaDescriptor)
+widgetRegistry.register(scrollbarDescriptor)
+widgetRegistry.register(sliderDescriptor)
+widgetRegistry.register(textBoxDescriptor)
+widgetRegistry.register(treeRowDescriptor)
 
 export type MeasureSize = { w: number; h: number }
 
@@ -93,7 +107,7 @@ const richTextHandler: BuilderNodeHandler<RichTextNode> = {
     const rect = ast.rect ?? ZERO_RECT
     if (node.selectable) {
       const block = engine.runtime.ensureRichBlock(path, node.spans, node.textStyle ?? inheritedTextToRichTextStyle(ast.resolved.text), node.align)
-      engine.runtime.mountRichTextSelectable(path, rect, block, active)
+      engine.runtime.mountWidget("richTextSelectable", path, rect, { block, topLayer: engine.runtime.topLayer }, active)
       return
     }
     if (!active) return
@@ -117,7 +131,7 @@ const buttonHandler: BuilderNodeHandler<ButtonNode> = {
     return { w: Math.min(max.w, w + 28), h: theme.ui.controls.buttonHeight }
   },
   mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountButton(path, ast.rect ?? ZERO_RECT, node, active)
+    engine.runtime.mountWidget("button", path, ast.rect ?? ZERO_RECT, node, active)
   },
 }
 
@@ -125,7 +139,7 @@ const clickAreaHandler: BuilderNodeHandler<ClickAreaNode> = {
   kind: "clickArea",
   measure: () => ({ w: 0, h: 0 }),
   mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountClickArea(path, ast.rect ?? ZERO_RECT, node, active)
+    engine.runtime.mountWidget("clickArea", path, ast.rect ?? ZERO_RECT, node, active)
   },
 }
 
@@ -141,7 +155,7 @@ const checkboxHandler: BuilderNodeHandler<CheckboxNode> = {
     return { w: Math.min(max.w, w + 28), h: theme.ui.controls.choiceHeight }
   },
   mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountCheckbox(path, ast.rect ?? ZERO_RECT, node, active)
+    engine.runtime.mountWidget("checkbox", path, ast.rect ?? ZERO_RECT, node, active)
   },
 }
 
@@ -159,7 +173,13 @@ const dropdownHandler: BuilderNodeHandler<DropdownNode> = {
     return { w: Math.min(max.w, Math.max(theme.ui.controls.minFieldWidth, w + 28)), h: theme.ui.controls.inputHeight }
   },
   mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountDropdown(path, ast.rect ?? ZERO_RECT, node, active)
+    engine.runtime.mountWidget(
+      "dropdown",
+      path,
+      ast.rect ?? ZERO_RECT,
+      { options: node.options, selected: node.selected, disabled: node.disabled, topLayer: engine.runtime.topLayer },
+      active,
+    )
   },
 }
 
@@ -175,7 +195,7 @@ const radioHandler: BuilderNodeHandler<RadioNode> = {
     return { w: Math.min(max.w, w + 28), h: theme.ui.controls.choiceHeight }
   },
   mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountRadio(path, ast.rect ?? ZERO_RECT, node, active)
+    engine.runtime.mountWidget("radio", path, ast.rect ?? ZERO_RECT, node, active)
   },
 }
 
@@ -192,7 +212,7 @@ const textBoxHandler: BuilderNodeHandler<TextBoxNode> = {
     return { w: Math.min(max.w, Math.max(theme.ui.controls.minFieldWidth, w + 16)), h: theme.ui.controls.inputHeight }
   },
   mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountTextBox(path, ast.rect ?? ZERO_RECT, node, active)
+    engine.runtime.mountWidget("textbox", path, ast.rect ?? ZERO_RECT, node, active)
   },
 }
 
@@ -200,7 +220,7 @@ const rowItemHandler: BuilderNodeHandler<RowNode> = {
   kind: "listRow",
   measure: (_engine, _ctx, _node, max) => ({ w: max.w, h: theme.ui.controls.rowHeight }),
   mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountRow(path, ast.rect ?? ZERO_RECT, node, active)
+    engine.runtime.mountWidget("listRow", path, ast.rect ?? ZERO_RECT, node, active)
   },
 }
 
@@ -220,10 +240,16 @@ const scrollAreaHandler: BuilderNodeHandler<ScrollAreaNode> = {
   measure: (engine, ctx, node, max, path, ast) => {
     const childAst = engine.toAst(node.child, ctx, `${path}/content`, ast.inherited)
     const child = measureLayout(childAst, { w: max.w, h: Number.POSITIVE_INFINITY })
-    return { w: Math.min(max.w, child.w), h: Math.min(max.h, child.h) }
+    return { w: max.w, h: Math.min(max.h, child.h) }
   },
   mount: (engine, ctx, node, ast, path, active) => {
-    engine.runtime.mountScrollArea(path, ast.rect ?? ZERO_RECT, node, active, ctx)
+    engine.runtime.mountWidget(
+      "scrollArea",
+      path,
+      ast.rect ?? ZERO_RECT,
+      { child: node.child, createTreeSurface: engine.runtime.treeSurfaceFactory(), measureCtx: ctx },
+      active,
+    )
   },
 }
 
@@ -242,7 +268,7 @@ const sliderHandler: BuilderNodeHandler<SliderNode> = {
   kind: "slider",
   measure: (_engine, _ctx, _node, max) => ({ w: max.w, h: 20 }),
   mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountSlider(path, ast.rect ?? ZERO_RECT, node, active)
+    engine.runtime.mountWidget("slider", path, ast.rect ?? ZERO_RECT, node, active)
   },
 }
 
