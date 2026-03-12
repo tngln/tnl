@@ -1,12 +1,12 @@
 import { theme } from "../../config/theme"
-import { createRichTextBlock } from "../../core/draw.text"
+import { createRichTextBlock, type RichTextBlock } from "../../core/draw.text"
 import { ZERO_RECT } from "../../core/rect"
 import { invalidateAll } from "../invalidate"
 import { createMeasureContext } from "../../platform/web/canvas"
 import { SurfaceRoot, ViewportElement, type Surface } from "../base/viewport"
 import { UIElement, WheelUIEvent, type Rect, type Vec2 } from "../base/ui"
 import { TopLayerController } from "../base/top_layer"
-import { Button, Checkbox, ClickArea, Dropdown, ListRow, Radio, Scrollbar, Slider, TextBox, TreeRow, TREE_ROW_HEIGHT } from "../widgets"
+import { Button, Checkbox, ClickArea, Dropdown, ListRow, Radio, RichTextSelectable, Scrollbar, Slider, TextBox, TreeRow, TREE_ROW_HEIGHT } from "../widgets"
 import { clamp } from "./utils"
 import type { BuilderNode, TreeItem, TreeViewNode } from "./types"
 
@@ -119,6 +119,13 @@ type TreeRowCell = {
   used: boolean
 }
 
+type RichTextCell = {
+  widget: RichTextSelectable
+  rect: Rect
+  active: boolean
+  used: boolean
+}
+
 export type DrawOp = (ctx: CanvasRenderingContext2D) => void
 
 class BuilderScrollAreaElement extends UIElement {
@@ -201,6 +208,7 @@ export class BuilderRuntime {
   private readonly sliders = new Map<string, SliderCell>()
   private readonly rows = new Map<string, RowCell>()
   private readonly treeRows = new Map<string, TreeRowCell>()
+  private readonly richTexts = new Map<string, RichTextCell>()
   private readonly scrollAreas = new Map<string, BuilderScrollAreaElement>()
   private readonly richBlocks = new Map<string, ReturnType<typeof createRichTextBlock>>()
   private readonly usedScrollAreas = new Set<string>()
@@ -273,6 +281,7 @@ export class BuilderRuntime {
       sliders: this.sliders.size,
       rows: this.rows.size,
       treeRows: this.treeRows.size,
+      richTexts: this.richTexts.size,
       scrollAreas: this.scrollAreas.size,
     }
   }
@@ -291,6 +300,7 @@ export class BuilderRuntime {
     this.markAllUnused(this.sliders)
     this.markAllUnused(this.rows)
     this.markAllUnused(this.treeRows)
+    this.markAllUnused(this.richTexts)
     this.usedScrollAreas.clear()
   }
 
@@ -302,6 +312,12 @@ export class BuilderRuntime {
     this.deactivateUnusedWidgetCells(this.radios)
     this.deactivateUnusedWidgetCells(this.textboxes)
     this.deactivateUnusedWidgetCells(this.sliders)
+    for (const cell of this.richTexts.values()) {
+      if (cell.used) continue
+      this.updateWidgetActive(cell.widget, cell.active, false)
+      cell.active = false
+      cell.widget.set({ rect: ZERO_RECT, active: false })
+    }
     for (const cell of this.rows.values()) {
       if (cell.used) continue
       cell.active = false
@@ -330,6 +346,36 @@ export class BuilderRuntime {
     const next = createRichTextBlock(spans, style, { align: align ?? "start", wrap: "word" })
     this.richBlocks.set(key, next)
     return next
+  }
+
+  mountRichTextSelectable(key: string, rect: Rect, block: RichTextBlock, active: boolean) {
+    this.mountWidgetCell(
+      this.richTexts,
+      key,
+      () => {
+        return this.initWidgetCell<RichTextCell>(
+          {
+            rect,
+            active,
+            used: false,
+          },
+          (cell) =>
+            new RichTextSelectable({
+              id: key,
+              rect: () => cell.rect,
+              active: () => cell.active,
+              block: () => block,
+              topLayer: this.topLayer,
+            }),
+        )
+      },
+      active,
+      (cell) => {
+        cell.rect = rect
+        cell.widget.set({ rect, active })
+      },
+      10,
+    )
   }
 
   mountButton(key: string, rect: Rect, node: { text: string; title?: string; disabled?: boolean; onClick?: () => void }, active: boolean) {

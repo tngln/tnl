@@ -52,6 +52,7 @@ type RichTextProps = Omit<JSXNodeProps, "children"> & {
   tone?: "primary" | "muted"
   weight?: "normal" | "bold"
   size?: "body" | "headline" | "meta"
+  selectable?: boolean
   children?: RichInlineChild | RichInlineChild[]
 }
 
@@ -273,6 +274,7 @@ export function RichText(props: RichTextProps) {
     ...common(props),
     textStyle: props.textStyle,
     align: props.align,
+    selectable: props.selectable,
     styleOverride: mergeInherited(props.styleOverride, inheritedTextPatch(props)),
   })
 }

@@ -90,8 +90,13 @@ const richTextHandler: BuilderNodeHandler<RichTextNode> = {
     return block.measure(ctx, Math.max(0, max.w))
   },
   mount: (engine, _ctx, node, ast, path, active) => {
-    if (!active) return
     const rect = ast.rect ?? ZERO_RECT
+    if (node.selectable) {
+      const block = engine.runtime.ensureRichBlock(path, node.spans, node.textStyle ?? inheritedTextToRichTextStyle(ast.resolved.text), node.align)
+      engine.runtime.mountRichTextSelectable(path, rect, block, active)
+      return
+    }
+    if (!active) return
     engine.drawOps.push((canvas) => {
       const block = engine.runtime.ensureRichBlock(path, node.spans, node.textStyle ?? inheritedTextToRichTextStyle(ast.resolved.text), node.align)
       block.measure(canvas, rect.w)

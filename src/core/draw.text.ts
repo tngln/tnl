@@ -1,5 +1,7 @@
 import { draw, Line } from "./draw"
 
+export type Any2DContext = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+
 export type TextEmphasis = { bold?: boolean; italic?: boolean; underline?: boolean }
 
 export type RichTextSpan = { text: string; color?: string; emphasis?: TextEmphasis }
@@ -106,7 +108,7 @@ function normalizeSpace(t: string) {
   return isWhitespaceToken(t) ? " " : t
 }
 
-function measureUncached(ctx: CanvasRenderingContext2D, text: string, font: string) {
+function measureUncached(ctx: Any2DContext, text: string, font: string) {
   const prev = ctx.font
   ctx.font = font
   const w = ctx.measureText(text).width
@@ -114,7 +116,7 @@ function measureUncached(ctx: CanvasRenderingContext2D, text: string, font: stri
   return w
 }
 
-export function measureTextWidth(ctx: CanvasRenderingContext2D, text: string, font: string) {
+export function measureTextWidth(ctx: Any2DContext, text: string, font: string) {
   const key = `${font}\n${text}`
   const hit = measureCache.get(key)
   if (hit !== undefined) return hit
@@ -123,12 +125,12 @@ export function measureTextWidth(ctx: CanvasRenderingContext2D, text: string, fo
   return w
 }
 
-export function measureTextLine(ctx: CanvasRenderingContext2D, text: string, font: string, lineHeight: number) {
+export function measureTextLine(ctx: Any2DContext, text: string, font: string, lineHeight: number) {
   const w = measureTextWidth(ctx, text, font)
   return { w, h: lineHeight }
 }
 
-function fontMetrics(ctx: CanvasRenderingContext2D, font: string): FontMetrics {
+function fontMetrics(ctx: Any2DContext, font: string): FontMetrics {
   const hit = metricsCache.get(font)
   if (hit) return hit
   const prevFont = ctx.font
@@ -150,7 +152,7 @@ function fontMetrics(ctx: CanvasRenderingContext2D, font: string): FontMetrics {
 
 type Token = { text: string; spanIndex: number; font: string; color: string; underline?: boolean; isSpace: boolean }
 
-function tokenize(ctx: CanvasRenderingContext2D, spans: RichTextSpan[], base: RichTextStyle) {
+function tokenize(ctx: Any2DContext, spans: RichTextSpan[], base: RichTextStyle) {
   const tokens: Token[] = []
   for (let i = 0; i < spans.length; i++) {
     const span = spans[i]
@@ -176,7 +178,7 @@ function newLine(y: number): RichTextLine {
 }
 
 export function layoutRichText(
-  ctx: CanvasRenderingContext2D,
+  ctx: Any2DContext,
   spans: RichTextSpan[],
   base: RichTextStyle,
   opts: RichTextLayoutOptions,
@@ -294,7 +296,7 @@ export function drawRichText(
 }
 
 export type RichTextBlock = {
-  measure: (ctx: CanvasRenderingContext2D, maxWidth: number) => { w: number; h: number }
+  measure: (ctx: Any2DContext, maxWidth: number) => { w: number; h: number }
   draw: (ctx: CanvasRenderingContext2D, origin: { x: number; y: number }) => void
   getLayout: () => RichTextLayout | null
 }
@@ -307,7 +309,7 @@ export function createRichTextBlock(
   let lastMaxWidth = -1
   let lastLayout: RichTextLayout | null = null
 
-  function ensure(ctx: CanvasRenderingContext2D, maxWidth: number) {
+  function ensure(ctx: Any2DContext, maxWidth: number) {
     const w = Math.max(0, maxWidth)
     if (lastLayout && lastMaxWidth === w) return lastLayout
     lastMaxWidth = w
@@ -316,11 +318,11 @@ export function createRichTextBlock(
   }
 
   return {
-    measure: (ctx, maxWidth) => {
+    measure: (ctx: Any2DContext, maxWidth) => {
       const l = ensure(ctx, maxWidth)
       return { w: maxWidth, h: l.h }
     },
-    draw: (ctx, origin) => {
+    draw: (ctx: CanvasRenderingContext2D, origin) => {
       const l = ensure(ctx, lastMaxWidth >= 0 ? lastMaxWidth : 0)
       drawRichText(ctx, origin, l, base)
     },

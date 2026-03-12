@@ -14,7 +14,7 @@ const AboutBodySurface = defineSurface({
         <Spacer style={{ fixed: 10 }} />
         <Text key="about.license" tone="muted">MIT License</Text>
         <Spacer style={{ fixed: theme.spacing.xs }} />
-        <RichText key="about.copy" tone="muted">
+        <RichText key="about.copy" tone="muted" selectable>
           Copyright (c) <b>Tung Leen</b> & <u>tnl contributors</u>. <i>All rights reserved.</i> This message is here mostly to fill space.
         </RichText>
       </PanelColumn>

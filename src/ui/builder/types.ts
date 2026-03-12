@@ -66,6 +66,7 @@ export type RichTextNode = NodeBase & {
   spans: RichTextSpan[]
   textStyle?: RichTextStyle
   align?: "start" | "center" | "end"
+  selectable?: boolean
 }
 
 export type ButtonNode = NodeBase & {
