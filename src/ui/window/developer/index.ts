@@ -3,6 +3,8 @@ import type { DebugTreeNodeSnapshot } from "../../base/ui"
 import type { CodecRuntimeEntry } from "../../../core/codecs"
 import type { DockingControlApi } from "../../docking/manager"
 import type { WindowControlApi } from "../window_manager"
+import type { DebugBlitInfo, DebugLayerInfo } from "../../base/compositor"
+import type { Rect } from "../../../core/rect"
 import { createCodecPanel } from "./panels/codec_panel"
 import { createControlPanel } from "./panels/control_panel"
 import { createDataPanel } from "./panels/data_panel"
@@ -18,7 +20,11 @@ export type DeveloperContext = {
   wm?: WindowControlApi
   workers?: { list?: () => unknown[] }
   codecs?: { info?: () => unknown; list?: () => CodecRuntimeEntry[] }
-  surface?: { listLayers?: () => unknown[] }
+  surface?: {
+    listLayers?: () => DebugLayerInfo[]
+    listBlits?: () => DebugBlitInfo[]
+    setOverlay?: (rect: Rect | null) => void
+  }
   inspector?: { tree?: () => DebugTreeNodeSnapshot; eval?: (code: string) => unknown }
   docking?: DockingControlApi
 }

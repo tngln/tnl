@@ -4,6 +4,7 @@ export type LayerOptions = {
 }
 
 import { createLayerCanvas, getCanvas2DContext, type Any2DContext, type AnyCanvas } from "../../platform/web/canvas"
+import type { Rect } from "../../core/rect"
 
 type Layer = {
   id: string
@@ -15,14 +16,43 @@ type Layer = {
   renderedFrame: number
 }
 
+export type DebugLayerTag = {
+  surfaceId?: string
+  viewportRect?: Rect
+}
+
+export type DebugLayerInfo = {
+  id: string
+  wCss: number
+  hCss: number
+  dpr: number
+  wPx: number
+  hPx: number
+  canvasType: "offscreen" | "dom"
+  renderedFrame: number
+  estimatedBytes: number
+  tag?: DebugLayerTag
+}
+
+export type DebugBlitInfo = {
+  frameId: number
+  layerId: string
+  dest: Rect
+  opacity: number
+  blendMode: GlobalCompositeOperation
+}
+
 export class Compositor {
   private layers = new Map<string, Layer>()
   private main: CanvasRenderingContext2D | null = null
   private frame = 0
+  private debugTags = new Map<string, DebugLayerTag>()
+  private debugFrameBlits: DebugBlitInfo[] = []
 
   beginFrame(main: CanvasRenderingContext2D, frameId: number) {
     this.main = main
     this.frame = frameId
+    this.debugFrameBlits = []
   }
 
   private ensureLayer(id: string, wCss: number, hCss: number, dpr: number) {
@@ -50,11 +80,50 @@ export class Compositor {
     return layer
   }
 
+  debugTagLayer(id: string, tag: DebugLayerTag) {
+    const prev = this.debugTags.get(id) ?? {}
+    this.debugTags.set(id, { ...prev, ...tag })
+  }
+
+  debugListLayers(): DebugLayerInfo[] {
+    const out: DebugLayerInfo[] = []
+    for (const layer of this.layers.values()) {
+      const wPx = Math.max(0, layer.canvas.width)
+      const hPx = Math.max(0, layer.canvas.height)
+      const canvasType = typeof OffscreenCanvas !== "undefined" && layer.canvas instanceof OffscreenCanvas ? "offscreen" : "dom"
+      out.push({
+        id: layer.id,
+        wCss: layer.wCss,
+        hCss: layer.hCss,
+        dpr: layer.dpr,
+        wPx,
+        hPx,
+        canvasType,
+        renderedFrame: layer.renderedFrame,
+        estimatedBytes: wPx * hPx * 4,
+        tag: this.debugTags.get(layer.id),
+      })
+    }
+    out.sort((a, b) => a.id.localeCompare(b.id))
+    return out
+  }
+
+  debugGetFrameBlits() {
+    return this.debugFrameBlits.slice()
+  }
+
   blit(layerId: string, dest: { x: number; y: number; w: number; h: number }, opts: LayerOptions = {}) {
     const main = this.main
     if (!main) return
     const layer = this.layers.get(layerId)
     if (!layer) return
+    this.debugFrameBlits.push({
+      frameId: this.frame,
+      layerId,
+      dest,
+      opacity: opts.opacity ?? 1,
+      blendMode: opts.blendMode ?? "source-over",
+    })
     main.save()
     main.globalCompositeOperation = opts.blendMode ?? "source-over"
     main.globalAlpha = opts.opacity ?? 1

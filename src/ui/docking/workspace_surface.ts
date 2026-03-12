@@ -4,8 +4,11 @@ import { createEventStream, dragSession, interactionCancelStream, type Interacti
 import { createMachine, type Machine } from "../../core/fsm"
 import { clamp, inflateRect } from "../../core/rect"
 import { font, theme } from "../../config/theme"
+import { invalidateAll } from "../invalidate"
+import { TopLayerController } from "../base/top_layer"
 import { CursorRegion, PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "../base/ui"
 import { SurfaceRoot, ViewportElement, type Surface, type ViewportContext } from "../base/viewport"
+import { MenuBar, type MenuBarMenu, type MenuItem } from "../widgets"
 import { clampRatio, type DockDropPlacement, type DockNode } from "./model"
 
 export type DockDropPreview = {
@@ -52,6 +55,7 @@ const SPLIT_GUTTER = 10
 const MIN_PANE_EXTENT = 160
 const TAB_GAP = 4
 const TAB_PAD_X = 10
+const MENUBAR_H = 28
 
 type DropCandidate = {
   leafId: string
@@ -609,6 +613,8 @@ export class DockWorkspaceSurface implements Surface {
   private readonly containerId: string
   private readonly driver: DockWorkspaceDriver
   private readonly root = new SurfaceRoot()
+  private readonly topLayer: TopLayerController
+  private readonly menuBar: MenuBar
   private lastViewport: ViewportContext | null = null
   private size: Vec2 = { x: 0, y: 0 }
   private readonly viewports = new Map<string, ViewportElement>()
@@ -622,6 +628,19 @@ export class DockWorkspaceSurface implements Surface {
     this.id = opts.id
     this.containerId = opts.containerId
     this.driver = opts.driver
+    this.topLayer = new TopLayerController({
+      rect: () => ({ x: 0, y: 0, w: this.size.x, h: this.size.y }),
+      invalidate: invalidateAll,
+    })
+    this.menuBar = new MenuBar({
+      id: opts.containerId,
+      rect: () => ({ x: 0, y: 0, w: this.size.x, h: MENUBAR_H }),
+      menus: workspaceMenus(),
+      topLayer: this.topLayer,
+    })
+    this.menuBar.z = 100
+    this.root.add(this.menuBar)
+    this.root.add(this.topLayer.host)
   }
 
   private toGlobal(point: Vec2): Vec2 {
@@ -718,12 +737,20 @@ export class DockWorkspaceSurface implements Surface {
   }
 
   resolveDropTarget(point: Vec2): DockDropPreview | null {
-    return resolveDockDropPreview(
+    if (point.y < MENUBAR_H) return null
+    const dockSize = { x: this.size.x, y: Math.max(0, this.size.y - MENUBAR_H) }
+    const preview = resolveDockDropPreview(
       this.containerId,
-      this.size,
-      [...this.leafLayouts.values()].map((layout) => ({ leafId: layout.leafId, rect: layout.rect })),
-      point,
+      dockSize,
+      [...this.leafLayouts.values()].map((layout) => ({ leafId: layout.leafId, rect: { x: layout.rect.x, y: layout.rect.y - MENUBAR_H, w: layout.rect.w, h: layout.rect.h } })),
+      { x: point.x, y: point.y - MENUBAR_H },
     )
+    if (!preview) return null
+    return { ...preview, rect: { x: preview.rect.x, y: preview.rect.y + MENUBAR_H, w: preview.rect.w, h: preview.rect.h } }
+  }
+
+  lightDismiss(point: Vec2) {
+    this.topLayer.lightDismiss(point)
   }
 
   render(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, viewport: ViewportContext) {
@@ -732,7 +759,8 @@ export class DockWorkspaceSurface implements Surface {
     const root = this.driver.getRoot(this.containerId)
     const leaves: LeafLayout[] = []
     const splits: SplitLayout[] = []
-    layoutDockTree(root, { x: 0, y: 0, w: this.size.x, h: this.size.y }, ctx as CanvasRenderingContext2D, this.driver, leaves, splits)
+    const dockRect = { x: 0, y: MENUBAR_H, w: this.size.x, h: Math.max(0, this.size.y - MENUBAR_H) }
+    layoutDockTree(root, dockRect, ctx as CanvasRenderingContext2D, this.driver, leaves, splits)
     this.leafLayouts = new Map(leaves.map((entry) => [entry.leafId, entry]))
     this.splitLayouts = new Map(splits.map((entry) => [entry.splitId, entry]))
 
@@ -804,6 +832,48 @@ export class DockWorkspaceSurface implements Surface {
   hitTest(pSurface: Vec2) {
     return this.root.hitTest(pSurface)
   }
+}
+
+function workspaceMenus(): MenuBarMenu[] {
+  const log = (label: string) => () => console.log(label)
+  const sep = (key: string): MenuItem => ({ kind: "separator", key })
+  return [
+    {
+      key: "file",
+      label: "File",
+      items: [
+        {
+          key: "file.import",
+          text: "Import",
+          submenu: [
+            { key: "file.import.media", text: "Media File", onSelect: log("Menu: File > Import > Media File") },
+            { key: "file.import.online", text: "Online Video Services", onSelect: log("Menu: File > Import > Online Video Services") },
+          ],
+        },
+        sep("file.sep0"),
+        { key: "file.open", text: "Open", onSelect: log("Menu: File > Open") },
+        { key: "file.close", text: "Close", onSelect: log("Menu: File > Close") },
+      ],
+    },
+    {
+      key: "edit",
+      label: "Edit",
+      items: [
+        { key: "edit.copy", text: "Copy", onSelect: log("Menu: Edit > Copy") },
+        { key: "edit.cut", text: "Cut", onSelect: log("Menu: Edit > Cut") },
+        { key: "edit.paste", text: "Paste", onSelect: log("Menu: Edit > Paste") },
+        sep("edit.sep1"),
+        { key: "edit.selectAll", text: "Select All", onSelect: log("Menu: Edit > Select All") },
+      ],
+    },
+    {
+      key: "help",
+      label: "Help",
+      items: [
+        { key: "help.about", text: "About", onSelect: log("Menu: Help > About") },
+      ],
+    },
+  ]
 }
 
 function findSelectedPane(root: DockNode | null, leafId: string): string | null {

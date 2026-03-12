@@ -184,6 +184,7 @@ export class ViewportElement extends UIElement {
       s.compose(comp, vp)
     } else if (comp) {
       const layerId = `surface:${s.id}`
+      comp.debugTagLayer(layerId, { surfaceId: s.id, viewportRect: vp.rect })
       comp.withLayer(layerId, vp.rect.w, vp.rect.h, vp.dpr, (lctx) => {
         lctx.save()
         lctx.translate(vp.contentRect.x - vp.scroll.x - vp.rect.x, vp.contentRect.y - vp.scroll.y - vp.rect.y)

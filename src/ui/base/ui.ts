@@ -600,6 +600,7 @@ export class CanvasUI {
   private dirtyFull = true
   private frameId = 0
   private compositor = new Compositor()
+  private debugOverlay: Rect | null = null
   private readonly onTopLevelPointerDown?: (top: UIElement, target: UIElement) => void
   private readonly removeResizeListener: () => void
   private readonly removeLostPointerCaptureListener: () => void
@@ -712,6 +713,22 @@ export class CanvasUI {
     this.scheduleRender()
   }
 
+  setDebugOverlay(rect: Rect | null) {
+    const prev = this.debugOverlay
+    this.debugOverlay = rect
+    if (prev && rect) this.invalidateRect(unionRect(prev, rect), { pad: 12 })
+    else if (prev) this.invalidateRect(prev, { pad: 12 })
+    else if (rect) this.invalidateRect(rect, { pad: 12 })
+  }
+
+  debugCompositorLayers() {
+    return this.compositor.debugListLayers()
+  }
+
+  debugCompositorFrameBlits() {
+    return this.compositor.debugGetFrameBlits()
+  }
+
   private scheduleRender() {
     if (this.rafPending) return
     this.rafPending = true
@@ -766,6 +783,17 @@ export class CanvasUI {
       ctx.fillStyle = theme.colors.appBg
       ctx.fillRect(r.x, r.y, r.w, r.h)
       this.root.draw(ctx, { clip: r, compositor: this.compositor, frameId, dpr: this.dpr, invalidateRect: (rect, opts) => this.invalidateRect(rect, opts) })
+      const overlay = this.debugOverlay
+      if (overlay && intersects(overlay, r)) {
+        ctx.save()
+        ctx.globalAlpha = 1
+        ctx.fillStyle = "rgba(100,160,255,0.12)"
+        ctx.strokeStyle = "rgba(120,180,255,0.90)"
+        ctx.lineWidth = 1
+        ctx.fillRect(overlay.x, overlay.y, overlay.w, overlay.h)
+        ctx.strokeRect(overlay.x + 0.5, overlay.y + 0.5, Math.max(0, overlay.w - 1), Math.max(0, overlay.h - 1))
+        ctx.restore()
+      }
       ctx.restore()
     }
   }

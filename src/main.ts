@@ -12,7 +12,7 @@ import { DEVELOPER_WINDOW_ID } from "./ui/window/developer/developer_tools_windo
 import { EXPLORER_WINDOW_ID } from "./ui/window/explorer_window"
 import { PLAYBACK_TOOL_WINDOW_ID } from "./ui/window/playback_tool_window"
 import { TIMECODE_TOOL_WINDOW_ID } from "./ui/window/timecode_tool_window"
-import { unionRect } from "./core/rect"
+import { unionRect, type Rect } from "./core/rect"
 import { TOOLS_DIALOG_ID } from "./ui/window/tools_dialog"
 import { TIMELINE_TOOL_WINDOW_ID } from "./ui/window/timeline_tool_window"
 import { addBrowserInteractionCancelListener, addWindowErrorListener, addWindowKeyDownListener, addWindowKeyUpListener, addWindowLoadListener, addWindowResizeListener, addWindowUnhandledRejectionListener, applyDocumentTheme, getRootCanvas, registerServiceWorker, scheduleAnimationFrame } from "./platform/web"
@@ -55,6 +55,11 @@ const developerContext = {
   codecs: {
     info: () => codecs.summary(),
     list: () => codecs.list(),
+  },
+  surface: {
+    listLayers: () => ui.debugCompositorLayers(),
+    listBlits: () => ui.debugCompositorFrameBlits(),
+    setOverlay: (rect: Rect | null) => ui.setDebugOverlay(rect),
   },
   inspector: {
     tree: () => root.debugSnapshot(),
