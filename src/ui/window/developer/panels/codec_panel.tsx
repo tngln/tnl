@@ -1,7 +1,8 @@
 import { createElement, Fragment } from "../../../jsx"
-import { Button, Column, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, RowItem, Text } from "../../../builder/components"
+import { Button, ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, VStack } from "../../../builder/components"
 import { defineSurface, mountSurface } from "../../../builder/surface_builder"
 import type { CodecRuntimeEntry } from "../../../../core/codecs"
+import { getDebugLevel } from "../../../../core/debug"
 import { getWebNavigatorInfo, getWebRuntimeFlags } from "../../../../platform/web/navigator"
 import { probeCodecConfig } from "../../../../platform/web/webcodecs"
 import { invalidateAll } from "../../../invalidate"
@@ -84,6 +85,54 @@ function runtimeCapabilityRows() {
   ]
 }
 
+function formatDuration(ms: number) {
+  if (!Number.isFinite(ms) || ms < 0) return "-"
+  const total = Math.floor(ms / 1000)
+  const s = total % 60
+  const m = Math.floor(total / 60) % 60
+  const h = Math.floor(total / 3600) % 24
+  const d = Math.floor(total / 86400)
+  const hh = String(h).padStart(2, "0")
+  const mm = String(m).padStart(2, "0")
+  const ss = String(s).padStart(2, "0")
+  return d > 0 ? `${d}d ${hh}:${mm}:${ss}` : `${hh}:${mm}:${ss}`
+}
+
+function sessionInfoRows(startedAtMs: number) {
+  const now = Date.now()
+  const startedAt = new Date(startedAtMs)
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const locale = Intl.DateTimeFormat().resolvedOptions().locale
+  const offsetMin = -new Date().getTimezoneOffset()
+  const offsetSign = offsetMin >= 0 ? "+" : "-"
+  const offsetAbs = Math.abs(offsetMin)
+  const offset = `${offsetSign}${String(Math.floor(offsetAbs / 60)).padStart(2, "0")}:${String(offsetAbs % 60).padStart(2, "0")}`
+  return [
+    valueRow("session.now", "Now", new Date(now).toLocaleString()),
+    valueRow("session.started", "Started", startedAt.toLocaleString()),
+    valueRow("session.uptime", "Uptime", formatDuration(now - startedAtMs)),
+    valueRow("session.tz", "Time Zone", timezone || "-"),
+    valueRow("session.offset", "UTC Offset", offset),
+    valueRow("session.locale", "Locale", locale || "-"),
+    valueRow("session.debug", "Debug Level", getDebugLevel()),
+  ]
+}
+
+function developerContextRows(ctx: DeveloperContext) {
+  const parts: ProbeRow[] = []
+  const signals = ctx.reactivity?.list?.()
+  if (Array.isArray(signals)) parts.push(valueRow("ctx.signals", "Signals", signals.length))
+  const workers = ctx.workers?.list?.()
+  if (Array.isArray(workers)) parts.push(valueRow("ctx.workers", "Workers", workers.length))
+  const codecs = ctx.codecs?.list?.()
+  if (Array.isArray(codecs)) parts.push(valueRow("ctx.codecs", "Codec Instances", codecs.length))
+  const layers = ctx.surface?.listLayers?.()
+  if (Array.isArray(layers)) parts.push(valueRow("ctx.layers", "Surface Layers", layers.length))
+  const blits = ctx.surface?.listBlits?.()
+  if (Array.isArray(blits)) parts.push(valueRow("ctx.blits", "Surface Blits", blits.length))
+  return parts
+}
+
 async function probeCodec(
   kind: CodecProbeResult["kind"],
   label: string,
@@ -122,15 +171,16 @@ async function collectCodecProbeResults() {
 
 export function createCodecPanel(): DeveloperPanelSpec {
   return {
-    id: "Developer.Codec",
-    title: "Codec",
+    id: "Developer.Codecs",
+    title: "Info",
     build: (ctx) => mountSurface(CodecPanelSurface, { ctx }),
   }
 }
 
 const CodecPanelSurface = defineSurface({
-  id: "Developer.Codec.Surface",
+  id: "Developer.Codecs.Surface",
   setup: (_props: { ctx: DeveloperContext }) => {
+    const startedAtMs = Date.now()
     let initialized = false
     let running = false
     let lastUpdated = ""
@@ -176,8 +226,8 @@ const CodecPanelSurface = defineSurface({
 
       return (
         <PanelColumn>
-          <PanelHeader title="WebCodecs" meta={summary}>
-            <Text tone="muted" size="meta">{running ? "Running" : "Runtime Probe"}</Text>
+          <PanelHeader title="Info" meta={summary}>
+            <Text tone="muted" size="meta">Developer Runtime</Text>
           </PanelHeader>
           <PanelActionRow
             key="codec.actions"
@@ -187,65 +237,85 @@ const CodecPanelSurface = defineSurface({
             ]}
           />
           <PanelScroll key="codec.scroll">
-            <Column style={{ axis: "column", padding: 6, gap: 10, w: "auto", h: "auto" }}>
-              <PanelSection key="codec.platform" title="Platform">
-                <Column style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
-                  {navigatorInfoRows().map((row) => (
-                    <RowItem key={row.id} leftText={row.label} rightText={row.right} />
+            <VStack style={{ axis: "column", padding: 6, gap: 10, w: "auto", h: "auto" }}>
+              <PanelSection key="info.session" title="Session">
+                <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                  {sessionInfoRows(startedAtMs).map((row) => (
+                    <ListRow key={row.id} leftText={row.label} rightText={row.right} />
                   ))}
-                </Column>
+                </VStack>
+              </PanelSection>
+
+              <PanelSection key="info.context" title="Developer Context">
+                {developerContextRows(ctx).length ? (
+                  <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                    {developerContextRows(ctx).map((row) => (
+                      <ListRow key={row.id} leftText={row.label} rightText={row.right} />
+                    ))}
+                  </VStack>
+                ) : (
+                  <Text tone="muted">No runtime context hooks are available.</Text>
+                )}
+              </PanelSection>
+
+              <PanelSection key="codec.platform" title="Platform">
+                <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                  {navigatorInfoRows().map((row) => (
+                    <ListRow key={row.id} leftText={row.label} rightText={row.right} />
+                  ))}
+                </VStack>
               </PanelSection>
 
               <PanelSection key="codec.runtime" title="Runtime APIs">
-                <Column style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
                   {runtimeCapabilityRows().map((row) => (
-                    <RowItem key={row.id} leftText={row.label} rightText={row.right} />
+                    <ListRow key={row.id} leftText={row.label} rightText={row.right} />
                   ))}
-                </Column>
+                </VStack>
               </PanelSection>
 
               <PanelSection key="codec.instances" title="Active Instances">
                 {activeInstances.length > 0 ? (
-                  <Column style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                  <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
                     {runtimeInstanceRows(activeInstances).map((row) => (
-                      <RowItem key={row.id} leftText={row.left} rightText={row.right} />
+                      <ListRow key={row.id} leftText={row.left} rightText={row.right} />
                     ))}
-                  </Column>
+                  </VStack>
                 ) : (
                   <Text tone="muted">No active decoder or encoder instances have registered with the runtime yet.</Text>
                 )}
               </PanelSection>
 
               <PanelSection key="codec.video.decode" title="Video Decode Probe">
-                <Column style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
                   {videoDecoderRows.map((row) => (
-                    <RowItem key={row.id} leftText={row.label} rightText={row.detail} />
+                    <ListRow key={row.id} leftText={row.label} rightText={row.detail} />
                   ))}
-                </Column>
+                </VStack>
               </PanelSection>
 
               <PanelSection key="codec.video.encode" title="Video Encode Probe">
-                <Column style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
                   {videoEncoderRows.map((row) => (
-                    <RowItem key={row.id} leftText={row.label} rightText={row.detail} />
+                    <ListRow key={row.id} leftText={row.label} rightText={row.detail} />
                   ))}
-                </Column>
+                </VStack>
               </PanelSection>
 
               <PanelSection key="codec.audio.decode" title="Audio Decode Probe">
-                <Column style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
                   {audioDecoderRows.map((row) => (
-                    <RowItem key={row.id} leftText={row.label} rightText={row.detail} />
+                    <ListRow key={row.id} leftText={row.label} rightText={row.detail} />
                   ))}
-                </Column>
+                </VStack>
               </PanelSection>
 
               <PanelSection key="codec.audio.encode" title="Audio Encode Probe">
-                <Column style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
                   {audioEncoderRows.map((row) => (
-                    <RowItem key={row.id} leftText={row.label} rightText={row.detail} />
+                    <ListRow key={row.id} leftText={row.label} rightText={row.detail} />
                   ))}
-                </Column>
+                </VStack>
               </PanelSection>
 
               {extraInfo !== undefined ? (
@@ -265,7 +335,7 @@ const CodecPanelSurface = defineSurface({
                   Probe results come from the browser's runtime `isConfigSupported(...)` checks for a small set of representative codecs. They are capability hints, not a complete media compatibility matrix.
                 </Text>
               </PanelSection>
-            </Column>
+            </VStack>
           </PanelScroll>
         </PanelColumn>
       )

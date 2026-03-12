@@ -6,7 +6,7 @@ import { createMeasureContext } from "../../platform/web/canvas"
 import { SurfaceRoot, ViewportElement, type Surface } from "../base/viewport"
 import { UIElement, WheelUIEvent, type Rect, type Vec2 } from "../base/ui"
 import { TopLayerController } from "../base/top_layer"
-import { Button, Checkbox, ClickArea, Dropdown, Radio, Row, Scrollbar, Slider, TextBox, TreeRow, TREE_ROW_HEIGHT } from "../widgets"
+import { Button, Checkbox, ClickArea, Dropdown, ListRow, Radio, Scrollbar, Slider, TextBox, TreeRow, TREE_ROW_HEIGHT } from "../widgets"
 import { clamp } from "./utils"
 import type { BuilderNode, TreeItem, TreeViewNode } from "./types"
 
@@ -91,7 +91,7 @@ type SliderCell = {
 }
 
 type RowCell = {
-  widget: Row
+  widget: ListRow
   rect: Rect
   leftText: string
   rightText?: string
@@ -581,7 +581,7 @@ export class BuilderRuntime {
         active,
         onClick: node.onClick,
         used: true,
-        widget: new Row(),
+        widget: new ListRow(),
       }
       cell.widget.z = 10
       this.rows.set(key, cell)

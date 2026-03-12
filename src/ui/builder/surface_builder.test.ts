@@ -89,7 +89,7 @@ describe("surface builder", () => {
     const snapshot = surface.debugSnapshot()
     const rowNodes: any[] = []
     const visit = (n: any) => {
-      if (n?.type === "Row") rowNodes.push(n)
+      if (n?.type === "ListRow") rowNodes.push(n)
       for (const c of n?.children ?? []) visit(c)
     }
     visit(snapshot)

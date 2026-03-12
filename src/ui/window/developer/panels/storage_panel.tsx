@@ -3,7 +3,7 @@ import { openOpfs, type OpfsEntryV1 } from "../../../../core/opfs"
 import { showAlert, showConfirm, showPrompt } from "../../../../platform/web/dialogs"
 import { downloadBlob, pickFiles } from "../../../../platform/web/file_io"
 import { createElement, Fragment } from "../../../jsx"
-import { Column, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, RowItem, Text } from "../../../builder/components"
+import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack } from "../../../builder/components"
 import { defineSurface, mountSurface } from "../../../builder/surface_builder"
 import { invalidateAll } from "../../../invalidate"
 import type { DeveloperPanelSpec } from "../index"
@@ -227,9 +227,9 @@ export const StoragePanelSurface = defineSurface({
             ]}
           />
           <PanelScroll key="storage.list">
-            <Column style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
+            <VStack style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
               {entries.map((entry) => (
-                <RowItem
+                <ListRow
                   key={`storage.row.${entry.path}`}
                   leftText={entry.path}
                   rightText={`${formatBytes(entry.size)} · ${entry.type}`}
@@ -241,7 +241,7 @@ export const StoragePanelSurface = defineSurface({
                   }}
                 />
               ))}
-            </Column>
+            </VStack>
           </PanelScroll>
         </PanelColumn>
       )

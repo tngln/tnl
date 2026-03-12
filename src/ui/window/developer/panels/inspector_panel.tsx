@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "../../../jsx"
-import { Column, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, TreeView } from "../../../builder/components"
+import { PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, TreeView, VStack } from "../../../builder/components"
 import { defineSurface, mountSurface, treeItem, type TreeItem } from "../../../builder/surface_builder"
 import type { DebugTreeNodeSnapshot } from "../../../base/ui"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
@@ -44,10 +44,10 @@ const InspectorPanelSurface = defineSurface({
             <Text tone="muted" size="meta">{selectionMeta}</Text>
           </PanelHeader>
           <PanelSection title="Selection" key="inspector.selection">
-            <Column style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
+            <VStack style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
               <Text weight="bold">{selected?.label ?? "No selection"}</Text>
               <Text tone="muted" size="meta">{selected ? describeNode(selected) : "Inspector runtime tree is not connected."}</Text>
-            </Column>
+            </VStack>
           </PanelSection>
           <PanelScroll key="inspector.tree">
             {items.length ? (
@@ -65,9 +65,9 @@ const InspectorPanelSurface = defineSurface({
                 }}
               />
             ) : (
-              <Column style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
+              <VStack style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
                 <Text tone="muted" size="meta">No runtime tree available</Text>
-              </Column>
+              </VStack>
             )}
           </PanelScroll>
         </PanelColumn>

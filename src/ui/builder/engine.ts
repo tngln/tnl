@@ -40,12 +40,14 @@ export class BuilderEngine {
     }
     const children = handler.getChildren?.(node as never)
     if (children) {
-      if (devGuardEnabled() && node.kind === "row" && children.some((c) => c.kind === "rowItem")) {
+      const parentAxis = node.kind === "column" ? "column" : node.kind === "stack" ? "stack" : node.style?.axis ?? "row"
+      const hasListRow = children.some((c) => c.kind === "listRow" || c.kind === "rowItem")
+      if (devGuardEnabled() && parentAxis === "row" && hasListRow) {
         throw new AppError({
           domain: "builder",
           code: "InvalidNodeNesting",
-          message: "RowItem/ListRow cannot be nested inside Row/HStack; use Column for lists or render ListRow directly.",
-          details: { parent: node.kind, child: "rowItem", path },
+          message: "ListRow cannot be nested inside a row-axis container; use VStack/Column for lists or render ListRow directly.",
+          details: { parent: node.kind, axis: parentAxis, child: "listRow", path },
         })
       }
       ast.children = children.filter(nodeVisible).map((child, index) => this.toAst(child, ctx, `${path}/${index}`, nextInherited))

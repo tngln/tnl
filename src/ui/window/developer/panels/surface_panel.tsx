@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "../../../jsx"
-import { Button, Column, ListRow, PanelColumn, PanelScroll, PanelSection, PanelToolbar, Spacer, Text, TextBox } from "../../../builder/components"
+import { Button, ListRow, PanelColumn, PanelScroll, PanelSection, PanelToolbar, Spacer, Text, TextBox, VStack } from "../../../builder/components"
 import { defineSurface, mountSurface } from "../../../builder/surface_builder"
 import { signal } from "../../../../core/reactivity"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
@@ -106,7 +106,7 @@ export const SurfacePanelSurface = defineSurface<Props>({
           </PanelToolbar>
 
           <PanelSection title="Selection" key="surface.selection">
-            <Column style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
+            <VStack style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
               {selectedLayer ? (
                 <Fragment>
                   <Text weight="bold">{selectedLayer.id}</Text>
@@ -119,11 +119,11 @@ export const SurfacePanelSurface = defineSurface<Props>({
               ) : (
                 <Text tone="muted" size="meta">Select a layer to see details and highlight its last blit rect.</Text>
               )}
-            </Column>
+            </VStack>
           </PanelSection>
 
           <PanelScroll key="surface.scroll">
-            <Column style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 2, b: 2 }, w: "auto", h: "auto" }}>
+            <VStack style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 2, b: 2 }, w: "auto", h: "auto" }}>
               {visible.map((l: DebugLayerInfo) => {
                 const right = `${l.tag?.surfaceId ? l.tag.surfaceId : "-"} · ${l.wCss}×${l.hCss}@${l.dpr}`
                 return (
@@ -140,7 +140,7 @@ export const SurfacePanelSurface = defineSurface<Props>({
                 )
               })}
               {!visible.length ? <Text tone="muted" size="meta">No layers</Text> : null}
-            </Column>
+            </VStack>
           </PanelScroll>
         </PanelColumn>
       )

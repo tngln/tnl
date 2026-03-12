@@ -7,6 +7,7 @@ import {
   clickAreaNode,
   dropdownNode,
   column,
+  flex,
   formRow,
   paintNode,
   radioNode,
@@ -227,12 +228,21 @@ export function Column(props: ContainerProps) {
   return column(resolveChildren(props), props.style, common(props))
 }
 
+export function VStack(props: ContainerProps) {
+  return Column(props)
+}
+
 export function Row(props: ContainerProps) {
   return row(resolveChildren(props), props.style, common(props))
 }
 
 export function HStack(props: ContainerProps) {
   return Row(props)
+}
+
+export function Flex(props: ContainerProps & { axis?: "row" | "column" }) {
+  const style = props.axis ? { ...(props.style ?? {}), axis: props.axis } : props.style
+  return flex(resolveChildren(props), style, common(props))
 }
 
 export function Stack(props: ContainerProps) {

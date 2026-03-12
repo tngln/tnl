@@ -43,11 +43,13 @@ export class BuilderNodeRegistry {
 }
 
 function containerStyle(node: ContainerNode) {
-  return { ...node.style, axis: node.kind }
+  if (node.kind === "stack") return { ...node.style, axis: "stack" as LayoutStyle["axis"] }
+  const axis: LayoutStyle["axis"] = node.style?.axis ?? (node.kind === "column" ? "column" : "row")
+  return { ...node.style, axis }
 }
 
 const containerHandler: BuilderNodeHandler<ContainerNode> = {
-  kind: "row",
+  kind: "flex",
   getChildren: (node) => node.children,
   getStyle: containerStyle,
 }
@@ -190,7 +192,7 @@ const textBoxHandler: BuilderNodeHandler<TextBoxNode> = {
 }
 
 const rowItemHandler: BuilderNodeHandler<RowNode> = {
-  kind: "rowItem",
+  kind: "listRow",
   measure: (_engine, _ctx, _node, max) => ({ w: max.w, h: theme.ui.controls.rowHeight }),
   mount: (engine, _ctx, node, ast, path, active) => {
     engine.runtime.mountRow(path, ast.rect ?? ZERO_RECT, node, active)
@@ -247,6 +249,7 @@ const spacerHandler: BuilderNodeHandler<SpacerNode> = {
 export function createDefaultBuilderRegistry() {
   const registry = new BuilderNodeRegistry()
   registry.register(containerHandler)
+  registry.register({ ...containerHandler, kind: "row" })
   registry.register({ ...containerHandler, kind: "column" })
   registry.register({ ...containerHandler, kind: "stack" })
   registry.register(textHandler)
@@ -258,6 +261,7 @@ export function createDefaultBuilderRegistry() {
   registry.register(radioHandler)
   registry.register(textBoxHandler)
   registry.register(rowItemHandler)
+  registry.register({ ...rowItemHandler, kind: "rowItem" })
   registry.register(treeViewHandler)
   registry.register(scrollAreaHandler)
   registry.register(paintHandler)

@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "../../../jsx"
-import { Column, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, RowItem, Text } from "../../../builder/components"
+import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack } from "../../../builder/components"
 import { defineSurface, mountSurface } from "../../../builder/surface_builder"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 
@@ -59,9 +59,9 @@ const WmPanelSurface = defineSurface({
             ]}
           />
           <PanelScroll key="wm.list">
-            <Column style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
+            <VStack style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
               {windows.map((win) => (
-                <RowItem
+                <ListRow
                   key={`wm.row.${win.id}`}
                   leftText={`${win.title || win.id}${win.focused ? " *" : ""}`}
                   rightText={`${win.open ? (win.minimized ? "min" : win.maximized ? "max" : "open") : "closed"} · z${win.zOrder}`}
@@ -72,7 +72,7 @@ const WmPanelSurface = defineSurface({
                   }}
                 />
               ))}
-            </Column>
+            </VStack>
           </PanelScroll>
         </PanelColumn>
       )

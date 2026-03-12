@@ -7,11 +7,15 @@ import type { BuilderNode, ButtonNode, CheckboxNode, ClickAreaNode, CommonNodePr
 type NodeBase = Omit<CommonNodeProps, "style">
 
 export function column(children: BuilderNode[], style?: LayoutStyle, base?: NodeBase): BuilderNode {
-  return { kind: "column", children, style, ...base }
+  return { kind: "flex", children, style: { ...(style ?? {}), axis: "column" }, ...base }
 }
 
 export function row(children: BuilderNode[], style?: LayoutStyle, base?: NodeBase): BuilderNode {
-  return { kind: "row", children, style, ...base }
+  return { kind: "flex", children, style: { ...(style ?? {}), axis: "row" }, ...base }
+}
+
+export function flex(children: BuilderNode[], style?: LayoutStyle, base?: NodeBase): BuilderNode {
+  return { kind: "flex", children, style, ...base }
 }
 
 export function stack(children: BuilderNode[], style?: LayoutStyle, base?: NodeBase): BuilderNode {
@@ -55,7 +59,11 @@ export function textBoxNode(value: Signal<string>, opts: Omit<TextBoxNode, "kind
 }
 
 export function rowItemNode(opts: Omit<RowNode, "kind">): BuilderNode {
-  return { kind: "rowItem", ...opts }
+  return { kind: "listRow", ...opts }
+}
+
+export function listRowNode(opts: Omit<RowNode, "kind">): BuilderNode {
+  return { kind: "listRow", ...opts }
 }
 
 export function treeItem(id: string, label: string, opts: Omit<TreeItem, "id" | "label"> = {}): TreeItem {

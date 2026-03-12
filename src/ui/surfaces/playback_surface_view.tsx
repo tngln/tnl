@@ -2,7 +2,7 @@ import { theme, font } from "../../config/theme"
 import { draw, RRect, Text as DrawText } from "../../core/draw"
 import { getDebugLevel, listDebugEntries, setDebugLevel, type DebugEntry, type DebugLevel } from "../../core/debug"
 import { createElement, Fragment } from "../jsx"
-import { Button, Column, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Row, RowItem, SliderField, Spacer, Text } from "../builder/components"
+import { Button, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, SliderField, Spacer, Text, VStack } from "../builder/components"
 import { defineSurface } from "../builder/surface_builder"
 import { getPlaybackSession } from "../playback/session"
 import { formatTimecode } from "../playback/timecode"
@@ -98,15 +98,15 @@ export const PlaybackSurface = defineSurface({
             ]}
           />
           <PanelScroll key="playback.scroll">
-            <Row style={{ align: "start", gap: 10, w: "auto", h: "auto" }}>
-              <Column style={{ axis: "column", gap: 10, fixed: 284, w: "auto", h: "auto" }}>
+            <HStack style={{ align: "start", gap: 10, w: "auto", h: "auto" }}>
+              <VStack style={{ axis: "column", gap: 10, fixed: 284, w: "auto", h: "auto" }}>
                 <PanelSection key="playback.media" title={`Media (${state.entries.length})`}>
                   <Text tone="muted" size="meta">OPFS source list stays independently scrollable so the panel remains usable even with many files.</Text>
                   <PanelScroll key="playback.media.scroll" style={{ fixed: 300, margin: { t: 8, r: 0, b: 0, l: 0 } }}>
                     {state.entries.length ? (
-                      <Column style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
+                      <VStack style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
                         {state.entries.map((entry) => (
-                          <RowItem
+                          <ListRow
                             key={`playback.entry.${entry.path}`}
                             leftText={entry.path}
                             rightText={entry.type || "video/*"}
@@ -114,25 +114,25 @@ export const PlaybackSurface = defineSurface({
                             onClick={() => void session.selectPath(entry.path)}
                           />
                         ))}
-                      </Column>
+                      </VStack>
                     ) : (
-                      <Column style={{ axis: "column", gap: 4, padding: { l: 4, t: 4, r: 14, b: 4 }, w: "auto", h: "auto" }}>
+                      <VStack style={{ axis: "column", gap: 4, padding: { l: 4, t: 4, r: 14, b: 4 }, w: "auto", h: "auto" }}>
                         <Text tone="muted" size="meta">No video assets found in OPFS.</Text>
-                      </Column>
+                      </VStack>
                     )}
                   </PanelScroll>
                 </PanelSection>
 
                 <PanelSection key="playback.source" title="Source Details">
-                  <Column style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
+                  <VStack style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
                     <Text weight="bold">{selectedLabel}</Text>
                     <Text tone="muted" size="meta">{state.selectedPath ?? "No source selected"}</Text>
                     <Text tone="muted" size="meta">Current timecode: {timecode}</Text>
-                  </Column>
+                  </VStack>
                 </PanelSection>
-              </Column>
+              </VStack>
 
-              <Column style={{ axis: "column", gap: 10, grow: 1, basis: 0, fill: true, w: "auto", h: "auto" }}>
+              <VStack style={{ axis: "column", gap: 10, grow: 1, basis: 0, fill: true, w: "auto", h: "auto" }}>
                 <PanelSection key="playback.preview" title="Preview">
                   <Paint
                     key="playback.preview.canvas"
@@ -188,11 +188,11 @@ export const PlaybackSurface = defineSurface({
                       )
                     }}
                   />
-                  <Row style={{ align: "center", gap: 8, margin: { t: 8, r: 0, b: 0, l: 0 } }}>
+                  <HStack style={{ align: "center", gap: 8, margin: { t: 8, r: 0, b: 0, l: 0 } }}>
                     <Text weight="bold">{timecode}</Text>
                     <Spacer style={{ fill: true }} />
                     <Text tone="muted">{timeText}</Text>
-                  </Row>
+                  </HStack>
                 </PanelSection>
 
                 <PanelSection key="playback.transport" title="Transport">
@@ -206,14 +206,14 @@ export const PlaybackSurface = defineSurface({
                     onChange={(next) => session.seekTo(next)}
                     disabled={!runtime.ready || state.busy}
                   />
-                  <Row style={{ align: "center", gap: 8, margin: { t: 10, r: 0, b: 0, l: 0 } }}>
+                  <HStack style={{ align: "center", gap: 8, margin: { t: 10, r: 0, b: 0, l: 0 } }}>
                     <Button text="Prev" onClick={() => session.stepFrame(-1)} disabled={!runtime.ready || state.busy} style={{ fixed: 64 }} />
                     <Button text={runtime.playing ? "Pause" : "Play"} onClick={() => void session.togglePlayPause()} disabled={!runtime.ready || state.busy} style={{ fixed: 72 }} />
                     <Button text="Next" onClick={() => session.stepFrame(1)} disabled={!runtime.ready || state.busy} style={{ fixed: 64 }} />
                     <Spacer style={{ fill: true }} />
                     <Text tone="muted">{timeText}</Text>
-                  </Row>
-                  <Row style={{ align: "center", gap: 8, margin: { t: 10, r: 0, b: 0, l: 0 } }}>
+                  </HStack>
+                  <HStack style={{ align: "center", gap: 8, margin: { t: 10, r: 0, b: 0, l: 0 } }}>
                     <Text tone="muted" size="meta" style={{ fixed: 52 }}>Volume</Text>
                     <SliderField
                       key="playback.transport.volume"
@@ -225,23 +225,23 @@ export const PlaybackSurface = defineSurface({
                       disabled={state.busy}
                     />
                     <Button text={runtime.muted ? "Unmute" : "Mute"} onClick={() => session.toggleMuted()} disabled={state.busy} style={{ fixed: 84 }} />
-                  </Row>
-                  <Row style={{ align: "center", gap: 8, margin: { t: 10, r: 0, b: 0, l: 0 } }}>
+                  </HStack>
+                  <HStack style={{ align: "center", gap: 8, margin: { t: 10, r: 0, b: 0, l: 0 } }}>
                     <Text tone="muted" size="meta" style={{ fixed: 52 }}>Rate</Text>
                     <Button text="-" onClick={() => session.setPlaybackRate(runtime.playbackRate / 2)} disabled={state.busy} style={{ fixed: 32 }} />
                     <Text style={{ fixed: 64 }}>{runtime.playbackRate.toFixed(2)}x</Text>
                     <Button text="+" onClick={() => session.setPlaybackRate(runtime.playbackRate * 2)} disabled={state.busy} style={{ fixed: 32 }} />
                     <Spacer style={{ fill: true }} />
                     <Text tone="muted" size="meta">{runtime.ready ? `${runtime.width}x${runtime.height}` : "No media"}</Text>
-                  </Row>
+                  </HStack>
                 </PanelSection>
 
                 <PanelSection key="playback.diagnostics" title="Diagnostics">
-                  <Column style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                  <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
                     {diagnostics.map((row) => (
-                      <RowItem key={row.id} leftText={row.left} rightText={row.right} />
+                      <ListRow key={row.id} leftText={row.left} rightText={row.right} />
                     ))}
-                  </Column>
+                  </VStack>
                   {runtime.error ? (
                     <Text color="rgba(255,120,120,0.95)" size="meta" style={{ margin: { t: 8, r: 0, b: 0, l: 0 } }}>{runtime.error}</Text>
                   ) : null}
@@ -249,7 +249,7 @@ export const PlaybackSurface = defineSurface({
 
                 <PanelSection key="playback.debug" title="Debug Output">
                   <Text tone="muted" size="meta">This level is global. Raising it increases console output and the buffered diagnostics shown here.</Text>
-                  <Row style={{ align: "center", gap: 6, margin: { t: 8, r: 0, b: 0, l: 0 } }}>
+                  <HStack style={{ align: "center", gap: 6, margin: { t: 8, r: 0, b: 0, l: 0 } }}>
                     {DEBUG_LEVELS.map((level) => (
                       <Button
                         key={`playback.debug.level.${level}`}
@@ -259,8 +259,8 @@ export const PlaybackSurface = defineSurface({
                         style={{ fixed: 68 }}
                       />
                     ))}
-                  </Row>
-                  <Column style={{ axis: "column", gap: 4, margin: { t: 10, r: 0, b: 0, l: 0 }, w: "auto", h: "auto" }}>
+                  </HStack>
+                  <VStack style={{ axis: "column", gap: 4, margin: { t: 10, r: 0, b: 0, l: 0 }, w: "auto", h: "auto" }}>
                     {logEntries.length ? (
                       logEntries.map((entry) => (
                         <Text key={`playback.log.${entry.id}`} color={logColor(entry.level)} size="meta">{formatDebugEntry(entry)}</Text>
@@ -268,10 +268,10 @@ export const PlaybackSurface = defineSurface({
                     ) : (
                       <Text tone="muted" size="meta">No debug entries captured yet.</Text>
                     )}
-                  </Column>
+                  </VStack>
                 </PanelSection>
-              </Column>
-            </Row>
+              </VStack>
+            </HStack>
           </PanelScroll>
         </PanelColumn>
       )

@@ -46,7 +46,7 @@ type NodeBase = {
 export type CommonNodeProps = NodeBase
 
 export type ContainerNode = NodeBase & {
-  kind: "row" | "column" | "stack"
+  kind: "flex" | "row" | "column" | "stack"
   children: BuilderNode[]
 }
 
@@ -114,7 +114,7 @@ export type TextBoxNode = NodeBase & {
 export type RowVariant = "group" | "item"
 
 export type RowNode = NodeBase & {
-  kind: "rowItem"
+  kind: "listRow" | "rowItem"
   leftText: string
   rightText?: string
   indent?: number

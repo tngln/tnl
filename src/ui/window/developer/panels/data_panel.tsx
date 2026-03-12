@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "../../../jsx"
-import { Button, Column, PanelColumn, PanelScroll, PanelSection, PanelToolbar, Spacer, Text, TreeView } from "../../../builder/components"
+import { Button, PanelColumn, PanelScroll, PanelSection, PanelToolbar, Spacer, Text, TreeView, VStack } from "../../../builder/components"
 import { defineSurface, mountSurface, type TreeItem } from "../../../builder/surface_builder"
 import type { DeveloperPanelSpec } from "../index"
 import { getStateTreeItems } from "../states"
@@ -118,7 +118,7 @@ export const DataPanelSurface = defineSurface({
             <Text key="data.meta" tone="muted" size="meta">{`${items.length} roots`}</Text>
           </PanelToolbar>
           <PanelSection title="Selection" key="data.selection">
-            <Column style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
+            <VStack style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
               {selected ? (
                 <Fragment>
                   <Text weight="bold">{selected.debugLabel ?? selected.name ?? `signal#${selected.id}`}</Text>
@@ -129,7 +129,7 @@ export const DataPanelSurface = defineSurface({
               ) : (
                 <Text tone="muted" size="meta">Select a signal node to see details.</Text>
               )}
-            </Column>
+            </VStack>
           </PanelSection>
           <PanelScroll key="data.scroll">
             {items.length ? (
@@ -147,9 +147,9 @@ export const DataPanelSurface = defineSurface({
                 }}
               />
             ) : (
-              <Column style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
+              <VStack style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
                 <Text tone="muted" size="meta">No signals</Text>
-              </Column>
+              </VStack>
             )}
           </PanelScroll>
         </PanelColumn>

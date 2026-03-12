@@ -1,5 +1,5 @@
 import { createElement } from "../../../jsx"
-import { Column, PanelColumn, PanelScroll, PanelSection, PanelToolbar, RichText, Spacer, Text } from "../../../builder/components"
+import { PanelColumn, PanelScroll, PanelSection, PanelToolbar, RichText, Spacer, Text, VStack } from "../../../builder/components"
 import { defineSurface, mountSurface } from "../../../builder/surface_builder"
 import type { DeveloperPanelSpec } from "../index"
 
@@ -22,13 +22,13 @@ export function createInfoPanel(spec: InfoPanelSpec): DeveloperPanelSpec {
           <Text key={`${spec.id}.meta`} tone="muted" size="meta">Builder Panel</Text>
         </PanelToolbar>
         <PanelScroll key={`${spec.id}.scroll`}>
-          <Column style={{ axis: "column", padding: 6, gap: 10, w: "auto", h: "auto" }}>
+          <VStack style={{ axis: "column", padding: 6, gap: 10, w: "auto", h: "auto" }}>
               <PanelSection title="Status" key={`${spec.id}.status`}>
                 <RichText key={`${spec.id}.summary`} tone="muted">{spec.summary}</RichText>
               </PanelSection>
             {spec.notes && spec.notes.length > 0 ? (
               <PanelSection title="Next" key={`${spec.id}.next`}>
-                <Column style={{ axis: "column", gap: 6, w: "auto", h: "auto" }}>
+                <VStack style={{ axis: "column", gap: 6, w: "auto", h: "auto" }}>
                   {spec.notes.map((note, index) => (
                     <RichText
                       key={`${spec.id}.note.${index}`}
@@ -37,10 +37,10 @@ export function createInfoPanel(spec: InfoPanelSpec): DeveloperPanelSpec {
                       <b>{`${index + 1}. `}</b>{note}
                     </RichText>
                   ))}
-                </Column>
+                </VStack>
               </PanelSection>
             ) : null}
-          </Column>
+          </VStack>
         </PanelScroll>
       </PanelColumn>
     ),

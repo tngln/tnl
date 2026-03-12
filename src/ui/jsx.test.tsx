@@ -1,13 +1,13 @@
 import { createElement, Fragment } from "./jsx"
 import { describe, expect, it } from "bun:test"
-import { Column, RichText, Text } from "./builder/components"
+import { RichText, Text, VStack } from "./builder/components"
 import { theme } from "../config/theme"
 import { resolveRichTextChildren } from "./builder/rich_text_children"
 
 describe("jsx runtime", () => {
   it("flattens children and ignores falsey values", () => {
     const node: any = (
-      <Column>
+      <VStack>
         {"alpha"}
         {false}
         {null}
@@ -16,9 +16,9 @@ describe("jsx runtime", () => {
           {"beta"}
           {"gamma"}
         </Fragment>
-      </Column>
+      </VStack>
     )
-    expect(node.kind).toBe("column")
+    expect(node.kind).toBe("flex")
     expect(node.children).toHaveLength(3)
     expect(node.children.map((child: any) => child.text)).toEqual(["alpha", "beta", "gamma"])
   })
@@ -50,9 +50,9 @@ describe("jsx runtime", () => {
 
   it("rejects rich text intrinsic tags in normal layout children", () => {
     expect(() => (
-      <Column>
+      <VStack>
         <b>x</b>
-      </Column>
+      </VStack>
     )).toThrow("RichText intrinsic tags can only be used inside <RichText>.")
   })
 

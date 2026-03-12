@@ -5,7 +5,7 @@ import { getSeekableEnd, probeVideoDuration, resolvePlaybackDuration } from "../
 import { showConfirm, showPrompt } from "../../platform/web/dialogs"
 import { downloadBlob, pickFiles } from "../../platform/web/file_io"
 import { createElement, Fragment } from "../jsx"
-import { Button, ClickArea, Column, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelToolbar, Row, RowItem, Spacer, Stack, Text, TextBox } from "../builder/components"
+import { Button, ClickArea, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelToolbar, Spacer, Stack, Text, TextBox, VStack } from "../builder/components"
 import { defineSurface, mountSurface } from "../builder/surface_builder"
 import type { Surface } from "../base/viewport"
 import { invalidateAll } from "../invalidate"
@@ -767,11 +767,11 @@ export const ExplorerSurface = defineSurface({
 
       const content =
         viewMode.get() === "list" ? (
-          <Column key="explorer.list" style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
+          <VStack key="explorer.list" style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
             {items.map((item) => {
               if (item.kind === "dir") {
                 return (
-                  <RowItem
+                  <ListRow
                     key={`explorer.row.dir.${item.path}`}
                     leftText={`▸ ${item.name}`}
                     rightText="Directory"
@@ -786,7 +786,7 @@ export const ExplorerSurface = defineSurface({
               }
               const e = item.entry
               return (
-                <RowItem
+                <ListRow
                   key={`explorer.row.file.${e.path}`}
                   leftText={item.name}
                   rightText={`${formatBytes(e.size)} · ${e.type}`}
@@ -799,9 +799,9 @@ export const ExplorerSurface = defineSurface({
                 />
               )
             })}
-          </Column>
+          </VStack>
         ) : (
-          <Column key="explorer.thumbs" style={{ axis: "column", gap: 8, padding: { l: 6, t: 6, r: 14, b: 6 }, w: "auto", h: "auto" }}>
+          <VStack key="explorer.thumbs" style={{ axis: "column", gap: 8, padding: { l: 6, t: 6, r: 14, b: 6 }, w: "auto", h: "auto" }}>
             {(() => {
               const files = items.filter((i) => i.kind === "file") as Extract<ExplorerItem, { kind: "file" }>[]
               const cols = 4
@@ -810,7 +810,7 @@ export const ExplorerSurface = defineSurface({
               const eager = files.slice(0, 24)
               for (const item of eager) if (isVideoEntry(item.entry)) enqueueThumb(item.entry)
               return rows.map((row, ridx) => (
-                <Row key={`explorer.thumb.row.${ridx}`} style={{ axis: "row", gap: 8, w: "auto", h: "auto" }}>
+                <HStack key={`explorer.thumb.row.${ridx}`} style={{ axis: "row", gap: 8, w: "auto", h: "auto" }}>
                   {row.map((item) => {
                     const e = item.entry
                     const isSelected = selected?.kind === "file" && selected.path === e.path
@@ -827,7 +827,7 @@ export const ExplorerSurface = defineSurface({
                           radius: 8,
                         }}
                       >
-                        <Column key={`explorer.thumb.inner.${e.id}`} style={{ axis: "column", gap: 6, w: "auto", h: "auto" }}>
+                        <VStack key={`explorer.thumb.inner.${e.id}`} style={{ axis: "column", gap: 6, w: "auto", h: "auto" }}>
                           <Paint
                             key={`explorer.thumb.paint.${e.id}`}
                             measure={(max) => ({ w: Math.min(156, max.w), h: 88 })}
@@ -860,7 +860,7 @@ export const ExplorerSurface = defineSurface({
                           <Text key={`explorer.thumb.meta.${e.id}`} tone="muted" size="meta">
                             {formatBytes(e.size)}
                           </Text>
-                        </Column>
+                        </VStack>
                         <ClickArea
                           key={`explorer.thumb.click.${e.id}`}
                           style={{ fill: true }}
@@ -873,27 +873,27 @@ export const ExplorerSurface = defineSurface({
                     )
                   })}
                   {row.length < cols ? Array.from({ length: cols - row.length }).map((_, i) => <Spacer key={`explorer.thumb.pad.${ridx}.${i}`} style={{ fixed: 168 }} />) : null}
-                </Row>
+                </HStack>
               ))
             })()}
-          </Column>
+          </VStack>
         )
 
       const details = (() => {
         if (!selected) {
           return (
-            <Column key="explorer.details.empty" style={{ axis: "column", gap: 8, padding: 10, w: "auto", h: "auto" }}>
+            <VStack key="explorer.details.empty" style={{ axis: "column", gap: 8, padding: 10, w: "auto", h: "auto" }}>
               <Text tone="muted">No selection</Text>
-            </Column>
+            </VStack>
           )
         }
         if (selected.kind === "dir") {
           return (
-            <Column key="explorer.details.dir" style={{ axis: "column", gap: 8, padding: 10, w: "auto", h: "auto" }}>
+            <VStack key="explorer.details.dir" style={{ axis: "column", gap: 8, padding: 10, w: "auto", h: "auto" }}>
               <Text weight="bold">{selected.name}</Text>
               <Text tone="muted" size="meta">{selected.path}</Text>
               <Button text="Open" title="Open folder" style={{ fixed: 120 }} onClick={() => void enterSelectedDir()} />
-            </Column>
+            </VStack>
           )
         }
         const e = selected.entry
@@ -919,7 +919,7 @@ export const ExplorerSurface = defineSurface({
             ? videoMeta.hasAudio ? "yes" : "no"
             : "-"
         return (
-          <Column key="explorer.details.file" style={{ axis: "column", gap: 10, padding: 10, w: "auto", h: "auto" }}>
+          <VStack key="explorer.details.file" style={{ axis: "column", gap: 10, padding: 10, w: "auto", h: "auto" }}>
             <Paint
               key="explorer.details.preview"
               measure={(max) => ({ w: Math.min(240, max.w), h: 120 })}
@@ -947,20 +947,20 @@ export const ExplorerSurface = defineSurface({
               }}
             />
             {thumbError ? (
-              <Column style={{ axis: "column", gap: 6, w: "auto", h: "auto" }}>
+              <VStack style={{ axis: "column", gap: 6, w: "auto", h: "auto" }}>
                 <Text tone="muted" size="meta">{thumbError}</Text>
                 <Button text="Retry Thumb" title="Retry thumbnail" style={{ fixed: 120 }} onClick={() => retryThumb(e, { force: true })} />
-              </Column>
+              </VStack>
             ) : st.state === "loading" ? (
               <Text tone="muted" size="meta">Building thumbnail...</Text>
             ) : isVideoEntry(e) && st.state !== "ready" ? (
               <Button text="Build Thumb" title="Build thumbnail" style={{ fixed: 120 }} onClick={() => retryThumb(e, { force: true })} />
             ) : null}
-            <Column style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
+            <VStack style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
               <Text weight="bold">{e.name}</Text>
               <Text tone="muted" size="meta">{e.path}</Text>
-            </Column>
-            <Column style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
+            </VStack>
+            <VStack style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
               <Text size="meta" tone="muted">{`Type: ${e.type}`}</Text>
               <Text size="meta" tone="muted">{`Size: ${formatBytes(e.size)}`}</Text>
               <Text size="meta" tone="muted">{`Created: ${formatTime(e.createdAt)}`}</Text>
@@ -973,8 +973,8 @@ export const ExplorerSurface = defineSurface({
                   <Text size="meta" tone="muted">{`Audio: ${audioText}`}</Text>
                 </Fragment>
               ) : null}
-            </Column>
-          </Column>
+            </VStack>
+          </VStack>
         )
       })()
 
@@ -1028,16 +1028,16 @@ export const ExplorerSurface = defineSurface({
               { key: "delete", icon: "X", text: "Delete", title: "Delete selected", onClick: () => void deleteSelected(), disabled: busy || !selectedIsFile },
             ]}
           />
-          <Row key="explorer.body" style={{ axis: "row", gap: theme.spacing.sm, fill: true, w: "auto", h: "auto" }}>
+          <HStack key="explorer.body" style={{ axis: "row", gap: theme.spacing.sm, fill: true, w: "auto", h: "auto" }}>
             <PanelScroll key="explorer.content">{content}</PanelScroll>
-            <Column
+            <VStack
               key="explorer.details"
               style={{ axis: "column", gap: 0, fixed: 280, w: "auto", h: "auto" }}
               box={{ fill: "rgba(255,255,255,0.02)", stroke: "rgba(255,255,255,0.08)", radius: 10 }}
             >
               {details}
-            </Column>
-          </Row>
+            </VStack>
+          </HStack>
         </PanelColumn>
       )
     }
