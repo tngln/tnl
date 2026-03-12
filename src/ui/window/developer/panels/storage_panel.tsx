@@ -2,6 +2,7 @@ import { theme } from "../../../../config/theme"
 import { openOpfs, type OpfsEntryV1 } from "../../../../core/opfs"
 import { showAlert, showConfirm, showPrompt } from "../../../../platform/web/dialogs"
 import { downloadBlob, pickFiles } from "../../../../platform/web/file_io"
+import { buildAcceptString } from "../../../../platform/web/media_formats"
 import { createElement, Fragment } from "../../../jsx"
 import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack } from "../../../builder/components"
 import { defineSurface, mountSurface } from "../../../builder/surface_builder"
@@ -85,7 +86,11 @@ export const StoragePanelSurface = defineSurface({
     }
 
     const upload = async () => {
-      const files = await pickFiles({ multiple: true, inputId: "tnl-devtools-file-input" })
+      const files = await pickFiles({
+        multiple: true,
+        accept: `${buildAcceptString("video")},${buildAcceptString("audio")},${buildAcceptString("image")}`,
+        inputId: "tnl-devtools-file-input",
+      })
       if (!files.length) return
       const nextPrefix = (prefix ?? "uploads").trim() || "uploads"
       const seq = ++opSeq

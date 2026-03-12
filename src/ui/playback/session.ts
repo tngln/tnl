@@ -4,6 +4,7 @@ import { describeError, toAppError, toErrorInfo } from "../../core/errors"
 import type { TimelineTrackModel, TimelineViewModel } from "../timeline/model"
 import { pickFiles } from "../../platform/web/file_io"
 import { PlaybackRuntime, type PlaybackRuntimeSnapshot } from "../../platform/web/playback"
+import { buildAcceptString } from "../../platform/web/media_formats"
 import { invalidateAll } from "../invalidate"
 
 const DEFAULT_SOURCE_PATH = "media/bbb.mp4"
@@ -26,7 +27,7 @@ function basename(path: string | null) {
 
 function isVideoEntry(entry: Pick<OpfsEntryV1, "path" | "type">) {
   if (entry.type.toLowerCase().startsWith("video/")) return true
-  return /\.(mp4|webm|mov|m4v|mkv|ogv)$/i.test(entry.path)
+  return /\.(mp4|webm|mov|m4v|mkv|ogv|avi)$/i.test(entry.path)
 }
 
 export class PlaybackSession {
@@ -137,7 +138,7 @@ export class PlaybackSession {
     sessionLog.debug("Importing playback media files")
     this.notify()
     try {
-      const files = await pickFiles({ multiple: true, accept: "video/*,.mp4,.webm,.mov,.m4v,.mkv,.ogv", inputId: "tnl-playback-import-input" })
+      const files = await pickFiles({ multiple: true, accept: buildAcceptString("video"), inputId: "tnl-playback-import-input" })
       if (!files.length) return
       const fs = await this.ensureFs()
       for (const file of files) {

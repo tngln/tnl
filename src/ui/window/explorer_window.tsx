@@ -4,6 +4,7 @@ import { signal } from "../../core/reactivity"
 import { getSeekableEnd, probeVideoDuration, resolvePlaybackDuration } from "../../platform/web/video_duration"
 import { showConfirm, showPrompt } from "../../platform/web/dialogs"
 import { downloadBlob, pickFiles } from "../../platform/web/file_io"
+import { buildAcceptString } from "../../platform/web/media_formats"
 import { createElement, Fragment } from "../jsx"
 import { Button, ClickArea, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelToolbar, Spacer, Stack, Text, TextBox, VStack } from "../builder/components"
 import { defineSurface, mountSurface } from "../builder/surface_builder"
@@ -508,7 +509,7 @@ export const ExplorerSurface = defineSurface({
     }
 
     const importFiles = async () => {
-      const files = await pickFiles({ multiple: true, inputId: "tnl-explorer-file-input" })
+      const files = await pickFiles({ multiple: true, accept: `${buildAcceptString("video")},${buildAcceptString("audio")},${buildAcceptString("image")}`, inputId: "tnl-explorer-file-input" })
       if (!files.length) return
       const seq = ++opSeq
       busy = true

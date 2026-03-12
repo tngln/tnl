@@ -2,6 +2,7 @@ import { scheduleAnimationFrame } from "./animation"
 import { createLogger } from "../../core/debug"
 import { AppError, describeError, toAppError, toErrorInfo } from "../../core/errors"
 import { getSeekableEnd, probeVideoDuration, resolvePlaybackDuration, type PlaybackDurationInfo, type PlaybackDurationSource } from "./video_duration"
+import { inferMimeCandidates, isAviPath } from "./media_formats"
 
 type VideoFrameCallback = (now: number, metadata: { mediaTime?: number; presentedFrames?: number }) => void
 
@@ -40,13 +41,12 @@ export type PlaybackRuntimeSnapshot = {
   error: string | null
 }
 
-function inferMimeType(path: string | null) {
-  if (!path) return null
-  if (/\.mp4$/i.test(path) || /\.m4v$/i.test(path) || /\.mov$/i.test(path)) return "video/mp4"
-  if (/\.webm$/i.test(path)) return "video/webm"
-  if (/\.ogv$/i.test(path)) return "video/ogg"
-  if (/\.mkv$/i.test(path)) return "video/x-matroska"
-  return null
+function pickPlayableMime(video: HTMLVideoElement, candidates: string[]) {
+  for (const candidate of candidates) {
+    const can = video.canPlayType(candidate)
+    if (can) return { mime: candidate, canPlayType: can }
+  }
+  return { mime: null, canPlayType: "" }
 }
 
 function shouldOverrideMime(type: string | null) {
@@ -180,10 +180,33 @@ export class PlaybackRuntime {
     this.lastFrameTime = null
     this.recoveredDuration = null
     this.blobType = blob.type || null
-    const inferred = inferMimeType(path)
     const incomingType = typeHint || blob.type || null
-    if (shouldOverrideMime(incomingType)) this.resolvedMime = inferred || incomingType
-    else this.resolvedMime = incomingType
+    const candidates = inferMimeCandidates(path, shouldOverrideMime(incomingType) ? null : incomingType)
+    const picked = pickPlayableMime(video, candidates)
+    if (picked.mime) {
+      this.resolvedMime = shouldOverrideMime(incomingType) ? picked.mime : incomingType
+    } else {
+      this.resolvedMime = shouldOverrideMime(incomingType) ? null : incomingType
+      const message = isAviPath(path)
+        ? "AVI is not playable in this Chrome build. Convert to WebM (VP9/Opus) or MP4 (H.264/AAC)."
+        : "Unsupported video format."
+      const error = new AppError({
+        domain: "playback",
+        code: "UnsupportedFormat",
+        message,
+        details: {
+          path,
+          blobType: this.blobType,
+          typeHint: typeHint || null,
+          mimeCandidates: candidates,
+        },
+      })
+      this.loading = false
+      this.error = describeError(error)
+      playbackLog.error("Playback source is not playable", { error: toErrorInfo(error) })
+      this.notify()
+      throw error
+    }
     playbackLog.info("Loading playback source", {
       path,
       blobType: this.blobType,
