@@ -14,6 +14,8 @@ type Layer = {
   hCss: number
   dpr: number
   renderedFrame: number
+  /** Version token supplied by the caller. null = frame-based caching. */
+  contentVersion: number | null
 }
 
 export type DebugLayerTag = {
@@ -30,6 +32,8 @@ export type DebugLayerInfo = {
   hPx: number
   canvasType: "offscreen" | "dom"
   renderedFrame: number
+  /** null when the layer uses frame-based caching rather than content-version caching. */
+  contentVersion: number | null
   estimatedBytes: number
   tag?: DebugLayerTag
 }
@@ -64,15 +68,28 @@ export class Compositor {
     canvas.width = w
     canvas.height = h
     const ctx = cur?.ctx ?? getCanvas2DContext(canvas)
-    const next: Layer = { id, canvas, ctx, wCss, hCss, dpr, renderedFrame: -1 }
+    const next: Layer = { id, canvas, ctx, wCss, hCss, dpr, renderedFrame: -1, contentVersion: null }
     this.layers.set(id, next)
     return next
   }
 
-  withLayer(id: string, wCss: number, hCss: number, dpr: number, render: (ctx: Any2DContext) => void) {
+  /**
+   * Acquire (or reuse) a layer and invoke `render` only when the layer content is stale.
+   *
+   * - **Without `version`** (default): frame-based caching — `render` is called at most once per
+   *   compositor frame, matching the previous behaviour.
+   * - **With `version`**: content-version caching — `render` is skipped as long as `version` has
+   *   not changed since the last render, even across multiple frames. The layer canvas is retained
+   *   between frames so the blit in `blit()` still works without re-drawing.
+   */
+  withLayer(id: string, wCss: number, hCss: number, dpr: number, render: (ctx: Any2DContext) => void, version?: number) {
     const layer = this.ensureLayer(id, wCss, hCss, dpr)
-    if (layer.renderedFrame !== this.frame) {
+    const upToDate = version !== undefined
+      ? layer.contentVersion === version
+      : layer.renderedFrame === this.frame
+    if (!upToDate) {
       layer.renderedFrame = this.frame
+      if (version !== undefined) layer.contentVersion = version
       layer.ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       layer.ctx.clearRect(0, 0, wCss, hCss)
       render(layer.ctx)
@@ -100,6 +117,7 @@ export class Compositor {
         hPx,
         canvasType,
         renderedFrame: layer.renderedFrame,
+        contentVersion: layer.contentVersion,
         estimatedBytes: wPx * hPx * 4,
         tag: this.debugTags.get(layer.id),
       })

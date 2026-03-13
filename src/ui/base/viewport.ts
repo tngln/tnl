@@ -33,6 +33,13 @@ export type Surface = {
   contentSize?: (viewportSize: Vec2) => Vec2
   blendMode?: GlobalCompositeOperation
   opacity?: number
+  /**
+   * Optional content version token. When provided, the compositor layer for this surface is
+   * reused across frames without re-invoking `render` as long as the value does not change
+   * and the viewport dimensions stay the same. Increment this number whenever the surface
+   * content changes. Omit it to use the default per-frame rendering behaviour.
+   */
+  contentVersion?: number
   compose?: (compositor: Compositor, viewport: ViewportContext) => void
   hitTest?: (pSurface: Vec2, viewport: ViewportContext) => UIElement | null
   onPointerDown?: (e: PointerUIEvent, viewport: ViewportContext) => void
@@ -187,7 +194,7 @@ export class ViewportElement extends UIElement {
         lctx.translate(vp.contentRect.x - vp.scroll.x - vp.rect.x, vp.contentRect.y - vp.scroll.y - vp.rect.y)
         s.render(lctx, vp)
         lctx.restore()
-      })
+      }, s.contentVersion)
       comp.blit(layerId, { x: vp.rect.x, y: vp.rect.y, w: vp.rect.w, h: vp.rect.h }, { blendMode: s.blendMode, opacity: s.opacity })
     } else {
       ctx.save()
