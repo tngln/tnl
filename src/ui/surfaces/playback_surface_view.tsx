@@ -1,5 +1,5 @@
 import { theme, font } from "@/config/theme"
-import { draw, RRectOp, TextOp as DrawTextOp } from "@/core/draw"
+import { draw, RectOp, TextOp as DrawTextOp } from "@/core/draw"
 import { getDebugLevel, listDebugEntries, setDebugLevel, type DebugEntry, type DebugLevel } from "@/core/debug"
 import { baseNameOr } from "@/util/util"
 import { Button, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, SliderField, Spacer, Text, VStack } from "@/ui/builder/components"
@@ -139,7 +139,7 @@ export const PlaybackSurface = defineSurface({
                     draw={(ctx, rect) => {
                       draw(
                         ctx,
-                        RRectOp({ x: rect.x, y: rect.y, w: rect.w, h: rect.h, r: 10 }, { fill: { color: "#06090f" }, stroke: { color: theme.colors.white08, hairline: true }, pixelSnap: true }),
+                        RectOp({ x: rect.x, y: rect.y, w: rect.w, h: rect.h }, { radius: 10, fill: { color: "#06090f" }, stroke: { color: theme.colors.white08, hairline: true }, pixelSnap: true }),
                       )
                       const inner = { x: rect.x + 12, y: rect.y + 12, w: Math.max(0, rect.w - 24), h: Math.max(0, rect.h - 24) }
                       const drewVideo = session.drawVideo(ctx, inner)

@@ -1,5 +1,5 @@
 import { theme } from "@/config/theme"
-import { draw, RRectOp } from "@/core/draw"
+import { draw, RectOp } from "@/core/draw"
 import { invariant } from "@/core/errors"
 import { ZERO_RECT } from "@/core/rect"
 import { type Rect as BoundsRect, type Vec2, UIElement } from "@/ui/base/ui"
@@ -55,9 +55,10 @@ class SnapPreviewOverlay extends UIElement {
     if (!this.rect) return
     draw(
       ctx,
-      RRectOp(
-        { x: this.rect.x, y: this.rect.y, w: this.rect.w, h: this.rect.h, r: theme.radii.sm },
+      RectOp(
+        { x: this.rect.x, y: this.rect.y, w: this.rect.w, h: this.rect.h },
         {
+          radius: theme.radii.sm,
           fill: { color: theme.colors.accentOverlay },
           stroke: { color: theme.colors.accentOutline, width: 2 },
           pixelSnap: true,

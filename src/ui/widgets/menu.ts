@@ -1,5 +1,5 @@
 import { font, theme } from "@/config/theme"
-import { draw, RRectOp, TextOp } from "@/core/draw"
+import { draw, RectOp, TextOp } from "@/core/draw"
 import type { InteractionCancelReason } from "@/core/event_stream"
 import { createPressMachine } from "@/core/fsm"
 import { toGetter, type Rect } from "@/core/rect"
@@ -170,9 +170,9 @@ export class Menu extends UIElement {
     const f = font(theme, theme.typography.body)
     draw(
       ctx,
-      RRectOp(
-        { x: menu.x, y: menu.y, w: menu.w, h: menu.h, r: theme.radii.sm },
-        { fill: { color: theme.colors.appBg96 }, stroke: { color: theme.colors.white12, hairline: true }, pixelSnap: true },
+      RectOp(
+        { x: menu.x, y: menu.y, w: menu.w, h: menu.h },
+        { radius: theme.radii.sm, fill: { color: theme.colors.appBg96 }, stroke: { color: theme.colors.white12, hairline: true }, pixelSnap: true },
       ),
     )
 

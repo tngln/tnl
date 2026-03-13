@@ -1,5 +1,5 @@
 import { font, theme } from "@/config/theme"
-import { draw, LineOp, RRectOp, TextOp } from "@/core/draw"
+import { draw, LineOp, RectOp, TextOp } from "@/core/draw"
 import { signal, type Signal } from "@/core/reactivity"
 import { type Rect, ZERO_RECT } from "@/core/rect"
 import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
@@ -41,7 +41,7 @@ export class Checkbox extends InteractiveElement {
 
     draw(
       ctx,
-      RRectOp(box, { fill: { color: bg }, stroke: { color: stroke, hairline: true }, pixelSnap: true }),
+      RectOp({ x: box.x, y: box.y, w: box.w, h: box.h }, { radius: box.r, fill: { color: bg }, stroke: { color: stroke, hairline: true }, pixelSnap: true }),
       TextOp({
         x: r.x + 24,
         y: r.y,

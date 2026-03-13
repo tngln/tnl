@@ -1,5 +1,5 @@
 import { theme } from "@/config/theme"
-import { draw, RRectOp, TextOp } from "@/core/draw"
+import { draw, TextOp } from "@/core/draw"
 import { measureTextWidth } from "@/core/draw.text"
 import { AppError } from "@/core/errors"
 import { measureLayout, type LayoutStyle } from "@/core/layout"

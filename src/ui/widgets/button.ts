@@ -1,5 +1,5 @@
 import { font, theme } from "@/config/theme"
-import { draw, RRectOp, TextOp } from "@/core/draw"
+import { draw, RectOp, TextOp } from "@/core/draw"
 import { type Rect, ZERO_RECT } from "@/core/rect"
 import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 import { InteractiveElement } from "./interactive"
@@ -39,9 +39,9 @@ export class Button extends InteractiveElement {
     const textColor = disabled ? theme.colors.textMuted : theme.colors.textPrimary
     draw(
       ctx,
-      RRectOp(
-        { x: r.x, y: r.y, w: r.w, h: r.h, r: theme.radii.sm },
-        { fill: { color: bg }, stroke: { color: stroke, hairline: true }, pixelSnap: true },
+      RectOp(
+        { x: r.x, y: r.y, w: r.w, h: r.h },
+        { radius: theme.radii.sm, fill: { color: bg }, stroke: { color: stroke, hairline: true }, pixelSnap: true },
       ),
       TextOp({
         x: r.x + r.w / 2,
@@ -70,9 +70,9 @@ export class Button extends InteractiveElement {
     const tipY = Math.max(0, r.y - tipH - 6)
     draw(
       ctx,
-      RRectOp(
-        { x: tipX, y: tipY, w: tipW, h: tipH, r: theme.radii.sm },
-        { fill: { color: theme.colors.appBg96 }, stroke: { color: theme.colors.white12, hairline: true }, pixelSnap: true },
+      RectOp(
+        { x: tipX, y: tipY, w: tipW, h: tipH },
+        { radius: theme.radii.sm, fill: { color: theme.colors.appBg96 }, stroke: { color: theme.colors.white12, hairline: true }, pixelSnap: true },
       ),
       TextOp({
         x: tipX + tipW / 2,

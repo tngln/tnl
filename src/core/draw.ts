@@ -1,4 +1,4 @@
-import type { Circle, Rect, RRect, Vec2 } from "./geometry"
+import type { Circle, Rect, Vec2 } from "./geometry"
 
 export type ShapeHitTest = "viewBox" | "path"
 
@@ -47,8 +47,7 @@ export type Text = {
 }
 
 export type DrawOp =
-  | { kind: "Rect"; rect: Rect; fill?: FillStyle; stroke?: StrokeStyle; pixelSnap?: boolean }
-  | { kind: "RRect"; rrect: RRect; fill?: FillStyle; stroke?: StrokeStyle; pixelSnap?: boolean }
+  | { kind: "Rect"; rect: Rect; radius?: number; fill?: FillStyle; stroke?: StrokeStyle; pixelSnap?: boolean }
   | { kind: "Circle"; circle: Circle; fill?: FillStyle; stroke?: StrokeStyle }
   | { kind: "Text"; text: Text }
   | { kind: "Line"; a: Vec2; b: Vec2; stroke: StrokeStyle }
@@ -94,16 +93,20 @@ function snappedRect(ctx: CanvasRenderingContext2D, r: Rect) {
   return { x: r.x + o, y: r.y + o, w: r.w - 2 * o, h: r.h - 2 * o }
 }
 
-function snappedRRect(ctx: CanvasRenderingContext2D, rr: RRect) {
+function snappedRoundedRect(ctx: CanvasRenderingContext2D, rect: Rect, radius: number) {
   const dpr = dprOf(ctx)
   const o = 0.5 / dpr
-  return { x: rr.x + o, y: rr.y + o, w: rr.w - 2 * o, h: rr.h - 2 * o, r: rr.r }
+  return { x: rect.x + o, y: rect.y + o, w: rect.w - 2 * o, h: rect.h - 2 * o, radius }
 }
 
-function rrectPath(ctx: CanvasRenderingContext2D, rr: RRect) {
+function rectPath(ctx: CanvasRenderingContext2D, rect: Rect, radius = 0) {
   ctx.beginPath()
-  const r = Math.max(0, Math.min(rr.r, Math.min(rr.w, rr.h) / 2))
-  ctx.roundRect(rr.x, rr.y, rr.w, rr.h, r)
+  const r = Math.max(0, Math.min(radius, Math.min(rect.w, rect.h) / 2))
+  if (r <= 0) {
+    ctx.rect(rect.x, rect.y, rect.w, rect.h)
+    return
+  }
+  ctx.roundRect(rect.x, rect.y, rect.w, rect.h, r)
 }
 
 function fillRectOp(ctx: CanvasRenderingContext2D, rect: Rect, fill: FillStyle) {
@@ -149,13 +152,17 @@ export function draw(ctx: CanvasRenderingContext2D, ...ops: DrawOp[]) {
   for (const op of ops) {
     switch (op.kind) {
       case "Rect": {
-        if (op.fill) fillRectOp(ctx, op.rect, op.fill)
-        if (op.stroke) strokeRectOp(ctx, op.pixelSnap ? snappedRect(ctx, op.rect) : op.rect, op.stroke)
-        break
-      }
-      case "RRect": {
-        if (op.fill) fillPathOp(ctx, op.fill, () => rrectPath(ctx, op.rrect))
-        if (op.stroke) strokePathOp(ctx, op.stroke, () => rrectPath(ctx, op.pixelSnap ? snappedRRect(ctx, op.rrect) : op.rrect))
+        const radius = Math.max(0, op.radius ?? 0)
+        if (radius <= 0) {
+          if (op.fill) fillRectOp(ctx, op.rect, op.fill)
+          if (op.stroke) strokeRectOp(ctx, op.pixelSnap ? snappedRect(ctx, op.rect) : op.rect, op.stroke)
+          break
+        }
+        if (op.fill) fillPathOp(ctx, op.fill, () => rectPath(ctx, op.rect, radius))
+        if (op.stroke) {
+          const rounded = op.pixelSnap ? snappedRoundedRect(ctx, op.rect, radius) : { ...op.rect, radius }
+          strokePathOp(ctx, op.stroke, () => rectPath(ctx, rounded, rounded.radius))
+        }
         break
       }
       case "Circle": {
@@ -199,12 +206,8 @@ export function draw(ctx: CanvasRenderingContext2D, ...ops: DrawOp[]) {
   }
 }
 
-export function RectOp(rect: Rect, style?: { fill?: FillStyle; stroke?: StrokeStyle; pixelSnap?: boolean }): DrawOp {
-  return { kind: "Rect", rect, fill: style?.fill, stroke: style?.stroke, pixelSnap: style?.pixelSnap }
-}
-
-export function RRectOp(rrect: RRect, style?: { fill?: FillStyle; stroke?: StrokeStyle; pixelSnap?: boolean }): DrawOp {
-  return { kind: "RRect", rrect, fill: style?.fill, stroke: style?.stroke, pixelSnap: style?.pixelSnap }
+export function RectOp(rect: Rect, style?: { radius?: number; fill?: FillStyle; stroke?: StrokeStyle; pixelSnap?: boolean }): DrawOp {
+  return { kind: "Rect", rect, radius: style?.radius, fill: style?.fill, stroke: style?.stroke, pixelSnap: style?.pixelSnap }
 }
 
 export function CircleOp(circle: Circle, style?: { fill?: FillStyle; stroke?: StrokeStyle }): DrawOp {
