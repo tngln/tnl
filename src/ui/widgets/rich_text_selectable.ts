@@ -1,5 +1,5 @@
 import { theme } from "@/config/theme"
-import { draw, Rect as RectOp } from "@/core/draw"
+import { draw, RectOp } from "@/core/draw"
 import { measureTextWidth, type Any2DContext, type RichTextBlock, type RichTextLayout, type RichTextLine, type RichTextRun } from "@/core/draw.text"
 import { ZERO_RECT, type Rect } from "@/core/rect"
 import { get1pxTextareaBridge } from "@/platform/web/1px_textarea"

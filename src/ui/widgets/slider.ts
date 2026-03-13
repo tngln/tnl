@@ -1,5 +1,5 @@
 import { theme } from "@/config/theme"
-import { draw, Line, RRect } from "@/core/draw"
+import { draw, LineOp, RRectOp } from "@/core/draw"
 import { clamp, type Rect, ZERO_RECT } from "@/core/rect"
 import { PointerUIEvent, UIElement, type Vec2 } from "@/ui/base/ui"
 import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
@@ -136,18 +136,18 @@ export class Slider extends UIElement {
       const x = cx
       draw(
         ctx,
-        Line({ x, y: r.y + this.thumbSize / 2 }, { x, y: r.y + r.h - this.thumbSize / 2 }, { color: trackColor, width: this.trackThickness }),
-        Line({ x, y: thumb.y + thumb.h / 2 }, { x, y: r.y + r.h - this.thumbSize / 2 }, { color: fillColor, width: this.trackThickness }),
-        RRect({ x: thumb.x, y: thumb.y, w: thumb.w, h: thumb.h, r: Math.min(theme.radii.sm, thumb.w / 2) }, { fill: { color: thumbColor }, stroke: { color: thumbStroke, hairline: true }, pixelSnap: true }),
+        LineOp({ x, y: r.y + this.thumbSize / 2 }, { x, y: r.y + r.h - this.thumbSize / 2 }, { color: trackColor, width: this.trackThickness }),
+        LineOp({ x, y: thumb.y + thumb.h / 2 }, { x, y: r.y + r.h - this.thumbSize / 2 }, { color: fillColor, width: this.trackThickness }),
+        RRectOp({ x: thumb.x, y: thumb.y, w: thumb.w, h: thumb.h, r: Math.min(theme.radii.sm, thumb.w / 2) }, { fill: { color: thumbColor }, stroke: { color: thumbStroke, hairline: true }, pixelSnap: true }),
       )
       return
     }
 
     draw(
       ctx,
-      Line({ x: r.x + this.thumbSize / 2, y: cy }, { x: r.x + r.w - this.thumbSize / 2, y: cy }, { color: trackColor, width: this.trackThickness }),
-      Line({ x: r.x + this.thumbSize / 2, y: cy }, { x: thumb.x + thumb.w / 2, y: cy }, { color: fillColor, width: this.trackThickness }),
-      RRect({ x: thumb.x, y: thumb.y, w: thumb.w, h: thumb.h, r: Math.min(theme.radii.sm, thumb.h / 2) }, { fill: { color: thumbColor }, stroke: { color: thumbStroke, hairline: true }, pixelSnap: true }),
+      LineOp({ x: r.x + this.thumbSize / 2, y: cy }, { x: r.x + r.w - this.thumbSize / 2, y: cy }, { color: trackColor, width: this.trackThickness }),
+      LineOp({ x: r.x + this.thumbSize / 2, y: cy }, { x: thumb.x + thumb.w / 2, y: cy }, { color: fillColor, width: this.trackThickness }),
+      RRectOp({ x: thumb.x, y: thumb.y, w: thumb.w, h: thumb.h, r: Math.min(theme.radii.sm, thumb.h / 2) }, { fill: { color: thumbColor }, stroke: { color: thumbStroke, hairline: true }, pixelSnap: true }),
     )
   }
 

@@ -1,5 +1,5 @@
 import { font, theme } from "@/config/theme"
-import { draw, Line, Rect, Text } from "@/core/draw"
+import { draw, LineOp, RectOp, TextOp } from "@/core/draw"
 import type { InteractionCancelReason } from "@/core/event_stream"
 import { signal, type Signal } from "@/core/reactivity"
 import { clamp, ZERO_RECT } from "@/core/rect"
@@ -323,7 +323,7 @@ export class ModalWindow extends UIElement {
 
     draw(
       ctx,
-      Rect(
+      RectOp(
         { x, y, w, h },
         { fill: { color: theme.colors.windowBg, shadow: theme.shadows.window }, stroke: { color: theme.colors.windowBorder, hairline: true }, pixelSnap: true },
       ),
@@ -332,14 +332,14 @@ export class ModalWindow extends UIElement {
     if (this.chrome === "default") {
       draw(
         ctx,
-        Rect({ x, y, w, h: this.titleBarHeight }, { fill: { color: theme.colors.windowTitleBg } }),
-        Text({
+        RectOp({ x, y, w, h: this.titleBarHeight }, { fill: { color: theme.colors.windowTitleBg } }),
+        TextOp({
           x: x + theme.spacing.sm,
           y: y + this.titleBarHeight / 2 + 0.5,
           text: this.title.peek(),
           style: { color: theme.colors.windowTitleText, font: font(theme, theme.typography.title), baseline: "middle" },
         }),
-        Line({ x, y: y + this.titleBarHeight }, { x: x + w, y: y + this.titleBarHeight }, { color: theme.colors.windowDivider, hairline: true }),
+        LineOp({ x, y: y + this.titleBarHeight }, { x: x + w, y: y + this.titleBarHeight }, { color: theme.colors.windowDivider, hairline: true }),
       )
     } else {
       const t = this.title.peek().trim()
@@ -348,7 +348,7 @@ export class ModalWindow extends UIElement {
         const f = `${theme.typography.title.weight} ${size}px ${theme.typography.family}`
         draw(
           ctx,
-          Text({
+          TextOp({
             x: x + theme.spacing.sm,
             y: y + this.titleBarHeight / 2 + 0.5,
             text: t.toUpperCase(),
@@ -364,7 +364,7 @@ export class ModalWindow extends UIElement {
   protected drawBody(ctx: CanvasRenderingContext2D, x: number, y: number, _w: number, _h: number) {
     draw(
       ctx,
-      Text({
+      TextOp({
         x: x + theme.spacing.md,
         y: y + theme.spacing.md,
         text: "Hello World",
@@ -623,15 +623,15 @@ const CLOSE_BUTTON_SPEC: TitleBarButtonSpec = {
           : state.hover
             ? theme.colors.closeHoverBg
             : "transparent"
-    if (bg !== "transparent") draw(ctx, Rect(r, { fill: { color: bg } }))
+    if (bg !== "transparent") draw(ctx, RectOp(r, { fill: { color: bg } }))
     const cx = r.x + r.w / 2
     const cy = r.y + r.h / 2
     const color = win.chrome === "tool" ? theme.colors.textPrimary : state.hover || state.down ? theme.colors.closeGlyphOnHover : theme.colors.closeGlyph
     const d = Math.max(3.5, Math.min(5.5, r.w / 2 - 2.5))
     draw(
       ctx,
-      Line({ x: cx - d, y: cy - d }, { x: cx + d, y: cy + d }, { color, width: 1.8, lineCap: "round" }),
-      Line({ x: cx + d, y: cy - d }, { x: cx - d, y: cy + d }, { color, width: 1.8, lineCap: "round" }),
+      LineOp({ x: cx - d, y: cy - d }, { x: cx + d, y: cy + d }, { color, width: 1.8, lineCap: "round" }),
+      LineOp({ x: cx + d, y: cy - d }, { x: cx - d, y: cy + d }, { color, width: 1.8, lineCap: "round" }),
     )
   },
   onClick: (win) => win.closeWindow(),
@@ -643,11 +643,11 @@ const MINIMIZE_BUTTON_SPEC: TitleBarButtonSpec = {
   slotFromRight: (win) => (win.chrome === "default" && win.resizable ? 2 : 1),
   draw: (ctx, r, win, state) => {
     const bg = state.down ? theme.colors.appBg22 : state.hover ? theme.colors.appBg12 : "transparent"
-    if (bg !== "transparent") draw(ctx, Rect(r, { fill: { color: bg } }))
+    if (bg !== "transparent") draw(ctx, RectOp(r, { fill: { color: bg } }))
     const x0 = r.x + 5
     const x1 = r.x + r.w - 5
     const y = r.y + r.h - 6
-    draw(ctx, Line({ x: x0, y }, { x: x1, y }, { color: win.chrome === "tool" ? theme.colors.textPrimary : theme.colors.windowTitleText, width: 1.8, lineCap: "round" }))
+    draw(ctx, LineOp({ x: x0, y }, { x: x1, y }, { color: win.chrome === "tool" ? theme.colors.textPrimary : theme.colors.windowTitleText, width: 1.8, lineCap: "round" }))
   },
   onClick: (win) => win.minimize(),
 }
@@ -658,19 +658,19 @@ const MAXIMIZE_BUTTON_SPEC: TitleBarButtonSpec = {
   slotFromRight: () => 1,
   draw: (ctx, r, win, state) => {
     const bg = state.down ? theme.colors.appBg22 : state.hover ? theme.colors.appBg12 : "transparent"
-    if (bg !== "transparent") draw(ctx, Rect(r, { fill: { color: bg } }))
+    if (bg !== "transparent") draw(ctx, RectOp(r, { fill: { color: bg } }))
 
     const color = win.chrome === "tool" ? theme.colors.textPrimary : theme.colors.windowTitleText
     if (win.maximized.peek() || win.screenUsage.peek() !== "none") {
       draw(
         ctx,
-        Rect({ x: r.x + 5, y: r.y + 6, w: r.w - 10, h: r.h - 10 }, { stroke: { color, width: 1.4 }, pixelSnap: true }),
-        Rect({ x: r.x + 7, y: r.y + 4, w: r.w - 10, h: r.h - 10 }, { stroke: { color, width: 1.4 }, pixelSnap: true }),
+        RectOp({ x: r.x + 5, y: r.y + 6, w: r.w - 10, h: r.h - 10 }, { stroke: { color, width: 1.4 }, pixelSnap: true }),
+        RectOp({ x: r.x + 7, y: r.y + 4, w: r.w - 10, h: r.h - 10 }, { stroke: { color, width: 1.4 }, pixelSnap: true }),
       )
       return
     }
 
-    draw(ctx, Rect({ x: r.x + 5, y: r.y + 5, w: r.w - 10, h: r.h - 10 }, { stroke: { color, width: 1.4 }, pixelSnap: true }))
+    draw(ctx, RectOp({ x: r.x + 5, y: r.y + 5, w: r.w - 10, h: r.h - 10 }, { stroke: { color, width: 1.4 }, pixelSnap: true }))
   },
   onClick: (win) => {
     if (win.maximized.peek() || win.screenUsage.peek() !== "none") win.restoreScreenUsage()
@@ -769,8 +769,8 @@ class ResizeHandle extends UIElement {
     const y1 = r.y + r.h
     draw(
       ctx,
-      Line({ x: x0, y: y1 - 4 }, { x: x1 - 4, y: y0 }, { color, hairline: true }),
-      Line({ x: x0 + 4, y: y1 - 4 }, { x: x1 - 4, y: y0 + 4 }, { color, hairline: true }),
+      LineOp({ x: x0, y: y1 - 4 }, { x: x1 - 4, y: y0 }, { color, hairline: true }),
+      LineOp({ x: x0 + 4, y: y1 - 4 }, { x: x1 - 4, y: y0 + 4 }, { color, hairline: true }),
     )
   }
 

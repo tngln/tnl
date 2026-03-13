@@ -1,6 +1,6 @@
-export type Vec2 = { x: number; y: number }
+import type { Rect, Vec2 } from "./geometry"
 
-export type Rect = { x: number; y: number; w: number; h: number }
+export type { Rect, Vec2 }
 
 export function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v))

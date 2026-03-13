@@ -1,10 +1,4 @@
-export type Vec2 = { x: number; y: number }
-
-export type Rect = { x: number; y: number; w: number; h: number }
-
-export type RRect = { x: number; y: number; w: number; h: number; r: number }
-
-export type Circle = { x: number; y: number; r: number }
+import type { Circle, Rect, RRect, Vec2 } from "./geometry"
 
 export type ShapeHitTest = "viewBox" | "path"
 
@@ -205,26 +199,26 @@ export function draw(ctx: CanvasRenderingContext2D, ...ops: DrawOp[]) {
   }
 }
 
-export function Rect(rect: Rect, style?: { fill?: FillStyle; stroke?: StrokeStyle; pixelSnap?: boolean }): DrawOp {
+export function RectOp(rect: Rect, style?: { fill?: FillStyle; stroke?: StrokeStyle; pixelSnap?: boolean }): DrawOp {
   return { kind: "Rect", rect, fill: style?.fill, stroke: style?.stroke, pixelSnap: style?.pixelSnap }
 }
 
-export function RRect(rrect: RRect, style?: { fill?: FillStyle; stroke?: StrokeStyle; pixelSnap?: boolean }): DrawOp {
+export function RRectOp(rrect: RRect, style?: { fill?: FillStyle; stroke?: StrokeStyle; pixelSnap?: boolean }): DrawOp {
   return { kind: "RRect", rrect, fill: style?.fill, stroke: style?.stroke, pixelSnap: style?.pixelSnap }
 }
 
-export function Circle(circle: Circle, style?: { fill?: FillStyle; stroke?: StrokeStyle }): DrawOp {
+export function CircleOp(circle: Circle, style?: { fill?: FillStyle; stroke?: StrokeStyle }): DrawOp {
   return { kind: "Circle", circle, fill: style?.fill, stroke: style?.stroke }
 }
 
-export function Text(text: Text): DrawOp {
+export function TextOp(text: Text): DrawOp {
   return { kind: "Text", text }
 }
 
-export function Line(a: Vec2, b: Vec2, stroke: StrokeStyle): DrawOp {
+export function LineOp(a: Vec2, b: Vec2, stroke: StrokeStyle): DrawOp {
   return { kind: "Line", a, b, stroke }
 }
 
-export function Shape(shape: Shape, fill: FillStyle): DrawOp {
+export function ShapeOp(shape: Shape, fill: FillStyle): DrawOp {
   return { kind: "Shape", shape, fill }
 }

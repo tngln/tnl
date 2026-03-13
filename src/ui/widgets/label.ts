@@ -1,4 +1,4 @@
-import { draw, Text } from "../../core/draw"
+import { draw, TextOp } from "../../core/draw"
 import { font, theme } from "../../config/theme"
 import { toGetter, type Rect } from "../../core/rect"
 import { UIElement } from "../base/ui"
@@ -23,7 +23,7 @@ export class Label extends UIElement {
     const r = this.rect()
     draw(
       ctx,
-      Text({
+      TextOp({
         x: r.x,
         y: r.y,
         text: this.text(),

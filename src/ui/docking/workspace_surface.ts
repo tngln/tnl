@@ -1,5 +1,5 @@
 import { font, theme } from "@/config/theme"
-import { draw, Line, Rect as RectOp, RRect, Text } from "@/core/draw"
+import { draw, LineOp, RectOp, RRectOp, TextOp } from "@/core/draw"
 import { measureTextWidth } from "@/core/draw.text"
 import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "@/core/event_stream"
 import { createMachine, type Machine } from "@/core/fsm"
@@ -193,7 +193,7 @@ class DockTabHandle extends UIElement {
     const bg = selected ? theme.colors.white08 : active ? theme.colors.white05 : this.hover ? theme.colors.white04 : theme.colors.white02
     draw(
       ctx,
-      RRect(
+      RRectOp(
         { x: r.x, y: r.y, w: r.w, h: r.h, r: 6 },
         {
           fill: { color: bg },
@@ -201,7 +201,7 @@ class DockTabHandle extends UIElement {
           pixelSnap: true,
         },
       ),
-      Text({
+      TextOp({
         x: r.x + r.w / 2,
         y: r.y + r.h / 2 + 0.5,
         text: this.title(),
@@ -377,12 +377,12 @@ class DockSplitHandle extends UIElement {
 
     draw(
       ctx,
-      RRect({ x: r.x + 1, y: r.y + 1, w: Math.max(0, r.w - 2), h: Math.max(0, r.h - 2), r: 6 }, {
+      RRectOp({ x: r.x + 1, y: r.y + 1, w: Math.max(0, r.w - 2), h: Math.max(0, r.h - 2), r: 6 }, {
         fill: { color: bg },
         stroke: { color: theme.colors.white08, hairline: true },
         pixelSnap: true,
       }),
-      RRect(grip, { fill: { color: theme.colors.white18 }, pixelSnap: true }),
+      RRectOp(grip, { fill: { color: theme.colors.white18 }, pixelSnap: true }),
     )
   }
 
@@ -766,7 +766,7 @@ export class DockWorkspaceSurface implements Surface {
 
     draw(
       ctx as CanvasRenderingContext2D,
-      RRect({ x: 0, y: 0, w: this.size.x, h: this.size.y, r: theme.radii.sm }, {
+      RRectOp({ x: 0, y: 0, w: this.size.x, h: this.size.y, r: theme.radii.sm }, {
         fill: { color: theme.colors.white015 },
         stroke: { color: theme.colors.white08, hairline: true },
         pixelSnap: true,
@@ -776,13 +776,13 @@ export class DockWorkspaceSurface implements Surface {
     for (const layout of leaves) {
       draw(
         ctx as CanvasRenderingContext2D,
-        RRect({ x: layout.rect.x, y: layout.rect.y, w: layout.rect.w, h: layout.rect.h, r: theme.radii.sm }, {
+        RRectOp({ x: layout.rect.x, y: layout.rect.y, w: layout.rect.w, h: layout.rect.h, r: theme.radii.sm }, {
           fill: { color: theme.colors.white02 },
           stroke: { color: theme.colors.white08, hairline: true },
           pixelSnap: true,
         }),
         RectOp(layout.headerRect, { fill: { color: theme.colors.white018 } }),
-        Line(
+        LineOp(
           { x: layout.headerRect.x, y: layout.headerRect.y + layout.headerRect.h },
           { x: layout.headerRect.x + layout.headerRect.w, y: layout.headerRect.y + layout.headerRect.h },
           { color: theme.colors.white10, hairline: true },
@@ -794,7 +794,7 @@ export class DockWorkspaceSurface implements Surface {
     if (preview) {
       draw(
         ctx as CanvasRenderingContext2D,
-        RRect({ x: preview.rect.x, y: preview.rect.y, w: preview.rect.w, h: preview.rect.h, r: theme.radii.sm }, {
+        RRectOp({ x: preview.rect.x, y: preview.rect.y, w: preview.rect.w, h: preview.rect.h, r: theme.radii.sm }, {
           fill: { color: theme.colors.accentOverlay },
           stroke: { color: theme.colors.accentOutline, width: 2 },
           pixelSnap: true,

@@ -1,15 +1,15 @@
 import { theme } from "@/config/theme"
 import type { Shape } from "@/core/draw"
 import type { InteractionCancelReason } from "@/core/event_stream"
+import type { Circle, RRect } from "@/core/geometry"
 import { clamp, clampRect, inflateRect, intersects, mergeRectInto, normalizeRect, rectArea, unionRect, ZERO_RECT } from "@/core/rect"
 import type { Rect, Vec2 } from "@/core/rect"
 import { addBrowserInteractionCancelListener, addLostPointerCaptureListener, addWindowResizeListener, getClampedDevicePixelRatio, releaseElementPointerCapture, resetElementCursor, scheduleAnimationFrame, setElementCursor, setElementPointerCapture, type CursorKind } from "@/platform/web"
 import { Compositor } from "./compositor"
 
 export type { Vec2, Rect }
+export type { Circle, RRect }
 export type { CursorKind }
-export type RRect = { x: number; y: number; w: number; h: number; r: number }
-export type Circle = { x: number; y: number; r: number }
 
 export function pointInRect(p: Vec2, r: Rect) {
   return p.x >= r.x && p.y >= r.y && p.x <= r.x + r.w && p.y <= r.y + r.h

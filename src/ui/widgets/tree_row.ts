@@ -1,5 +1,5 @@
 import { theme } from "@/config/theme"
-import { draw, Rect as RectOp, Text } from "@/core/draw"
+import { draw, RectOp, TextOp } from "@/core/draw"
 import { truncateToWidth } from "@/core/draw.text"
 import type { InteractionCancelReason } from "@/core/event_stream"
 import { createPressMachine } from "@/core/fsm"
@@ -127,7 +127,7 @@ export class TreeRow extends UIElement {
 
     draw(
       ctx,
-      Text({
+      TextOp({
         x: textX,
         y: r.y + r.h / 2 + 0.5,
         text: leftText,
@@ -138,7 +138,7 @@ export class TreeRow extends UIElement {
     if (rightText) {
       draw(
         ctx,
-        Text({
+        TextOp({
           x: r.x + r.w - TREE_ROW_RIGHT_PAD,
           y: r.y + r.h / 2 + 0.5,
           text: rightText,

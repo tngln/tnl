@@ -1,5 +1,5 @@
 import { font, theme } from "@/config/theme"
-import { draw, RRect, Text } from "@/core/draw"
+import { draw, RRectOp, TextOp } from "@/core/draw"
 import type { InteractionCancelReason } from "@/core/event_stream"
 import { createPressMachine } from "@/core/fsm"
 import { toGetter, type Rect } from "@/core/rect"
@@ -170,7 +170,7 @@ export class Menu extends UIElement {
     const f = font(theme, theme.typography.body)
     draw(
       ctx,
-      RRect(
+      RRectOp(
         { x: menu.x, y: menu.y, w: menu.w, h: menu.h, r: theme.radii.sm },
         { fill: { color: theme.colors.appBg96 }, stroke: { color: theme.colors.white12, hairline: true }, pixelSnap: true },
       ),
@@ -205,7 +205,7 @@ export class Menu extends UIElement {
       const textColor = it.disabled ? theme.colors.textDisabled : theme.colors.textPrimary
       draw(
         ctx,
-        Text({
+        TextOp({
           x: row.x + theme.ui.controls.rowTextPadX,
           y: row.y + row.h / 2 + 0.5,
           text: it.text,
@@ -217,7 +217,7 @@ export class Menu extends UIElement {
       if (rightText) {
         draw(
           ctx,
-          Text({
+          TextOp({
             x: row.x + row.w - (hasSubmenu ? theme.ui.controls.rowTextPadX + 14 : theme.ui.controls.rowTextPadX),
             y: row.y + row.h / 2 + 0.5,
             text: rightText,
@@ -228,7 +228,7 @@ export class Menu extends UIElement {
       if (hasSubmenu) {
         draw(
           ctx,
-          Text({
+          TextOp({
             x: row.x + row.w - theme.ui.controls.rowTextPadX,
             y: row.y + row.h / 2 + 0.5,
             text: "›",

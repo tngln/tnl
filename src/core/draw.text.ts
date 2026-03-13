@@ -1,4 +1,4 @@
-import { draw, Line } from "./draw"
+import { draw, LineOp } from "./draw"
 
 export type Any2DContext = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 
@@ -303,7 +303,7 @@ export function drawRichText(
       ctx.fillText(run.text, x, yBase)
       if (run.underline) {
         const uy = yBase + Math.max(1, m.descent * 0.2)
-        draw(ctx, Line({ x, y: uy }, { x: x + run.w, y: uy }, { color: run.color, hairline: true }))
+        draw(ctx, LineOp({ x, y: uy }, { x: x + run.w, y: uy }, { color: run.color, hairline: true }))
       }
     }
   }

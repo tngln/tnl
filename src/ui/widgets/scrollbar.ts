@@ -1,5 +1,5 @@
 import { theme } from "@/config/theme"
-import { draw, RRect } from "@/core/draw"
+import { draw, RRectOp } from "@/core/draw"
 import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "@/core/event_stream"
 import { createMachine, type Machine } from "@/core/fsm"
 import { clamp, ZERO_RECT } from "@/core/rect"
@@ -221,8 +221,8 @@ export class Scrollbar extends UIElement {
     const thumb = active ? theme.colors.scrollbarThumbActive : this.hover ? theme.colors.scrollbarThumbHover : theme.colors.scrollbarThumb
     draw(
       ctx,
-      RRect({ x: r.x, y: r.y, w: r.w, h: r.h, r: Math.min(theme.radii.sm, Math.min(r.w, r.h) / 2) }, { fill: { color: track } }),
-      RRect(
+      RRectOp({ x: r.x, y: r.y, w: r.w, h: r.h, r: Math.min(theme.radii.sm, Math.min(r.w, r.h) / 2) }, { fill: { color: track } }),
+      RRectOp(
         { x: t.x + 1, y: t.y + 1, w: Math.max(0, t.w - 2), h: Math.max(0, t.h - 2), r: Math.min(theme.radii.sm, Math.min(t.w, t.h) / 2) },
         { fill: { color: thumb } },
       ),

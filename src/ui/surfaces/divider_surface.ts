@@ -1,5 +1,5 @@
 import { theme } from "@/config/theme"
-import { draw, RRect } from "@/core/draw"
+import { draw, RRectOp } from "@/core/draw"
 import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "@/core/event_stream"
 import { signal, type Signal } from "@/core/reactivity"
 import { clamp } from "@/core/rect"
@@ -101,12 +101,12 @@ class DividerHandle extends UIElement {
     const metrics = this.metrics()
     draw(
       ctx,
-      RRect(metrics.frame, {
+      RRectOp(metrics.frame, {
         fill: { color: chrome.fill },
         stroke: { color: chrome.stroke, hairline: true },
         pixelSnap: true,
       }),
-      RRect(metrics.grip, {
+      RRectOp(metrics.grip, {
         fill: { color: chrome.grip },
         pixelSnap: true,
       }),

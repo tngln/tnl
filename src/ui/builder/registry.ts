@@ -1,5 +1,5 @@
 import { theme } from "@/config/theme"
-import { draw, RRect, Text } from "@/core/draw"
+import { draw, RRectOp, TextOp } from "@/core/draw"
 import { measureTextWidth } from "@/core/draw.text"
 import { AppError } from "@/core/errors"
 import { measureLayout, type LayoutStyle } from "@/core/layout"
@@ -82,7 +82,7 @@ const textHandler: BuilderNodeHandler<TextNode> = {
       const style = resolveTextStyle(ast.resolved, node)
       draw(
         canvas,
-        Text({
+        TextOp({
           x: rect.x,
           y: rect.y,
           text: node.text,

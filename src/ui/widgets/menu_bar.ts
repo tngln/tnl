@@ -1,5 +1,5 @@
 import { font, theme } from "@/config/theme"
-import { draw, Line, Rect as RectOp, Text } from "@/core/draw"
+import { draw, LineOp, RectOp, TextOp } from "@/core/draw"
 import { measureTextWidth } from "@/core/draw.text"
 import type { InteractionCancelReason } from "@/core/event_stream"
 import { createPressMachine } from "@/core/fsm"
@@ -140,7 +140,7 @@ export class MenuBar extends UIElement {
     draw(
       ctx,
       RectOp(r, { fill: { color: theme.colors.white02 } }),
-      Line({ x: r.x, y: r.y + r.h }, { x: r.x + r.w, y: r.y + r.h }, { color: theme.colors.white10, hairline: true }),
+      LineOp({ x: r.x, y: r.y + r.h }, { x: r.x + r.w, y: r.y + r.h }, { color: theme.colors.white10, hairline: true }),
     )
 
     const f = font(theme, theme.typography.body)
@@ -163,7 +163,7 @@ export class MenuBar extends UIElement {
       }
       draw(
         ctx,
-        Text({
+        TextOp({
           x: rect.x + padX,
           y: rect.y + rect.h / 2 + 0.5,
           text: m.label,

@@ -1,15 +1,15 @@
-import { Shape, type DrawOp } from "../../core/draw"
+import { ShapeOp, type DrawOp } from "../../core/draw"
 import type { Rect } from "../../core/rect"
 import type { IconDef } from "./types"
 
 export function iconToShape(icon: IconDef, dst: Rect, fill: { color: string }): DrawOp {
-  if (typeof Path2D === "undefined") return Shape({ viewBox: dst, path: null as any }, fill)
+  if (typeof Path2D === "undefined") return ShapeOp({ viewBox: dst, path: null as any }, fill)
   const vb = icon.viewBox
   const vbW = Math.max(0, vb.w)
   const vbH = Math.max(0, vb.h)
   const dstW = Math.max(0, dst.w)
   const dstH = Math.max(0, dst.h)
-  if (vbW <= 0 || vbH <= 0 || dstW <= 0 || dstH <= 0) return Shape({ viewBox: dst, path: new Path2D() }, fill)
+  if (vbW <= 0 || vbH <= 0 || dstW <= 0 || dstH <= 0) return ShapeOp({ viewBox: dst, path: new Path2D() }, fill)
 
   const scale = Math.min(dstW / vbW, dstH / vbH)
   const contentW = vbW * scale
@@ -23,5 +23,5 @@ export function iconToShape(icon: IconDef, dst: Rect, fill: { color: string }): 
   const path = new Path2D()
   path.addPath(base, { a: scale, b: 0, c: 0, d: scale, e, f })
 
-  return Shape({ viewBox: dst, path }, fill)
+  return ShapeOp({ viewBox: dst, path }, fill)
 }

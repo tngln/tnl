@@ -1,5 +1,5 @@
 import { theme } from "../../config/theme"
-import { draw, RRect } from "../../core/draw"
+import { draw, RRectOp } from "../../core/draw"
 import { AppError } from "../../core/errors"
 import { layout, measureLayout, type Rect as LayoutRect } from "../../core/layout"
 import { ZERO_RECT } from "../../core/rect"
@@ -108,7 +108,7 @@ function drawNodeBox(drawOps: Array<(ctx: CanvasRenderingContext2D) => void>, re
   drawOps.push((canvas) => {
     draw(
       canvas,
-      RRect(
+      RRectOp(
         { x: rect.x, y: rect.y, w: rect.w, h: rect.h, r: radius },
         {
           fill: fill ? { color: fill } : undefined,

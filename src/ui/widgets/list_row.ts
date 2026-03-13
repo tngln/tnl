@@ -1,5 +1,5 @@
 import { theme } from "@/config/theme"
-import { draw, Rect as RectOp, Text } from "@/core/draw"
+import { draw, RectOp, TextOp } from "@/core/draw"
 import { truncateToWidth } from "@/core/draw.text"
 import type { InteractionCancelReason } from "@/core/event_stream"
 import { createPressMachine } from "@/core/fsm"
@@ -81,7 +81,7 @@ export class ListRow extends UIElement {
 
     draw(
       ctx,
-      Text({
+      TextOp({
         x: r.x + leftPad + indent,
         y: r.y + r.h / 2 + 0.5,
         text: leftText,
@@ -92,7 +92,7 @@ export class ListRow extends UIElement {
     if (rightText) {
       draw(
         ctx,
-        Text({
+        TextOp({
           x: r.x + r.w - rightPad,
           y: r.y + r.h / 2 + 0.5,
           text: rightText,

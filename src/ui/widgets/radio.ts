@@ -1,5 +1,5 @@
 import { font, theme } from "@/config/theme"
-import { draw, Circle, Text } from "@/core/draw"
+import { draw, CircleOp, TextOp } from "@/core/draw"
 import { signal, type Signal } from "@/core/reactivity"
 import { type Rect, ZERO_RECT } from "@/core/rect"
 import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
@@ -40,15 +40,15 @@ export class Radio extends InteractiveElement {
           ? theme.colors.controlHover
           : theme.colors.controlActive
 
-    draw(ctx, Circle({ x: cx, y: cy, r: 8 }, { stroke: { color: stroke, hairline: true } }))
+    draw(ctx, CircleOp({ x: cx, y: cy, r: 8 }, { stroke: { color: stroke, hairline: true } }))
 
     if (this.selected.peek() === this.value) {
-      draw(ctx, Circle({ x: cx, y: cy, r: 4 }, { fill: { color: disabled ? theme.colors.textMuted : theme.colors.textPrimary } }))
+      draw(ctx, CircleOp({ x: cx, y: cy, r: 4 }, { fill: { color: disabled ? theme.colors.textMuted : theme.colors.textPrimary } }))
     }
 
     draw(
       ctx,
-      Text({
+      TextOp({
         x: r.x + 24,
         y: r.y,
         text: this.labelValue,

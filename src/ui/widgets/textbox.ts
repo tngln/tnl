@@ -1,5 +1,5 @@
 import { font, theme } from "@/config/theme"
-import { draw, RRect, Text } from "@/core/draw"
+import { draw, RRectOp, TextOp } from "@/core/draw"
 import { measureTextWidth } from "@/core/draw.text"
 import { signal, type Signal } from "@/core/reactivity"
 import { toGetter, ZERO_RECT, type Rect } from "@/core/rect"
@@ -234,7 +234,7 @@ export class TextBox extends UIElement {
 
     draw(
       ctx,
-      RRect(
+      RRectOp(
         { x: rect.x, y: rect.y, w: rect.w, h: rect.h, r: theme.radii.sm },
         { fill: { color: bg }, stroke: { color: stroke, hairline: true }, pixelSnap: true },
       ),
@@ -254,7 +254,7 @@ export class TextBox extends UIElement {
 
     draw(
       ctx,
-      Text({
+      TextOp({
         x: innerX - this.scrollX,
         y: innerY,
         text: display,

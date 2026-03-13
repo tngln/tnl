@@ -1,5 +1,5 @@
 import { font, theme } from "@/config/theme"
-import { draw, RRect, Text } from "@/core/draw"
+import { draw, RRectOp, TextOp } from "@/core/draw"
 import { truncateToWidth } from "@/core/draw.text"
 import { signal, type Signal } from "@/core/reactivity"
 import { toGetter, type Rect, ZERO_RECT } from "@/core/rect"
@@ -125,11 +125,11 @@ export class Dropdown extends InteractiveElement {
 
     draw(
       ctx,
-      RRect(
+      RRectOp(
         { x: r.x, y: r.y, w: r.w, h: r.h, r: theme.radii.sm },
         { fill: { color: bg }, stroke: { color: stroke, hairline: true }, pixelSnap: true },
       ),
-      Text({
+      TextOp({
         x: r.x + theme.ui.controls.labelPadX,
         y: r.y + r.h / 2 + 0.5,
         text: display,
