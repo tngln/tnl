@@ -5,7 +5,6 @@ export type { Rect }
 export type Axis = "row" | "column" | "stack"
 export type Justify = "start" | "center" | "end" | "space-between"
 export type Align = "start" | "center" | "end" | "stretch"
-export type PositionMode = "flow" | "overlay"
 export type OverflowMode = "visible" | "clip" | "scroll"
 
 export type Padding = number | { l: number; t: number; r: number; b: number }
@@ -24,7 +23,6 @@ export type LayoutStyle = {
   justify?: Justify
   align?: Align
   alignSelf?: Align
-  position?: PositionMode
   overflow?: OverflowMode
 
   w?: SizeSpec
@@ -209,9 +207,7 @@ function measureContainer(node: LayoutNode, max: { w: number; h: number }, cache
   const gap = gapOf(style, axis)
   let main = 0
   let cross = 0
-  let flowCount = 0
   for (const child of children) {
-    if ((child.style?.position ?? "flow") === "overlay") continue
     const m = intrinsicMeasure(child, { w: box.w, h: box.h }, cache)
     const withMargin = outerSizeFromMeasured(child.style, m)
     if (axis === "row") {
@@ -221,9 +217,8 @@ function measureContainer(node: LayoutNode, max: { w: number; h: number }, cache
       main += withMargin.h
       cross = Math.max(cross, withMargin.w)
     }
-    flowCount++
   }
-  if (flowCount > 1) main += gap * (flowCount - 1)
+  if (children.length > 1) main += gap * (children.length - 1)
   const inner = axis === "row" ? { w: main, h: cross } : { w: cross, h: main }
   return outerSizeFromMeasured(style, inner)
 }
@@ -285,35 +280,6 @@ function applyMargin(rect: Rect, margin: PaddingRect) {
   }
 }
 
-function placeOverlayChildren(container: LayoutNode, box: Rect, cache: MeasureCache) {
-  const children = container.children ?? []
-  const align = alignOf(container.style)
-  for (const child of children) {
-    if ((child.style?.position ?? "flow") !== "overlay") continue
-    const margin = resolvePadding(child.style?.margin)
-    const measured = intrinsicMeasure(child, { w: box.w, h: box.h }, cache)
-    let w = explicitMain(child.style, "row") ?? child.style?.w === "auto" ? measured.w : undefined
-    let h = explicitMain(child.style, "column") ?? child.style?.h === "auto" ? measured.h : undefined
-    if (typeof child.style?.w === "number") w = child.style.w
-    if (typeof child.style?.h === "number") h = child.style.h
-    const fill = child.style?.fill ?? false
-    const width = clamp(fill ? box.w - margin.l - margin.r : (w ?? measured.w), safePos(child.style?.minW, 0), safePos(child.style?.maxW, Number.POSITIVE_INFINITY))
-    const height = clamp(fill ? box.h - margin.t - margin.b : (h ?? measured.h), safePos(child.style?.minH, 0), safePos(child.style?.maxH, Number.POSITIVE_INFINITY))
-
-    const childAlign = child.style?.alignSelf ?? align
-    let x = box.x + margin.l
-    let y = box.y + margin.t
-    if (childAlign === "center") {
-      x = box.x + (box.w - width) / 2
-      y = box.y + (box.h - height) / 2
-    } else if (childAlign === "end") {
-      x = box.x + box.w - width - margin.r
-      y = box.y + box.h - height - margin.b
-    }
-    layoutInternal(child, { x, y, w: width, h: height }, cache)
-  }
-}
-
 function placeChildren(container: LayoutNode, box: Rect, cache: MeasureCache) {
   const style = container.style
   const axis = axisOf(style)
@@ -325,30 +291,28 @@ function placeChildren(container: LayoutNode, box: Rect, cache: MeasureCache) {
     for (const child of children) {
       const margin = resolvePadding(child.style?.margin)
       const inner = applyMargin(box, margin)
-      if ((child.style?.position ?? "flow") === "overlay" || true) {
-        const m = intrinsicMeasure(child, { w: inner.w, h: inner.h }, cache)
-        const width = clamp(
-          typeof child.style?.w === "number" ? child.style.w : child.style?.fill ? inner.w : m.w,
-          safePos(child.style?.minW, 0),
-          safePos(child.style?.maxW, Number.POSITIVE_INFINITY),
-        )
-        const height = clamp(
-          typeof child.style?.h === "number" ? child.style.h : child.style?.fill ? inner.h : m.h,
-          safePos(child.style?.minH, 0),
-          safePos(child.style?.maxH, Number.POSITIVE_INFINITY),
-        )
-        const childAlign = child.style?.alignSelf ?? align
-        let x = inner.x
-        let y = inner.y
-        if (childAlign === "center") {
-          x = inner.x + (inner.w - width) / 2
-          y = inner.y + (inner.h - height) / 2
-        } else if (childAlign === "end") {
-          x = inner.x + inner.w - width
-          y = inner.y + inner.h - height
-        }
-        layoutInternal(child, { x, y, w: width, h: height }, cache)
+      const m = intrinsicMeasure(child, { w: inner.w, h: inner.h }, cache)
+      const width = clamp(
+        typeof child.style?.w === "number" ? child.style.w : child.style?.fill ? inner.w : m.w,
+        safePos(child.style?.minW, 0),
+        safePos(child.style?.maxW, Number.POSITIVE_INFINITY),
+      )
+      const height = clamp(
+        typeof child.style?.h === "number" ? child.style.h : child.style?.fill ? inner.h : m.h,
+        safePos(child.style?.minH, 0),
+        safePos(child.style?.maxH, Number.POSITIVE_INFINITY),
+      )
+      const childAlign = child.style?.alignSelf ?? align
+      let x = inner.x
+      let y = inner.y
+      if (childAlign === "center") {
+        x = inner.x + (inner.w - width) / 2
+        y = inner.y + (inner.h - height) / 2
+      } else if (childAlign === "end") {
+        x = inner.x + inner.w - width
+        y = inner.y + inner.h - height
       }
+      layoutInternal(child, { x, y, w: width, h: height }, cache)
     }
     return
   }
@@ -356,11 +320,7 @@ function placeChildren(container: LayoutNode, box: Rect, cache: MeasureCache) {
   const justify = justifyOf(style)
   const align = alignOf(style)
   const gap = gapOf(style, axis)
-  const flow = children.filter((child) => (child.style?.position ?? "flow") === "flow")
-  if (flow.length === 0) {
-    placeOverlayChildren(container, box, cache)
-    return
-  }
+  const flow = children
 
   const mainAvail = axis === "row" ? box.w : box.h
   const crossAvail = axis === "row" ? box.h : box.w
@@ -407,7 +367,7 @@ function placeChildren(container: LayoutNode, box: Rect, cache: MeasureCache) {
 
   const sizes = base.slice()
   const baseSum = sizes.reduce((s, v) => s + v, 0)
-  const gapSum = gap * Math.max(0, flow.length - 1)
+  const gapSum = gap * Math.max(0, children.length - 1)
   const totalBase = baseSum + gapSum
   const totalGrow = grow.reduce((s, v) => s + v, 0)
   const totalShrink = shrink.reduce((s, v) => s + v, 0)
@@ -417,10 +377,10 @@ function placeChildren(container: LayoutNode, box: Rect, cache: MeasureCache) {
 
   for (let i = 0; i < sizes.length; i++) sizes[i] = clamp(sizes[i], minMain[i], maxMain[i])
   for (let i = 0; i < cross.length; i++) cross[i] = clamp(cross[i], minCross[i], maxCross[i])
-  for (let i = 0; i < cross.length; i++) if (alignSelf[i] === "stretch" || flow[i].style?.fill) cross[i] = crossAvail
+  for (let i = 0; i < cross.length; i++) if (alignSelf[i] === "stretch" || children[i].style?.fill) cross[i] = crossAvail
 
   const usedMain = sizes.reduce((s, v) => s + v, 0)
-  const usedGaps = gap * Math.max(0, flow.length - 1)
+  const usedGaps = gap * Math.max(0, children.length - 1)
   const usedTotal = usedMain + usedGaps
 
   let startOffset = 0
@@ -428,8 +388,8 @@ function placeChildren(container: LayoutNode, box: Rect, cache: MeasureCache) {
   if (justify === "center") startOffset = (mainAvail - usedTotal) / 2
   else if (justify === "end") startOffset = mainAvail - usedTotal
   else if (justify === "space-between") {
-    if (flow.length > 1 && mainAvail > usedMain) {
-      gapActual = (mainAvail - usedMain) / (flow.length - 1)
+    if (children.length > 1 && mainAvail > usedMain) {
+      gapActual = (mainAvail - usedMain) / (children.length - 1)
       startOffset = 0
     } else {
       gapActual = 0
@@ -439,8 +399,8 @@ function placeChildren(container: LayoutNode, box: Rect, cache: MeasureCache) {
   if (!Number.isFinite(startOffset)) startOffset = 0
 
   let cursor = startOffset
-  for (let i = 0; i < flow.length; i++) {
-    const child = flow[i]
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i]
     const mainSize = sizes[i]
     const crossSize = cross[i]
     const al = alignSelf[i]
@@ -469,8 +429,6 @@ function placeChildren(container: LayoutNode, box: Rect, cache: MeasureCache) {
     layoutInternal(child, childRect, cache)
     cursor += mainSize + gapActual
   }
-
-  placeOverlayChildren(container, box, cache)
 }
 
 function applyNodeSize(style: LayoutStyle | undefined, outer: Rect): Rect {

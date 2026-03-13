@@ -442,8 +442,7 @@ class CompositeSurface implements Surface {
   - `grow`
   - `shrink`
   - `basis`
-- 定位语义
-  - `position: "flow" | "overlay"`
+- 溢出语义
   - `overflow: "visible" | "clip" | "scroll"`
 
 ### 6.2 当前最常用的几条规则

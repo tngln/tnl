@@ -67,7 +67,6 @@ target: web-first runtime, Canvas UI, no framework
   - `gap` / `rowGap` / `columnGap`
   - `grow` / `shrink` / `basis`
   - `fixed` / `fill`
-  - `position: "flow" | "overlay"`
   - `measureLayout(...)`
 - 富文本引擎已实现：
   - `RichTextSpan`

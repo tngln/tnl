@@ -32,7 +32,6 @@ type LayoutStyle = {
   justify?: "start" | "center" | "end" | "space-between"
   align?: "start" | "center" | "end" | "stretch"
   alignSelf?: "start" | "center" | "end" | "stretch"
-  position?: "flow" | "overlay"
   overflow?: "visible" | "clip" | "scroll"
 
   w?: number | "auto"
@@ -102,20 +101,7 @@ type LayoutStyle = {
 - `alignSelf`
   - 子节点覆盖容器 `align`
 
-### 3.5 定位模式
-
-- `position: "flow"`
-  - 参与主轴排布
-- `position: "overlay"`
-  - 不参与主轴排布，叠放在容器内容区上
-
-`overlay` 适合：
-
-- 角标
-- 覆盖层
-- stack 容器里的浮动元素
-
-### 3.6 `overflow`
+### 3.5 `overflow`
 
 `overflow` 当前是布局语义位，不等于“自动滚动实现”。
 

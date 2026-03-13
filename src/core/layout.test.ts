@@ -78,19 +78,19 @@ describe("layout", () => {
     expect(root.children?.[0].rect).toEqual({ x: 7, y: 6, w: 88, h: 10 })
   })
 
-  it("supports rowGap and overlay children without affecting flow", () => {
+  it("supports rowGap in column flow", () => {
     const root: LayoutNode = {
       style: { axis: "column", rowGap: 8 },
       children: [
         leaf("a", 10, 12),
-        leaf("overlay", 50, 5, { position: "overlay", alignSelf: "end" }),
+        leaf("mid", 20, 5, { alignSelf: "end" }),
         leaf("b", 10, 12),
       ],
     }
     layout(root, { x: 0, y: 0, w: 100, h: 60 })
     expect(root.children?.[0].rect).toEqual({ x: 0, y: 0, w: 100, h: 12 })
-    expect(root.children?.[2].rect).toEqual({ x: 0, y: 20, w: 100, h: 12 })
-    expect(root.children?.[1].rect?.x).toBe(50)
+    expect(root.children?.[1].rect).toEqual({ x: 80, y: 20, w: 20, h: 5 })
+    expect(root.children?.[2].rect).toEqual({ x: 0, y: 33, w: 100, h: 12 })
   })
 
   it("supports stack axis", () => {
