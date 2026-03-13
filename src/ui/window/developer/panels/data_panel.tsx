@@ -1,10 +1,10 @@
-import { createElement, Fragment } from "../../../jsx"
-import { Button, PanelColumn, PanelScroll, PanelSection, PanelToolbar, Spacer, Text, TreeView, VStack } from "../../../builder/components"
-import { defineSurface, mountSurface, type TreeItem } from "../../../builder/surface_builder"
+import { createElement, Fragment } from "@/ui/jsx"
+import { Button, PanelColumn, PanelScroll, PanelSection, PanelToolbar, Spacer, Text, TreeView, VStack } from "@/ui/builder/components"
+import { defineSurface, mountSurface, type TreeItem } from "@/ui/builder/surface_builder"
 import type { DeveloperPanelSpec } from "../index"
 import { getStateTreeItems } from "../states"
-import { listSignals, type DebugSignalRecord } from "../../../../core/reactivity"
-import { collectIds, formatLocalTime } from "../../../../util/util"
+import { listSignals, type DebugSignalRecord } from "@/core/reactivity"
+import { collectIds, formatLocalTime } from "@/util/util"
 
 export function createDataPanel(): DeveloperPanelSpec {
   return {

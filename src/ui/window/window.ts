@@ -1,11 +1,11 @@
-import { signal, type Signal } from "../../core/reactivity"
-import type { InteractionCancelReason } from "../../core/event_stream"
-import { draw, Line, Rect, Text } from "../../core/draw"
-import { clamp } from "../../core/rect"
-import { font, theme } from "../../config/theme"
-import { isSurfaceMountSpec, mountSurface, type SurfaceMountSpec } from "../builder/surface_builder"
-import { CursorRegion, pointInRect, type DebugEventListenerSnapshot, type Rect as BoundsRect, type Vec2, PointerUIEvent, UIElement } from "../base/ui"
-import { ViewportElement, type Surface } from "../base/viewport"
+import { font, theme } from "@/config/theme"
+import { draw, Line, Rect, Text } from "@/core/draw"
+import type { InteractionCancelReason } from "@/core/event_stream"
+import { signal, type Signal } from "@/core/reactivity"
+import { clamp, ZERO_RECT } from "@/core/rect"
+import { CursorRegion, pointInRect, type DebugEventListenerSnapshot, type Rect as BoundsRect, type Vec2, PointerUIEvent, UIElement } from "@/ui/base/ui"
+import { ViewportElement, type Surface } from "@/ui/base/viewport"
+import { isSurfaceMountSpec, mountSurface, type SurfaceMountSpec } from "@/ui/builder/surface_builder"
 
 export type WindowSnapshot = {
   id: string
@@ -95,14 +95,14 @@ export class ModalWindow extends UIElement {
   readonly maxW: number
   readonly maxH: number
   readonly resizable: boolean
-  private bodyRect: BoundsRect = { x: 0, y: 0, w: 0, h: 0 }
+  private bodyRect: BoundsRect = ZERO_RECT
   private bodySurface: Surface | null = null
   private readonly bodyViewport: ViewportElement
   private bodyPadding = 0
   private bodyClip = true
-  private minimizedRect: BoundsRect = { x: 0, y: 0, w: 0, h: 0 }
+  private minimizedRect: BoundsRect = ZERO_RECT
   private restoreRect: BoundsRect | null = null
-  private maximizeBounds: BoundsRect = { x: 0, y: 0, w: 0, h: 0 }
+  private maximizeBounds: BoundsRect = ZERO_RECT
   minimizedOrder = 0
   private hooks: WindowHooks | null = null
   private dragHooks: WindowDragHooks | null = null
@@ -219,7 +219,7 @@ export class ModalWindow extends UIElement {
   }
 
   bounds(): BoundsRect {
-    if (!this.open.get()) return { x: 0, y: 0, w: 0, h: 0 }
+    if (!this.open.get()) return ZERO_RECT
     if (this.minimized.get()) return this.minimizedRect
     return { x: this.x.get(), y: this.y.get(), w: this.w.get(), h: this.h.get() }
   }
@@ -691,8 +691,8 @@ class TitleBarButton extends UIElement {
   }
 
   bounds(): BoundsRect {
-    if (!this.spec.visible(this.win)) return { x: 0, y: 0, w: 0, h: 0 }
-    if (!this.win.open.get() || this.win.minimized.get()) return { x: 0, y: 0, w: 0, h: 0 }
+    if (!this.spec.visible(this.win)) return ZERO_RECT
+    if (!this.win.open.get() || this.win.minimized.get()) return ZERO_RECT
     return titleButtonRect(this.win, this.spec.slotFromRight(this.win))
   }
 
@@ -754,7 +754,7 @@ class ResizeHandle extends UIElement {
   }
 
   bounds(): BoundsRect {
-    if (!this.win.open.get() || this.win.minimized.get() || this.win.maximized.get()) return { x: 0, y: 0, w: 0, h: 0 }
+    if (!this.win.open.get() || this.win.minimized.get() || this.win.maximized.get()) return ZERO_RECT
     const size = 16
     return { x: this.win.x.get() + this.win.w.get() - size, y: this.win.y.get() + this.win.h.get() - size, w: size, h: size }
   }

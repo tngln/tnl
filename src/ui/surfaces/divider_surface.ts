@@ -1,10 +1,10 @@
-import { signal, type Signal } from "../../core/reactivity"
-import { draw, RRect } from "../../core/draw"
-import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "../../core/event_stream"
-import { clamp } from "../../core/rect"
-import { theme } from "../../config/theme"
-import { CursorRegion, UIElement, type Rect, type Vec2, PointerUIEvent, pointInRect } from "../base/ui"
-import { ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "../base/viewport"
+import { theme } from "@/config/theme"
+import { draw, RRect } from "@/core/draw"
+import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "@/core/event_stream"
+import { signal, type Signal } from "@/core/reactivity"
+import { clamp } from "@/core/rect"
+import { CursorRegion, UIElement, type Rect, type Vec2, PointerUIEvent, pointInRect } from "@/ui/base/ui"
+import { ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "@/ui/base/viewport"
 
 type Axis = "x" | "y"
 type DividerHandleChrome = {

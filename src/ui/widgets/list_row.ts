@@ -1,11 +1,11 @@
-import { draw, Rect as RectOp, Text } from "../../core/draw"
-import type { InteractionCancelReason } from "../../core/event_stream"
-import { createPressMachine } from "../../core/fsm"
-import { theme } from "../../config/theme"
-import { truncateToWidth } from "../../core/draw.text"
-import { PointerUIEvent, UIElement, pointInRect, type Rect } from "../base/ui"
-import { ZERO_RECT } from "../../core/rect"
-import type { WidgetDescriptor } from "../builder/widget_registry"
+import { theme } from "@/config/theme"
+import { draw, Rect as RectOp, Text } from "@/core/draw"
+import { truncateToWidth } from "@/core/draw.text"
+import type { InteractionCancelReason } from "@/core/event_stream"
+import { createPressMachine } from "@/core/fsm"
+import { ZERO_RECT } from "@/core/rect"
+import { PointerUIEvent, UIElement, pointInRect, type Rect } from "@/ui/base/ui"
+import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 
 export type RowVariant = "group" | "item"
 
@@ -19,7 +19,7 @@ export type ListRowLayout = {
 }
 
 export class ListRow extends UIElement {
-  private layout: ListRowLayout = { rect: { x: 0, y: 0, w: 0, h: 0 }, leftText: "" }
+  private layout: ListRowLayout = { rect: ZERO_RECT, leftText: "" }
   private onClick: (() => void) | undefined
   private hover = false
   private readonly press = createPressMachine()
@@ -31,7 +31,7 @@ export class ListRow extends UIElement {
 
   bounds(): Rect {
     const r = this.layout.rect
-    if (r.w <= 0 || r.h <= 0) return { x: 0, y: 0, w: 0, h: 0 }
+    if (r.w <= 0 || r.h <= 0) return ZERO_RECT
     return r
   }
 

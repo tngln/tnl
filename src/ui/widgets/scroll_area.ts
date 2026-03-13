@@ -1,8 +1,8 @@
-import { clamp, ZERO_RECT } from "../../core/rect"
-import type { BuilderNode } from "../builder/types"
-import type { WidgetDescriptor } from "../builder/widget_registry"
-import { UIElement, type Rect, type Vec2, WheelUIEvent } from "../base/ui"
-import { type Surface, ViewportElement } from "../base/viewport"
+import { clamp, ZERO_RECT } from "@/core/rect"
+import { UIElement, type Rect, type Vec2, WheelUIEvent } from "@/ui/base/ui"
+import { type Surface, ViewportElement } from "@/ui/base/viewport"
+import type { BuilderNode } from "@/ui/builder/types"
+import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 import { Scrollbar } from "./scrollbar"
 
 type BuilderTreeSurfaceLike = Surface & {
@@ -126,4 +126,3 @@ export const scrollAreaDescriptor: WidgetDescriptor<
     state.widget.unmount()
   },
 }
-

@@ -1,5 +1,5 @@
-import { ControlsSurface } from "../../../surfaces/controls_surface"
-import { mountSurface } from "../../../builder/surface_builder"
+import { ControlsSurface } from "@/ui/surfaces/controls_surface"
+import { mountSurface } from "@/ui/builder/surface_builder"
 import type { DeveloperPanelSpec } from "../index"
 
 export function createControlPanel(): DeveloperPanelSpec {

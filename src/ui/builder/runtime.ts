@@ -1,5 +1,4 @@
 import { createRichTextBlock, type RichTextBlock } from "../../core/draw.text"
-import { ZERO_RECT } from "../../core/rect"
 import { invalidateAll } from "../invalidate"
 import { SurfaceRoot, type Surface } from "../base/viewport"
 import { UIElement, WheelUIEvent, type Rect, type Vec2 } from "../base/ui"

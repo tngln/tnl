@@ -1,9 +1,9 @@
-import { theme } from "../../config/theme"
-import type { Shape } from "../../core/draw"
-import type { InteractionCancelReason } from "../../core/event_stream"
-import { clampRect, inflateRect, intersects, mergeRectInto, normalizeRect, rectArea, unionRect, clamp } from "../../core/rect"
-import type { Vec2, Rect } from "../../core/rect"
-import { addBrowserInteractionCancelListener, addLostPointerCaptureListener, addWindowResizeListener, getClampedDevicePixelRatio, releaseElementPointerCapture, resetElementCursor, scheduleAnimationFrame, setElementCursor, setElementPointerCapture, type CursorKind } from "../../platform/web"
+import { theme } from "@/config/theme"
+import type { Shape } from "@/core/draw"
+import type { InteractionCancelReason } from "@/core/event_stream"
+import { clamp, clampRect, inflateRect, intersects, mergeRectInto, normalizeRect, rectArea, unionRect, ZERO_RECT } from "@/core/rect"
+import type { Rect, Vec2 } from "@/core/rect"
+import { addBrowserInteractionCancelListener, addLostPointerCaptureListener, addWindowResizeListener, getClampedDevicePixelRatio, releaseElementPointerCapture, resetElementCursor, scheduleAnimationFrame, setElementCursor, setElementPointerCapture, type CursorKind } from "@/platform/web"
 import { Compositor } from "./compositor"
 
 export type { Vec2, Rect }
@@ -597,7 +597,7 @@ export class CursorRegion extends UIElement {
   }
 
   bounds(): Rect {
-    if (!this.active()) return { x: 0, y: 0, w: 0, h: 0 }
+    if (!this.active()) return ZERO_RECT
     return this.rect()
   }
 
@@ -962,7 +962,7 @@ export class CanvasUI {
     const ev = this.pointerUiEventFromNative(e)
     let top: UIElement | null = target
     if (top) top = this.topLevelTargetOf(top)
-    const before = top ? top.bounds() : { x: 0, y: 0, w: 0, h: 0 }
+    const before = top ? top.bounds() : ZERO_RECT
     dispatchPointerEvent(target, ev, "up")
     this.capture = null
     this.releasePointerCapture()

@@ -1,7 +1,7 @@
-import { ZERO_RECT, type Rect } from "../../core/rect"
-import type { InteractionCancelReason } from "../../core/event_stream"
-import { createPressMachine } from "../../core/fsm"
-import { PointerUIEvent, UIElement, pointInRect, type DebugEventListenerSnapshot, type Vec2 } from "../base/ui"
+import { ZERO_RECT, type Rect } from "@/core/rect"
+import type { InteractionCancelReason } from "@/core/event_stream"
+import { createPressMachine } from "@/core/fsm"
+import { PointerUIEvent, UIElement, pointInRect, type DebugEventListenerSnapshot, type Vec2 } from "@/ui/base/ui"
 
 /**
  * Shared interactive state mixin for widgets that have hover/down/disabled/active states.

@@ -1,9 +1,9 @@
-import { draw, RRect, Text } from "../../core/draw"
-import type { InteractionCancelReason } from "../../core/event_stream"
-import { createPressMachine } from "../../core/fsm"
-import { font, theme } from "../../config/theme"
-import { toGetter, type Rect } from "../../core/rect"
-import { PointerUIEvent, UIElement, pointInRect, type Vec2 } from "../base/ui"
+import { font, theme } from "@/config/theme"
+import { draw, RRect, Text } from "@/core/draw"
+import type { InteractionCancelReason } from "@/core/event_stream"
+import { createPressMachine } from "@/core/fsm"
+import { toGetter, type Rect } from "@/core/rect"
+import { PointerUIEvent, UIElement, pointInRect, type Vec2 } from "@/ui/base/ui"
 
 export type MenuItem =
   | { kind?: "item"; key: string; text: string; title?: string; disabled?: boolean; rightText?: string; submenu?: MenuItem[]; onSelect?: () => void }

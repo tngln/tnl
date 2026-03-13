@@ -1,8 +1,8 @@
-import { draw, Circle, Text } from "../../core/draw"
-import { font, theme } from "../../config/theme"
-import { signal, type Signal } from "../../core/reactivity"
-import { type Rect, ZERO_RECT } from "../../core/rect"
-import type { WidgetDescriptor } from "../builder/widget_registry"
+import { font, theme } from "@/config/theme"
+import { draw, Circle, Text } from "@/core/draw"
+import { signal, type Signal } from "@/core/reactivity"
+import { type Rect, ZERO_RECT } from "@/core/rect"
+import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 import { InteractiveElement } from "./interactive"
 
 export class Radio extends InteractiveElement {

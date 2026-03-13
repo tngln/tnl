@@ -1,12 +1,12 @@
-import { draw, RRect, Text } from "../../core/draw"
-import { font, theme } from "../../config/theme"
-import { truncateToWidth } from "../../core/draw.text"
-import { signal, type Signal } from "../../core/reactivity"
-import { toGetter, type Rect, ZERO_RECT } from "../../core/rect"
-import type { TopLayerController } from "../base/top_layer"
-import type { WidgetDescriptor } from "../builder/widget_registry"
-import { PointerUIEvent } from "../base/ui"
-import { caretDownIcon, iconToShape } from "../icons"
+import { font, theme } from "@/config/theme"
+import { draw, RRect, Text } from "@/core/draw"
+import { truncateToWidth } from "@/core/draw.text"
+import { signal, type Signal } from "@/core/reactivity"
+import { toGetter, type Rect, ZERO_RECT } from "@/core/rect"
+import { PointerUIEvent } from "@/ui/base/ui"
+import type { TopLayerController } from "@/ui/base/top_layer"
+import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
+import { caretDownIcon, iconToShape } from "@/ui/icons"
 import { DropdownMenu, DROPDOWN_MENU_ROW_HEIGHT } from "./dropdown_menu"
 import { InteractiveElement } from "./interactive"
 
@@ -19,7 +19,7 @@ export class Dropdown extends InteractiveElement {
   private topLayer?: TopLayerController
 
   private menu: DropdownMenu | null = null
-  private menuRectCache: Rect = { x: 0, y: 0, w: 0, h: 0 }
+  private menuRectCache: Rect = ZERO_RECT
 
   constructor(opts: {
     id: string

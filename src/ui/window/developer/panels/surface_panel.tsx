@@ -1,9 +1,9 @@
-import { createElement, Fragment } from "../../../jsx"
-import { Button, ListRow, PanelColumn, PanelScroll, PanelSection, PanelToolbar, Spacer, Text, TextBox, VStack } from "../../../builder/components"
-import { defineSurface, mountSurface } from "../../../builder/surface_builder"
-import { signal } from "../../../../core/reactivity"
+import { createElement, Fragment } from "@/ui/jsx"
+import { Button, ListRow, PanelColumn, PanelScroll, PanelSection, PanelToolbar, Spacer, Text, TextBox, VStack } from "@/ui/builder/components"
+import { defineSurface, mountSurface } from "@/ui/builder/surface_builder"
+import { signal } from "@/core/reactivity"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
-import type { DebugBlitInfo, DebugLayerInfo } from "../../../base/compositor"
+import type { DebugBlitInfo, DebugLayerInfo } from "@/ui/base/compositor"
 
 export function createSurfacePanel(): DeveloperPanelSpec {
   return {

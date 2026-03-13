@@ -1,10 +1,10 @@
-import { draw, RRect } from "../../core/draw"
-import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "../../core/event_stream"
-import { createMachine, type Machine } from "../../core/fsm"
-import { clamp, ZERO_RECT } from "../../core/rect"
-import { theme } from "../../config/theme"
-import { PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "../base/ui"
-import type { WidgetDescriptor } from "../builder/widget_registry"
+import { theme } from "@/config/theme"
+import { draw, RRect } from "@/core/draw"
+import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "@/core/event_stream"
+import { createMachine, type Machine } from "@/core/fsm"
+import { clamp, ZERO_RECT } from "@/core/rect"
+import { PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "@/ui/base/ui"
+import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 
 type Axis = "x" | "y"
 
@@ -212,7 +212,7 @@ export class Scrollbar extends UIElement {
   }
 
   bounds(): Rect {
-    if (this.hidden()) return { x: 0, y: 0, w: 0, h: 0 }
+    if (this.hidden()) return ZERO_RECT
     return this.rectValue
   }
 

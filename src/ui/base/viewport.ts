@@ -1,4 +1,5 @@
-import type { InteractionCancelReason } from "../../core/event_stream"
+import type { InteractionCancelReason } from "@/core/event_stream"
+import { ZERO_RECT } from "@/core/rect"
 import { Compositor } from "./compositor"
 import { PointerUIEvent, UIElement, WheelUIEvent, dispatchPointerCancelEvent, dispatchPointerEvent, dispatchWheelEvent, pointInRect, type DebugTreeNodeSnapshot, type Rect as BoundsRect, type UIEventTargetNode, type Vec2 } from "./ui"
 
@@ -136,7 +137,7 @@ export class ViewportElement extends UIElement {
   }
 
   bounds(): BoundsRect {
-    if (!this.active()) return { x: 0, y: 0, w: 0, h: 0 }
+    if (!this.active()) return ZERO_RECT
     return this.rect()
   }
 

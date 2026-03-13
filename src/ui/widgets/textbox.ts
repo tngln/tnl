@@ -1,12 +1,12 @@
-import { draw, RRect, Text } from "../../core/draw"
-import { measureTextWidth } from "../../core/draw.text"
-import { toGetter, ZERO_RECT, type Rect } from "../../core/rect"
-import { signal, type Signal } from "../../core/reactivity"
-import { font, theme } from "../../config/theme"
-import { getTextInputBridge, type TextInputBridge } from "../../platform/web"
-import { createMeasureContext } from "../../platform/web/canvas"
-import type { WidgetDescriptor } from "../builder/widget_registry"
-import { CursorRegion, KeyUIEvent, PointerUIEvent, UIElement, pointInRect, type Vec2 } from "../base/ui"
+import { font, theme } from "@/config/theme"
+import { draw, RRect, Text } from "@/core/draw"
+import { measureTextWidth } from "@/core/draw.text"
+import { signal, type Signal } from "@/core/reactivity"
+import { toGetter, ZERO_RECT, type Rect } from "@/core/rect"
+import { getTextInputBridge, type TextInputBridge } from "@/platform/web"
+import { createMeasureContext } from "@/platform/web/canvas"
+import { CursorRegion, KeyUIEvent, PointerUIEvent, UIElement, pointInRect, type Vec2 } from "@/ui/base/ui"
+import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 
 const TEXTBOX_HEIGHT = theme.ui.controls.inputHeight
 const PAD_X = 8

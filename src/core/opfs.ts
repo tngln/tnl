@@ -57,11 +57,7 @@ function toOpfsError(e: unknown, fallback: OpfsError) {
 }
 
 function randomId() {
-  const c = globalThis as any
-  const uuid = c?.crypto?.randomUUID
-  if (typeof uuid === "function") return uuid.call(c.crypto)
-  const r = () => Math.floor(Math.random() * 0xffffffff).toString(16).padStart(8, "0")
-  return `${r()}${r()}-${r()}-${r()}-${r()}-${r()}${r()}${r()}`
+  return globalThis.crypto.randomUUID();
 }
 
 class Mutex {

@@ -1,6 +1,5 @@
-import type { Rect } from "../../core/rect"
-import { ZERO_RECT } from "../../core/rect"
-import type { WidgetDescriptor } from "../builder/widget_registry"
+import { ZERO_RECT, type Rect } from "@/core/rect"
+import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 import { InteractiveElement } from "./interactive"
 
 export class ClickArea extends InteractiveElement {
@@ -47,4 +46,3 @@ export const clickAreaDescriptor: WidgetDescriptor<ClickAreaState, { disabled?: 
     state.onClick = props.onClick
   },
 }
-

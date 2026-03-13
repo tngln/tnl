@@ -1,9 +1,9 @@
-import { font, theme } from "../../config/theme"
-import { draw, Line, Rect as RectOp, RRect, Text } from "../../core/draw"
-import { clamp } from "../../core/rect"
-import { PointerUIEvent, UIElement, WheelUIEvent, pointInRect, type Rect, type Vec2 } from "../base/ui"
-import { ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "../base/viewport"
-import { Scrollbar } from "../widgets/scrollbar"
+import { font, theme } from "@/config/theme"
+import { draw, Line, Rect as RectOp, RRect, Text } from "@/core/draw"
+import { clamp, ZERO_RECT } from "@/core/rect"
+import { PointerUIEvent, UIElement, WheelUIEvent, pointInRect, type Rect, type Vec2 } from "@/ui/base/ui"
+import { ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "@/ui/base/viewport"
+import { Scrollbar } from "@/ui/widgets/scrollbar"
 import {
   clampPxPerUnit,
   computeHorizontalScrollLimit,
@@ -20,7 +20,7 @@ import {
   type TimelineTrackMetrics,
   type TimelineUnitAdapter,
   type TimelineViewModel,
-} from "../timeline/model"
+} from "@/ui/timeline/model"
 
 type TimelineLayout = {
   rulerHeight: number
@@ -299,13 +299,13 @@ export class TimelineCompositeSurface implements Surface {
       headerWidth: opts.headerWidth ?? 164,
       rulerHeight: opts.rulerHeight ?? 34,
       scrollbarSize: opts.scrollbarSize ?? 12,
-      contentRect: { x: 0, y: 0, w: 0, h: 0 },
-      rulerRect: { x: 0, y: 0, w: 0, h: 0 },
-      headerRect: { x: 0, y: 0, w: 0, h: 0 },
-      backgroundRect: { x: 0, y: 0, w: 0, h: 0 },
-      hScrollbarRect: { x: 0, y: 0, w: 0, h: 0 },
-      vScrollbarRect: { x: 0, y: 0, w: 0, h: 0 },
-      cornerRect: { x: 0, y: 0, w: 0, h: 0 },
+      contentRect: ZERO_RECT,
+      rulerRect: ZERO_RECT,
+      headerRect: ZERO_RECT,
+      backgroundRect: ZERO_RECT,
+      hScrollbarRect: ZERO_RECT,
+      vScrollbarRect: ZERO_RECT,
+      cornerRect: ZERO_RECT,
     }
 
     this.rulerSurface = new TimelineRulerSurface(this)

@@ -1,7 +1,8 @@
-import { draw, RRect } from "../../core/draw"
-import { theme } from "../../config/theme"
-import { invariant } from "../../core/errors"
-import { type Rect as BoundsRect, type Vec2, UIElement } from "../base/ui"
+import { theme } from "@/config/theme"
+import { draw, RRect } from "@/core/draw"
+import { invariant } from "@/core/errors"
+import { ZERO_RECT } from "@/core/rect"
+import { type Rect as BoundsRect, type Vec2, UIElement } from "@/ui/base/ui"
 import { ModalWindow, type Root, type WindowSnapshot } from "./window"
 
 export type WindowControlApi = {
@@ -43,7 +44,7 @@ class SnapPreviewOverlay extends UIElement {
   }
 
   bounds(): BoundsRect {
-    return this.rect ?? { x: 0, y: 0, w: 0, h: 0 }
+    return this.rect ?? ZERO_RECT
   }
 
   protected containsPoint() {

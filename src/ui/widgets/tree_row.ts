@@ -1,13 +1,13 @@
-import { draw, Rect as RectOp, Text } from "../../core/draw"
-import type { InteractionCancelReason } from "../../core/event_stream"
-import { createPressMachine } from "../../core/fsm"
-import { theme } from "../../config/theme"
-import { truncateToWidth } from "../../core/draw.text"
-import { PointerUIEvent, UIElement, pointInRect, type Rect } from "../base/ui"
-import { ZERO_RECT } from "../../core/rect"
-import { chevronDownIcon, chevronRightIcon, iconToShape, type IconDef } from "../icons"
+import { theme } from "@/config/theme"
+import { draw, Rect as RectOp, Text } from "@/core/draw"
+import { truncateToWidth } from "@/core/draw.text"
+import type { InteractionCancelReason } from "@/core/event_stream"
+import { createPressMachine } from "@/core/fsm"
+import { ZERO_RECT } from "@/core/rect"
+import { PointerUIEvent, UIElement, pointInRect, type Rect } from "@/ui/base/ui"
+import { chevronDownIcon, chevronRightIcon, iconToShape, type IconDef } from "@/ui/icons"
 import type { RowVariant } from "./row"
-import type { WidgetDescriptor } from "../builder/widget_registry"
+import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 
 export const TREE_ROW_HEIGHT = theme.ui.controls.treeRowHeight
 export const TREE_ROW_INDENT_STEP = theme.ui.controls.treeRow.indentStep
@@ -34,7 +34,7 @@ export function treeRowDisclosureIcon(expanded: boolean): IconDef {
 export class TreeRow extends UIElement {
   private activeValue: boolean = true
   private layout: TreeRowLayout = {
-    rect: { x: 0, y: 0, w: 0, h: 0 },
+    rect: ZERO_RECT,
     depth: 0,
     expandable: false,
     expanded: false,

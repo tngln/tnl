@@ -1,8 +1,8 @@
-import { createElement, Fragment } from "../../../jsx"
-import { PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, TreeView, VStack } from "../../../builder/components"
-import { defineSurface, mountSurface, treeItem, type TreeItem } from "../../../builder/surface_builder"
-import { collectIds } from "../../../../util/util"
-import type { DebugTreeNodeSnapshot } from "../../../base/ui"
+import { createElement, Fragment } from "@/ui/jsx"
+import { PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, TreeView, VStack } from "@/ui/builder/components"
+import { defineSurface, mountSurface, treeItem, type TreeItem } from "@/ui/builder/surface_builder"
+import { collectIds } from "@/util/util"
+import type { DebugTreeNodeSnapshot } from "@/ui/base/ui"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 
 export function createInspectorPanel(): DeveloperPanelSpec {

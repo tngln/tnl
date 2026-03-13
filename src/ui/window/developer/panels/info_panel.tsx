@@ -1,6 +1,6 @@
-import { createElement } from "../../../jsx"
-import { PanelColumn, PanelScroll, PanelSection, PanelToolbar, RichText, Spacer, Text, VStack } from "../../../builder/components"
-import { defineSurface, mountSurface } from "../../../builder/surface_builder"
+import { createElement } from "@/ui/jsx"
+import { PanelColumn, PanelScroll, PanelSection, PanelToolbar, RichText, Spacer, Text, VStack } from "@/ui/builder/components"
+import { defineSurface, mountSurface } from "@/ui/builder/surface_builder"
 import type { DeveloperPanelSpec } from "../index"
 
 type InfoPanelSpec = {

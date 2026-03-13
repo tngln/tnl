@@ -1,8 +1,8 @@
-import { draw, Line, RRect, Text } from "../../core/draw"
-import { font, theme } from "../../config/theme"
-import { signal, type Signal } from "../../core/reactivity"
-import { type Rect, ZERO_RECT } from "../../core/rect"
-import type { WidgetDescriptor } from "../builder/widget_registry"
+import { font, theme } from "@/config/theme"
+import { draw, Line, RRect, Text } from "@/core/draw"
+import { signal, type Signal } from "@/core/reactivity"
+import { type Rect, ZERO_RECT } from "@/core/rect"
+import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 import { InteractiveElement } from "./interactive"
 
 export class Checkbox extends InteractiveElement {
@@ -59,8 +59,8 @@ export class Checkbox extends InteractiveElement {
       const y2 = box.y + 5
       draw(
         ctx,
-        Line({ x: x0, y: y0 }, { x: x1, y: y1 }, { color: disabled ? theme.colors.textMuted : theme.colors.textPrimary, width: 2.0, lineCap: "round" }),
-        Line({ x: x1, y: y1 }, { x: x2, y: y2 }, { color: disabled ? theme.colors.textMuted : theme.colors.textPrimary, width: 2.0, lineCap: "round" }),
+        Line({ x: x0, y: y0 }, { x: x1, y: y1 }, { color: textColor, width: 2.0, lineCap: "round" }),
+        Line({ x: x1, y: y1 }, { x: x2, y: y2 }, { color: textColor, width: 2.0, lineCap: "round" }),
       )
     }
   }

@@ -1,9 +1,8 @@
-import { draw, Line, RRect } from "../../core/draw"
-import { clamp, type Rect, ZERO_RECT } from "../../core/rect"
-import { theme } from "../../config/theme"
-import type { WidgetDescriptor } from "../builder/widget_registry"
-import { PointerUIEvent, pointInRect, type Vec2 } from "../base/ui"
-import { UIElement } from "../base/ui"
+import { theme } from "@/config/theme"
+import { draw, Line, RRect } from "@/core/draw"
+import { clamp, type Rect, ZERO_RECT } from "@/core/rect"
+import { PointerUIEvent, pointInRect, UIElement, type Vec2 } from "@/ui/base/ui"
+import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 
 type Axis = "x" | "y"
 
@@ -64,7 +63,7 @@ export class Slider extends UIElement {
   }
 
   bounds(): Rect {
-    if (!this.activeValue) return { x: 0, y: 0, w: 0, h: 0 }
+    if (!this.activeValue) return ZERO_RECT
     return this.rectValue
   }
 

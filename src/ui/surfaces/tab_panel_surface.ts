@@ -1,11 +1,11 @@
-import { signal, type Signal } from "../../core/reactivity"
-import { draw, Line, Rect as RectOp, RRect, Text } from "../../core/draw"
-import { clamp } from "../../core/rect"
-import { theme } from "../../config/theme"
-import { UIElement, type DebugTreeNodeSnapshot, type Rect, type Vec2, WheelUIEvent, pointInRect } from "../base/ui"
-import { ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "../base/viewport"
-import { InteractiveElement } from "../widgets/interactive"
-import { Scrollbar } from "../widgets"
+import { theme } from "@/config/theme"
+import { draw, Line, Rect as RectOp, RRect, Text } from "@/core/draw"
+import { signal, type Signal } from "@/core/reactivity"
+import { clamp } from "@/core/rect"
+import { UIElement, type DebugTreeNodeSnapshot, type Rect, type Vec2, WheelUIEvent, pointInRect } from "@/ui/base/ui"
+import { ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "@/ui/base/viewport"
+import { InteractiveElement } from "@/ui/widgets/interactive"
+import { Scrollbar } from "@/ui/widgets"
 
 class TabButton extends InteractiveElement {
   private readonly text: () => string

@@ -1,9 +1,9 @@
-import { createElement, Fragment } from "../../../jsx"
-import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, VStack } from "../../../builder/components"
-import { defineSurface, mountSurface } from "../../../builder/surface_builder"
-import { invalidateAll } from "../../../invalidate"
-import type { WorkerRuntimeEntry } from "../../../../core/workers"
-import { theme } from "../../../../config/theme"
+import { createElement, Fragment } from "@/ui/jsx"
+import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, VStack } from "@/ui/builder/components"
+import { defineSurface, mountSurface } from "@/ui/builder/surface_builder"
+import { invalidateAll } from "@/ui/invalidate"
+import type { WorkerRuntimeEntry } from "@/core/workers"
+import { theme } from "@/config/theme"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 
 function formatTime(ms: number | undefined) {

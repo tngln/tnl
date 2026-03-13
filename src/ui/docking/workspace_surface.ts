@@ -1,14 +1,14 @@
-import { draw, Line, Rect as RectOp, RRect, Text } from "../../core/draw"
-import { measureTextWidth } from "../../core/draw.text"
-import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "../../core/event_stream"
-import { createMachine, type Machine } from "../../core/fsm"
-import { clamp, inflateRect } from "../../core/rect"
-import { font, theme } from "../../config/theme"
-import { invalidateAll } from "../invalidate"
-import { TopLayerController } from "../base/top_layer"
-import { CursorRegion, PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "../base/ui"
-import { SurfaceRoot, ViewportElement, type Surface, type ViewportContext } from "../base/viewport"
-import { MenuBar, type MenuBarMenu, type MenuItem } from "../widgets"
+import { font, theme } from "@/config/theme"
+import { draw, Line, Rect as RectOp, RRect, Text } from "@/core/draw"
+import { measureTextWidth } from "@/core/draw.text"
+import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "@/core/event_stream"
+import { createMachine, type Machine } from "@/core/fsm"
+import { clamp, inflateRect, ZERO_RECT } from "@/core/rect"
+import { CursorRegion, PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "@/ui/base/ui"
+import { SurfaceRoot, ViewportElement, type Surface, type ViewportContext } from "@/ui/base/viewport"
+import { TopLayerController } from "@/ui/base/top_layer"
+import { invalidateAll } from "@/ui/invalidate"
+import { MenuBar, type MenuBarMenu, type MenuItem } from "@/ui/widgets"
 import { clampRatio, type DockDropPlacement, type DockNode } from "./model"
 
 export type DockDropPreview = {
@@ -674,7 +674,7 @@ export class DockWorkspaceSurface implements Surface {
     let viewport = this.viewports.get(layout.leafId)
     if (!viewport) {
       viewport = new ViewportElement({
-        rect: () => this.leafLayouts.get(layout.leafId)?.contentRect ?? { x: 0, y: 0, w: 0, h: 0 },
+        rect: () => this.leafLayouts.get(layout.leafId)?.contentRect ?? ZERO_RECT,
         target: this.driver.getPaneSurface(paneId),
         options: { clip: true, padding: theme.spacing.xs },
       })
@@ -691,8 +691,8 @@ export class DockWorkspaceSurface implements Surface {
       tab = new DockTabHandle({
         rect: () => {
           const leafId = this.tabLeafByPane.get(paneId)
-          if (!leafId) return { x: 0, y: 0, w: 0, h: 0 }
-          return this.leafLayouts.get(leafId)?.tabs.find((entry) => entry.paneId === paneId)?.rect ?? { x: 0, y: 0, w: 0, h: 0 }
+          if (!leafId) return ZERO_RECT
+          return this.leafLayouts.get(leafId)?.tabs.find((entry) => entry.paneId === paneId)?.rect ?? ZERO_RECT
         },
         title: () => this.driver.getPaneTitle(paneId),
         selected: () => {
@@ -718,7 +718,7 @@ export class DockWorkspaceSurface implements Surface {
     let handle = this.splits.get(layout.splitId)
     if (!handle) {
       handle = new DockSplitHandle({
-        rect: () => this.splitLayouts.get(layout.splitId)?.gutterRect ?? { x: 0, y: 0, w: 0, h: 0 },
+        rect: () => this.splitLayouts.get(layout.splitId)?.gutterRect ?? ZERO_RECT,
         axis: () => this.splitLayouts.get(layout.splitId)?.axis ?? "x",
         onDrag: (point) => this.onSplitDrag(layout.splitId, point),
       })

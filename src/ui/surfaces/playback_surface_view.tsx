@@ -1,12 +1,12 @@
-import { theme, font } from "../../config/theme"
-import { draw, RRect, Text as DrawText } from "../../core/draw"
-import { getDebugLevel, listDebugEntries, setDebugLevel, type DebugEntry, type DebugLevel } from "../../core/debug"
-import { createElement, Fragment } from "../jsx"
-import { Button, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, SliderField, Spacer, Text, VStack } from "../builder/components"
-import { defineSurface } from "../builder/surface_builder"
-import { getPlaybackSession } from "../playback/session"
-import { formatTimecode } from "../playback/timecode"
-import { baseNameOr } from "../../util/util"
+import { theme, font } from "@/config/theme"
+import { draw, RRect, Text as DrawText } from "@/core/draw"
+import { getDebugLevel, listDebugEntries, setDebugLevel, type DebugEntry, type DebugLevel } from "@/core/debug"
+import { baseNameOr } from "@/util/util"
+import { Button, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, SliderField, Spacer, Text, VStack } from "@/ui/builder/components"
+import { defineSurface } from "@/ui/builder/surface_builder"
+import { createElement, Fragment } from "@/ui/jsx"
+import { getPlaybackSession } from "@/ui/playback/session"
+import { formatTimecode } from "@/ui/playback/timecode"
 
 const DEBUG_LEVELS: DebugLevel[] = ["error", "warn", "info", "debug", "trace"]
 

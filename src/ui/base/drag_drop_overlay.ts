@@ -1,6 +1,7 @@
 import type { Rect, Vec2 } from "./ui"
 import { UIElement } from "./ui"
 import type { DragDropController, DragImageSpec } from "./drag_drop"
+import { ZERO_RECT } from "../../core/rect"
 
 function dragImageRect(pointer: Vec2, image: DragImageSpec): Rect {
   const offset = image.offsetCss ?? { x: -image.sizeCss.x / 2, y: -image.sizeCss.y / 2 }
@@ -24,7 +25,7 @@ export class DragImageOverlay extends UIElement {
   bounds(): Rect {
     const active = this.dd.getActive()
     const image = active?.dragImage ?? null
-    if (!active || !image) return { x: 0, y: 0, w: 0, h: 0 }
+    if (!active || !image) return ZERO_RECT
     return dragImageRect(active.current, image)
   }
 

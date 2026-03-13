@@ -1,8 +1,8 @@
-import { font, theme } from "../../config/theme"
-import { draw, Rect as RectOp, RRect, Text } from "../../core/draw"
-import { getPlaybackSession } from "../playback/session"
-import { formatTimecode } from "../playback/timecode"
-import type { Surface, ViewportContext } from "../base/viewport"
+import { font, theme } from "@/config/theme"
+import { draw, Rect as RectOp, RRect, Text } from "@/core/draw"
+import { getPlaybackSession } from "@/ui/playback/session"
+import { formatTimecode } from "@/ui/playback/timecode"
+import type { Surface, ViewportContext } from "@/ui/base/viewport"
 
 export class TimecodeSurface implements Surface {
   readonly id: string

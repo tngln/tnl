@@ -1,7 +1,7 @@
-import { draw, RRect, Text } from "../../core/draw"
-import { font, theme } from "../../config/theme"
-import { type Rect, ZERO_RECT } from "../../core/rect"
-import type { WidgetDescriptor } from "../builder/widget_registry"
+import { font, theme } from "@/config/theme"
+import { draw, RRect, Text } from "@/core/draw"
+import { type Rect, ZERO_RECT } from "@/core/rect"
+import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 import { InteractiveElement } from "./interactive"
 
 export class Button extends InteractiveElement {

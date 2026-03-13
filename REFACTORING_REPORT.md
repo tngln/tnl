@@ -25,7 +25,7 @@
 
 ### Changes
 - **New file `src/ui/widgets/interactive.ts`** — `InteractiveElement extends UIElement` base class with shared pointer interaction, `interactive()` guard, `onActivate()` template method.
-- **New constant `ZERO_RECT`** in `src/core/rect.ts` — frozen `{ x: 0, y: 0, w: 0, h: 0 }` replacing ad-hoc zero rect constructors.
+- **New constant `ZERO_RECT`** in `src/core/rect.ts` — frozen `ZERO_RECT` replacing ad-hoc zero rect constructors.
 - **New utility `toGetter<T>()`** in `src/core/rect.ts` — normalizes `T | (() => T)` options to `() => T`, replacing identical patterns in Button/Label.
 - **New file `src/ui/invalidate.ts`** — centralizes `invalidateAll()` previously duplicated in `codec_panel.tsx` and `storage_panel.tsx`.
 - Refactored **Button**, **Checkbox**, **Radio**, **Label**, **Paragraph** to use these shared utilities.

@@ -1,6 +1,6 @@
-import { theme } from "../../config/theme"
-import type { Signal } from "../../core/reactivity"
-import type { LayoutStyle } from "../../core/layout"
+import { theme } from "@/config/theme"
+import type { LayoutStyle } from "@/core/layout"
+import type { Signal } from "@/core/reactivity"
 import {
   buttonNode,
   checkboxNode,
@@ -30,8 +30,8 @@ import {
   type RowVariant,
   type TreeItem,
 } from "./surface_builder"
-import { resolveChildren, resolveTextContent, type JSXNodeProps } from "../jsx"
-import type { RichTextSpan, RichTextStyle, TextEmphasis } from "../../core/draw.text"
+import type { RichTextSpan, RichTextStyle, TextEmphasis } from "@/core/draw.text"
+import { resolveChildren, resolveTextContent, type JSXNodeProps } from "@/ui/jsx"
 import { resolveRichTextChildren, type RichInlineChild } from "./rich_text_children"
 
 type ContainerProps = JSXNodeProps
