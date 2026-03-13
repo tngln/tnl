@@ -37,7 +37,7 @@ export class CanvasUI {
   private frameId = 0
   private compositor = new Compositor()
   private debugOverlay: Rect | null = null
-  private debugPaintFlash = true
+  private debugPaintFlash = false
   private debugFlashEntries: Array<{ rect: Rect; startMs: number; hue: number }> = []
   private debugFlashHue = 0
   private readonly FLASH_DURATION_MS = 600
@@ -167,8 +167,17 @@ export class CanvasUI {
    * dirty rects get different hues so simultaneous repaints are easy to distinguish.
    */
   setDebugPaintFlash(on: boolean) {
+    if (this.debugPaintFlash === on) return
+    const stale = on ? [] : this.debugFlashEntries.slice()
     this.debugPaintFlash = on
     if (!on) this.debugFlashEntries = []
+    if (!on) {
+      for (const f of stale) this.invalidateRect(f.rect, { pad: 1 })
+    }
+  }
+
+  isDebugPaintFlashEnabled() {
+    return this.debugPaintFlash
   }
 
   debugCompositorLayers() {
@@ -416,10 +425,12 @@ export class CanvasUI {
     let topBefore: UIElement | null = target
     if (topBefore) topBefore = this.topLevelTargetOf(topBefore)
     const before = topBefore ? topBefore.bounds() : null
-    dispatchPointerEvent(target, ev, "move")
+    const dispatch = dispatchPointerEvent(target, ev, "move")
     let topAfter: UIElement | null = target
     if (topAfter) topAfter = this.topLevelTargetOf(topAfter)
     const after = topAfter ? topAfter.bounds() : before
+    const shouldInvalidate = this.capture !== null || dispatch.handled || !before || !after || !this.rectEquals(before, after)
+    if (!shouldInvalidate) return
     if (before && after) this.invalidateRect(unionRect(before, after), { pad: 24 })
     else if (after) this.invalidateRect(after, { pad: 24 })
   }
@@ -502,6 +513,10 @@ export class CanvasUI {
     let top = target
     while (top.parent && top.parent !== this.root) top = top.parent
     return top
+  }
+
+  private rectEquals(a: Rect, b: Rect) {
+    return a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
   }
 
   private resolveFocusableTarget(target: UIElement | null) {

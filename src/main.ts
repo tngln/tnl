@@ -65,6 +65,8 @@ const developerContext = {
     listLayers: () => ui.debugCompositorLayers(),
     listBlits: () => ui.debugCompositorFrameBlits(),
     setOverlay: (rect: Rect | null) => ui.setDebugOverlay(rect),
+    setPaintFlash: (on: boolean) => ui.setDebugPaintFlash(on),
+    getPaintFlash: () => ui.isDebugPaintFlashEnabled(),
   },
   inspector: {
     tree: () => root.debugSnapshot(),

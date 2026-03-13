@@ -25,6 +25,8 @@ export type DeveloperContext = {
     listLayers?: () => DebugLayerInfo[]
     listBlits?: () => DebugBlitInfo[]
     setOverlay?: (rect: Rect | null) => void
+    setPaintFlash?: (on: boolean) => void
+    getPaintFlash?: () => boolean
   }
   inspector?: { tree?: () => DebugTreeNodeSnapshot; eval?: (code: string) => unknown }
   docking?: DockingControlApi

@@ -40,6 +40,7 @@ export const SurfacePanelSurface = defineSurface<Props>({
   setup: ({ ctx }) => {
     const filter = signal("", { debugLabel: "developer.surface.filter" })
     const selectedId = signal<string | null>(null, { debugLabel: "developer.surface.selectedId" })
+    const paintFlash = signal(ctx.surface?.getPaintFlash?.() ?? false, { debugLabel: "developer.surface.paintFlash" })
     let frozen = false
     let lastSnapshot: { layers: DebugLayerInfo[]; blits: DebugBlitInfo[] } | null = null
 
@@ -99,6 +100,16 @@ export const SurfacePanelSurface = defineSurface<Props>({
               onClick={() => {
                 selectedId.set(null)
                 applyOverlay(null)
+              }}
+            />
+            <Spacer style={{ fixed: 8 }} />
+            <Button
+              key="surface.paintFlash"
+              text={paintFlash.peek() ? "Paint Flash: On" : "Paint Flash: Off"}
+              onClick={() => {
+                const next = !paintFlash.peek()
+                paintFlash.set(next)
+                ctx.surface?.setPaintFlash?.(next)
               }}
             />
             <Spacer style={{ fill: true }} />
