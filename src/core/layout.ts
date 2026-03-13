@@ -50,8 +50,31 @@ export type LayoutNode = {
 }
 
 export type PaddingRect = { l: number; t: number; r: number; b: number }
+export type LayoutContext = { cache: MeasureCache }
+export type LayoutSlice = {
+  fixed?: number
+  flex?: number
+  min?: number
+  max?: number
+}
+export type LinearLayoutOptions = {
+  gap?: number
+  padding?: Padding
+}
 
 type MeasureCache = WeakMap<LayoutNode, Map<string, { w: number; h: number }>>
+
+function createMeasureCache(): MeasureCache {
+  return new WeakMap()
+}
+
+function getMeasureCache(context?: LayoutContext): MeasureCache {
+  return context?.cache ?? createMeasureCache()
+}
+
+export function createLayoutContext(): LayoutContext {
+  return { cache: createMeasureCache() }
+}
 
 function safePos(v: number | undefined, fallback: number) {
   if (v === undefined) return fallback
@@ -149,6 +172,77 @@ function explicitCross(style: LayoutStyle | undefined, axis: Axis): number | und
 
 function cacheKey(max: { w: number; h: number }) {
   return `${Math.max(0, Math.round(max.w * 1000) / 1000)}:${Math.max(0, Math.round(max.h * 1000) / 1000)}`
+}
+
+function layoutMain(rect: Rect, axis: "row" | "column") {
+  return axis === "row" ? rect.w : rect.h
+}
+
+function setLayoutMain(rect: Rect, axis: "row" | "column", value: number): Rect {
+  if (axis === "row") return { ...rect, w: value }
+  return { ...rect, h: value }
+}
+
+function setLayoutOffset(rect: Rect, axis: "row" | "column", offset: number): Rect {
+  if (axis === "row") return { ...rect, x: offset }
+  return { ...rect, y: offset }
+}
+
+function distributeFlex(sizes: number[], weights: number[], mins: number[], maxes: number[], extra: number) {
+  let remaining = extra
+  let active: number[] = []
+  for (let i = 0; i < sizes.length; i++) if (weights[i] > 0 && sizes[i] < maxes[i]) active.push(i)
+  for (let iter = 0; iter < 8 && remaining > 1e-6 && active.length > 0; iter++) {
+    const total = active.reduce((sum, index) => sum + weights[index], 0)
+    if (total <= 0) break
+    const startRemaining = remaining
+    let changed = 0
+    for (const index of active) {
+      const add = (startRemaining * weights[index]) / total
+      const next = clamp(sizes[index] + add, mins[index], maxes[index])
+      const delta = next - sizes[index]
+      if (delta > 0) {
+        sizes[index] = next
+        remaining -= delta
+        changed += delta
+      }
+    }
+    if (changed <= 1e-6) break
+    active = active.filter((index) => sizes[index] < maxes[index] - 1e-9)
+  }
+}
+
+function linearLayout(axis: "row" | "column", outer: Rect, slices: LayoutSlice[], options?: LinearLayoutOptions): Rect[] {
+  if (slices.length === 0) return []
+  const box = shrinkBox(outer, resolvePadding(options?.padding))
+  const gap = Math.max(0, safePos(options?.gap, 0))
+  const gapTotal = gap * Math.max(0, slices.length - 1)
+  const available = Math.max(0, layoutMain(box, axis) - gapTotal)
+  const sizes = new Array<number>(slices.length)
+  const mins = new Array<number>(slices.length)
+  const maxes = new Array<number>(slices.length)
+  const weights = new Array<number>(slices.length)
+
+  let used = 0
+  for (let i = 0; i < slices.length; i++) {
+    const slice = slices[i]
+    mins[i] = Math.max(0, safePos(slice.min, 0))
+    maxes[i] = safePos(slice.max, Number.POSITIVE_INFINITY)
+    weights[i] = Math.max(0, safePos(slice.flex, 0))
+    sizes[i] = clamp(Math.max(0, safePos(slice.fixed, 0)), mins[i], maxes[i])
+    used += sizes[i]
+  }
+
+  if (used < available) distributeFlex(sizes, weights, mins, maxes, available - used)
+
+  const rects: Rect[] = new Array(slices.length)
+  let cursor = axis === "row" ? box.x : box.y
+  for (let i = 0; i < slices.length; i++) {
+    const base = setLayoutMain(box, axis, sizes[i])
+    rects[i] = setLayoutOffset(base, axis, cursor)
+    cursor += sizes[i] + gap
+  }
+  return rects
 }
 
 function intrinsicMeasure(node: LayoutNode, max: { w: number; h: number }, cache: MeasureCache): { w: number; h: number } {
@@ -457,10 +551,18 @@ function layoutInternal(node: LayoutNode, outer: Rect, cache: MeasureCache): Lay
   return node
 }
 
-export function measureLayout(node: LayoutNode, max: { w: number; h: number }) {
-  return intrinsicMeasure(node, max, new WeakMap())
+export function measureLayout(node: LayoutNode, max: { w: number; h: number }, context?: LayoutContext) {
+  return intrinsicMeasure(node, max, getMeasureCache(context))
 }
 
-export function layout(node: LayoutNode, outer: Rect): LayoutNode {
-  return layoutInternal(node, outer, new WeakMap())
+export function layout(node: LayoutNode, outer: Rect, context?: LayoutContext): LayoutNode {
+  return layoutInternal(node, outer, getMeasureCache(context))
+}
+
+export function rowLayout(outer: Rect, slices: LayoutSlice[], options?: LinearLayoutOptions) {
+  return linearLayout("row", outer, slices, options)
+}
+
+export function columnLayout(outer: Rect, slices: LayoutSlice[], options?: LinearLayoutOptions) {
+  return linearLayout("column", outer, slices, options)
 }

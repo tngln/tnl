@@ -1,7 +1,7 @@
 import { theme } from "../../config/theme"
 import { draw, RectOp } from "../../core/draw"
 import { AppError } from "../../core/errors"
-import { layout, measureLayout, type Rect as LayoutRect } from "../../core/layout"
+import { createLayoutContext, layout, measureLayout, type Rect as LayoutRect } from "../../core/layout"
 import { ZERO_RECT } from "../../core/rect"
 import type { Rect, Vec2 } from "../base/ui"
 import { BuilderRuntime } from "./runtime"
@@ -67,9 +67,10 @@ export class BuilderEngine {
     this.runtime.beginFrame()
     this.drawOps = []
     const ast = this.toAst(node, ctx, "root", defaultInheritedStyle())
-    const measured = measureLayout(ast, { w: size.x, h: Number.POSITIVE_INFINITY })
+    const layoutContext = createLayoutContext()
+    const measured = measureLayout(ast, { w: size.x, h: Number.POSITIVE_INFINITY }, layoutContext)
     const outer = { x: 0, y: 0, w: size.x, h: Math.max(size.y, measured.h) }
-    layout(ast, outer)
+    layout(ast, outer, layoutContext)
     this.mountAst(ctx, ast, "root")
     for (const op of this.drawOps) op(ctx)
     this.runtime.endFrame()

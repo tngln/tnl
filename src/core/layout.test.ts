@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { layout, type LayoutNode } from "./layout"
+import { columnLayout, createLayoutContext, layout, measureLayout, rowLayout, type LayoutNode } from "./layout"
 
 function leaf(id: string, w: number, h: number, style?: LayoutNode["style"]): LayoutNode {
   return {
@@ -104,5 +104,49 @@ describe("layout", () => {
     layout(root, { x: 0, y: 0, w: 100, h: 50 })
     expect(root.children?.[0].rect).toEqual({ x: 0, y: 0, w: 40, h: 20 })
     expect(root.children?.[1].rect).toEqual({ x: 90, y: 40, w: 10, h: 10 })
+  })
+
+  it("reuses measurement results when context is shared", () => {
+    let measureCalls = 0
+    const root: LayoutNode = {
+      style: { axis: "row" },
+      children: [
+        {
+          measure: () => {
+            measureCalls += 1
+            return { w: 20, h: 10 }
+          },
+        },
+      ],
+    }
+
+    const context = createLayoutContext()
+    expect(measureLayout(root, { w: 100, h: 50 }, context)).toEqual({ w: 20, h: 10 })
+    layout(root, { x: 0, y: 0, w: 100, h: 50 }, context)
+
+    expect(measureCalls).toBe(1)
+    expect(root.children?.[0].rect).toEqual({ x: 0, y: 0, w: 20, h: 50 })
+  })
+
+  it("provides row helper for fixed and flexible slices", () => {
+    const [left, gutter, right] = rowLayout(
+      { x: 10, y: 20, w: 100, h: 30 },
+      [{ fixed: 40 }, { fixed: 10 }, { flex: 1 }],
+    )
+
+    expect(left).toEqual({ x: 10, y: 20, w: 40, h: 30 })
+    expect(gutter).toEqual({ x: 50, y: 20, w: 10, h: 30 })
+    expect(right).toEqual({ x: 60, y: 20, w: 50, h: 30 })
+  })
+
+  it("provides column helper with padding and gap", () => {
+    const [header, body] = columnLayout(
+      { x: 0, y: 0, w: 80, h: 50 },
+      [{ fixed: 12 }, { flex: 1 }],
+      { padding: { l: 4, t: 2, r: 6, b: 8 }, gap: 3 },
+    )
+
+    expect(header).toEqual({ x: 4, y: 2, w: 70, h: 12 })
+    expect(body).toEqual({ x: 4, y: 17, w: 70, h: 25 })
   })
 })

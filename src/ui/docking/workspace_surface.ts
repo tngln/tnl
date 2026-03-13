@@ -3,6 +3,7 @@ import { draw, LineOp, RectOp, TextOp } from "@/core/draw"
 import { measureTextWidth } from "@/core/draw.text"
 import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "@/core/event_stream"
 import { createMachine, type Machine } from "@/core/fsm"
+import { columnLayout, rowLayout } from "@/core/layout"
 import { clamp, inflateRect, ZERO_RECT } from "@/core/rect"
 import { CursorRegion, PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "@/ui/base/ui"
 import { SurfaceRoot, ViewportElement, type Surface, type ViewportContext } from "@/ui/base/viewport"
@@ -461,8 +462,7 @@ function tabWidth(ctx: CanvasRenderingContext2D, title: string) {
 function layoutDockTree(node: DockNode | null, rect: Rect, ctx: CanvasRenderingContext2D, driver: DockWorkspaceDriver, leaves: LeafLayout[], splits: SplitLayout[]) {
   if (!node) return
   if (node.kind === "tabs") {
-    const headerRect = { x: rect.x, y: rect.y, w: rect.w, h: HEADER_H }
-    const contentRect = { x: rect.x, y: rect.y + HEADER_H, w: rect.w, h: Math.max(0, rect.h - HEADER_H) }
+    const [headerRect, contentRect] = columnLayout(rect, [{ fixed: HEADER_H }, { flex: 1 }])
     const tabs: Array<{ paneId: string; rect: Rect }> = []
     let cx = rect.x + 4
     const cy = rect.y + 2
@@ -482,18 +482,14 @@ function layoutDockTree(node: DockNode | null, rect: Rect, ctx: CanvasRenderingC
   const primary = clamp(total * clampRatio(node.ratio), MIN_PANE_EXTENT, span)
 
   if (axis === "x") {
-    const aRect = { x: rect.x, y: rect.y, w: primary, h: rect.h }
-    const gutterRect = { x: rect.x + primary, y: rect.y, w: SPLIT_GUTTER, h: rect.h }
-    const bRect = { x: gutterRect.x + gutterRect.w, y: rect.y, w: Math.max(0, rect.w - primary - SPLIT_GUTTER), h: rect.h }
+    const [aRect, gutterRect, bRect] = rowLayout(rect, [{ fixed: primary }, { fixed: SPLIT_GUTTER }, { flex: 1 }])
     splits.push({ splitId: node.id, axis, rect, gutterRect })
     layoutDockTree(node.a, aRect, ctx, driver, leaves, splits)
     layoutDockTree(node.b, bRect, ctx, driver, leaves, splits)
     return
   }
 
-  const aRect = { x: rect.x, y: rect.y, w: rect.w, h: primary }
-  const gutterRect = { x: rect.x, y: rect.y + primary, w: rect.w, h: SPLIT_GUTTER }
-  const bRect = { x: rect.x, y: gutterRect.y + gutterRect.h, w: rect.w, h: Math.max(0, rect.h - primary - SPLIT_GUTTER) }
+  const [aRect, gutterRect, bRect] = columnLayout(rect, [{ fixed: primary }, { fixed: SPLIT_GUTTER }, { flex: 1 }])
   splits.push({ splitId: node.id, axis, rect, gutterRect })
   layoutDockTree(node.a, aRect, ctx, driver, leaves, splits)
   layoutDockTree(node.b, bRect, ctx, driver, leaves, splits)
