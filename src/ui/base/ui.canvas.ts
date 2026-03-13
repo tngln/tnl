@@ -37,6 +37,10 @@ export class CanvasUI {
   private frameId = 0
   private compositor = new Compositor()
   private debugOverlay: Rect | null = null
+  private debugPaintFlash = true
+  private debugFlashEntries: Array<{ rect: Rect; startMs: number; hue: number }> = []
+  private debugFlashHue = 0
+  private readonly FLASH_DURATION_MS = 600
   private readonly onTopLevelPointerDown?: (top: UIElement, target: UIElement) => void
   private readonly removeResizeListener: () => void
   private readonly removeLostPointerCaptureListener: () => void
@@ -157,6 +161,16 @@ export class CanvasUI {
     else if (rect) this.invalidateRect(rect, { pad: 12 })
   }
 
+  /**
+   * Toggle paint-flash debug mode. When enabled, every repainted region is highlighted
+   * with a coloured semi-transparent overlay that fades out over ~600 ms. Consecutive
+   * dirty rects get different hues so simultaneous repaints are easy to distinguish.
+   */
+  setDebugPaintFlash(on: boolean) {
+    this.debugPaintFlash = on
+    if (!on) this.debugFlashEntries = []
+  }
+
   debugCompositorLayers() {
     return this.compositor.debugListLayers()
   }
@@ -200,18 +214,32 @@ export class CanvasUI {
   }
 
   private render() {
-    if (!this.dirtyFull && this.dirty.length === 0) return
+    const now = performance.now()
+
+    // Age-out expired flash entries before deciding whether there is work to do.
+    if (this.debugPaintFlash) {
+      this.debugFlashEntries = this.debugFlashEntries.filter((f) => now - f.startMs < this.FLASH_DURATION_MS)
+    }
+
+    const hasDirty = this.dirtyFull || this.dirty.length > 0
+    const hasFlashes = this.debugPaintFlash && this.debugFlashEntries.length > 0
+    if (!hasDirty && !hasFlashes) return
+
     const ctx = this.ctx
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
     const frameId = (this.frameId += 1)
     this.compositor.beginFrame(ctx, frameId)
 
     const full = { x: 0, y: 0, w: this.cssW, h: this.cssH }
-    const rects = this.dirtyFull ? [full] : this.dirty.slice()
+    const dirtyRects = this.dirtyFull ? [full] : this.dirty.slice()
     this.dirty = []
     this.dirtyFull = false
 
-    for (const r of rects) {
+    // Flash rects from previous frames must also be content-repainted each fade frame
+    // so that the prior frame's baked-in overlay is erased before we draw the new one.
+    const paintRects = hasFlashes ? [...dirtyRects, ...this.debugFlashEntries.map((f) => f.rect)] : dirtyRects
+
+    for (const r of paintRects) {
       ctx.save()
       ctx.beginPath()
       ctx.rect(r.x, r.y, r.w, r.h)
@@ -231,6 +259,42 @@ export class CanvasUI {
         ctx.restore()
       }
       ctx.restore()
+    }
+
+    if (this.debugPaintFlash) {
+      ctx.save()
+
+      // 1. Draw fading overlays for flash entries that are carrying over from previous frames.
+      for (const f of this.debugFlashEntries) {
+        const t = 1 - (now - f.startMs) / this.FLASH_DURATION_MS
+        if (t <= 0) continue
+        ctx.globalAlpha = t * 0.3
+        ctx.fillStyle = `hsl(${f.hue},100%,55%)`
+        ctx.fillRect(f.rect.x, f.rect.y, f.rect.w, f.rect.h)
+        ctx.globalAlpha = Math.min(1, t * 1.5) * 0.7
+        ctx.strokeStyle = `hsl(${f.hue},100%,55%)`
+        ctx.lineWidth = 1
+        ctx.strokeRect(f.rect.x + 0.5, f.rect.y + 0.5, Math.max(0, f.rect.w - 1), Math.max(0, f.rect.h - 1))
+      }
+
+      // 2. Record and immediately draw fresh (full-opacity) overlays for newly dirty rects.
+      for (const r of dirtyRects) {
+        this.debugFlashHue = (this.debugFlashHue + 60) % 360
+        const hue = this.debugFlashHue
+        this.debugFlashEntries.push({ rect: r, startMs: now, hue })
+        ctx.globalAlpha = 0.3
+        ctx.fillStyle = `hsl(${hue},100%,55%)`
+        ctx.fillRect(r.x, r.y, r.w, r.h)
+        ctx.globalAlpha = 0.7
+        ctx.strokeStyle = `hsl(${hue},100%,55%)`
+        ctx.lineWidth = 1
+        ctx.strokeRect(r.x + 0.5, r.y + 0.5, Math.max(0, r.w - 1), Math.max(0, r.h - 1))
+      }
+
+      ctx.restore()
+
+      // Keep the fade animation going as long as any flash entry is alive.
+      if (this.debugFlashEntries.length > 0) this.scheduleRender()
     }
   }
 
