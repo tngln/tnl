@@ -736,7 +736,7 @@ export const ExplorerSurface = defineSurface({
 
       const content =
         viewMode.get() === "list" ? (
-          <VStack key="explorer.list" style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
+          <VStack key="explorer.list" style={{ padding: { l: 2, t: 2, r: 14, b: 2 } }}>
             {items.map((item) => {
               if (item.kind === "dir") {
                 return (
@@ -770,7 +770,7 @@ export const ExplorerSurface = defineSurface({
             })}
           </VStack>
         ) : (
-          <VStack key="explorer.thumbs" style={{ axis: "column", gap: 8, padding: { l: 6, t: 6, r: 14, b: 6 }, w: "auto", h: "auto" }}>
+          <VStack key="explorer.thumbs" style={{ gap: 8, padding: { l: 6, t: 6, r: 14, b: 6 } }}>
             {(() => {
               const files = items.filter((i) => i.kind === "file") as Extract<ExplorerItem, { kind: "file" }>[]
               const cols = 4
@@ -779,7 +779,7 @@ export const ExplorerSurface = defineSurface({
               const eager = files.slice(0, 24)
               for (const item of eager) if (isVideoEntry(item.entry)) enqueueThumb(item.entry)
               return rows.map((row, ridx) => (
-                <HStack key={`explorer.thumb.row.${ridx}`} style={{ axis: "row", gap: 8, w: "auto", h: "auto" }}>
+                <HStack key={`explorer.thumb.row.${ridx}`} style={{ gap: 8 }}>
                   {row.map((item) => {
                     const e = item.entry
                     const isSelected = selected?.kind === "file" && selected.path === e.path
@@ -789,14 +789,14 @@ export const ExplorerSurface = defineSurface({
                     return (
                       <Stack
                         key={`explorer.thumb.${e.path}`}
-                        style={{ fixed: 168, padding: 6, w: "auto", h: "auto" }}
+                        style={{ fixed: 168, padding: 6 }}
                         box={{
                           fill: isSelected ? theme.colors.selectionFill : theme.colors.white02,
                           stroke: isSelected ? theme.colors.selectionStroke : theme.colors.white08,
                           radius: 8,
                         }}
                       >
-                        <VStack key={`explorer.thumb.inner.${e.id}`} style={{ axis: "column", gap: 6, w: "auto", h: "auto" }}>
+                        <VStack key={`explorer.thumb.inner.${e.id}`} style={{ gap: 6 }}>
                           <Paint
                             key={`explorer.thumb.paint.${e.id}`}
                             measure={(max) => ({ w: Math.min(156, max.w), h: 88 })}
@@ -851,14 +851,14 @@ export const ExplorerSurface = defineSurface({
       const details = (() => {
         if (!selected) {
           return (
-            <VStack key="explorer.details.empty" style={{ axis: "column", gap: 8, padding: 10, w: "auto", h: "auto" }}>
+            <VStack key="explorer.details.empty" style={{ gap: 8, padding: 10 }}>
               <Text tone="muted">No selection</Text>
             </VStack>
           )
         }
         if (selected.kind === "dir") {
           return (
-            <VStack key="explorer.details.dir" style={{ axis: "column", gap: 8, padding: 10, w: "auto", h: "auto" }}>
+            <VStack key="explorer.details.dir" style={{ gap: 8, padding: 10 }}>
               <Text weight="bold">{selected.name}</Text>
               <Text tone="muted" size="meta">{selected.path}</Text>
               <Button text="Open" title="Open folder" style={{ fixed: 120 }} onClick={() => void enterSelectedDir()} />
@@ -888,7 +888,7 @@ export const ExplorerSurface = defineSurface({
             ? videoMeta.hasAudio ? "yes" : "no"
             : "-"
         return (
-          <VStack key="explorer.details.file" style={{ axis: "column", gap: 10, padding: 10, w: "auto", h: "auto" }}>
+          <VStack key="explorer.details.file" style={{ gap: 10, padding: 10 }}>
             <Paint
               key="explorer.details.preview"
               measure={(max) => ({ w: Math.min(240, max.w), h: 120 })}
@@ -916,7 +916,7 @@ export const ExplorerSurface = defineSurface({
               }}
             />
             {thumbError ? (
-              <VStack style={{ axis: "column", gap: 6, w: "auto", h: "auto" }}>
+              <VStack style={{ gap: 6 }}>
                 <Text tone="muted" size="meta">{thumbError}</Text>
                 <Button text="Retry Thumb" title="Retry thumbnail" style={{ fixed: 120 }} onClick={() => retryThumb(e, { force: true })} />
               </VStack>
@@ -925,11 +925,11 @@ export const ExplorerSurface = defineSurface({
             ) : isVideoEntry(e) && st.state !== "ready" ? (
               <Button text="Build Thumb" title="Build thumbnail" style={{ fixed: 120 }} onClick={() => retryThumb(e, { force: true })} />
             ) : null}
-            <VStack style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
+            <VStack style={{ gap: 4 }}>
               <Text weight="bold">{e.name}</Text>
               <Text tone="muted" size="meta">{e.path}</Text>
             </VStack>
-            <VStack style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
+            <VStack style={{ gap: 4 }}>
               <Text size="meta" tone="muted">{`Type: ${e.type}`}</Text>
               <Text size="meta" tone="muted">{`Size: ${formatBytes(e.size)}`}</Text>
               <Text size="meta" tone="muted">{`Created: ${formatLocalTime(e.createdAt)}`}</Text>
@@ -997,11 +997,11 @@ export const ExplorerSurface = defineSurface({
               { key: "delete", icon: "X", text: "Delete", title: "Delete selected", onClick: () => void deleteSelected(), disabled: busy || !selectedIsFile },
             ]}
           />
-          <HStack key="explorer.body" style={{ axis: "row", gap: theme.spacing.sm, fill: true, w: "auto", h: "auto" }}>
+          <HStack key="explorer.body" style={{ gap: theme.spacing.sm, fill: true }}>
             <PanelScroll key="explorer.content">{content}</PanelScroll>
             <VStack
               key="explorer.details"
-              style={{ axis: "column", gap: 0, fixed: 280, w: "auto", h: "auto" }}
+              style={{ fixed: 280 }}
               box={{ fill: theme.colors.white02, stroke: theme.colors.white08, radius: 10 }}
             >
               {details}

@@ -78,7 +78,7 @@ const InspectorPanelSurface = defineSurface({
             ]}
           />
           <PanelSection title="Selection" key="inspector.selection">
-            <VStack style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
+            <VStack style={{ gap: 4 }}>
               <Text weight="bold">{selected?.label ?? "No selection"}</Text>
               <Text tone="muted" size="meta">{selected ? describeNode(selected) : tree ? "Select a node to see details." : "Inspector runtime tree is not connected."}</Text>
               <Text tone="muted" size="meta">{selected ? `Listeners: ${describeListeners(selected)}` : "Listeners: -"}</Text>
@@ -101,7 +101,7 @@ const InspectorPanelSurface = defineSurface({
                 }}
               />
             ) : (
-              <VStack style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
+              <VStack style={{ padding: { l: 2, t: 2, r: 14, b: 2 } }}>
                 <Text tone="muted" size="meta">No runtime tree available</Text>
               </VStack>
             )}

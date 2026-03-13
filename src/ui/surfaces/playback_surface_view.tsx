@@ -95,13 +95,13 @@ export const PlaybackSurface = defineSurface({
             ]}
           />
           <PanelScroll key="playback.scroll">
-            <HStack style={{ align: "start", gap: 10, w: "auto", h: "auto" }}>
-              <VStack style={{ axis: "column", gap: 10, fixed: 284, w: "auto", h: "auto" }}>
+            <HStack style={{ align: "start", gap: 10 }}>
+              <VStack style={{ gap: 10, fixed: 284 }}>
                 <PanelSection key="playback.media" title={`Media (${state.entries.length})`}>
                   <Text tone="muted" size="meta">OPFS source list stays independently scrollable so the panel remains usable even with many files.</Text>
                   <PanelScroll key="playback.media.scroll" style={{ fixed: 300, margin: { t: 8, r: 0, b: 0, l: 0 } }}>
                     {state.entries.length ? (
-                      <VStack style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
+                      <VStack style={{ padding: { l: 2, t: 2, r: 14, b: 2 } }}>
                         {state.entries.map((entry) => (
                           <ListRow
                             key={`playback.entry.${entry.path}`}
@@ -113,7 +113,7 @@ export const PlaybackSurface = defineSurface({
                         ))}
                       </VStack>
                     ) : (
-                      <VStack style={{ axis: "column", gap: 4, padding: { l: 4, t: 4, r: 14, b: 4 }, w: "auto", h: "auto" }}>
+                      <VStack style={{ gap: 4, padding: { l: 4, t: 4, r: 14, b: 4 } }}>
                         <Text tone="muted" size="meta">No video assets found in OPFS.</Text>
                       </VStack>
                     )}
@@ -121,7 +121,7 @@ export const PlaybackSurface = defineSurface({
                 </PanelSection>
 
                 <PanelSection key="playback.source" title="Source Details">
-                  <VStack style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
+                  <VStack style={{ gap: 4 }}>
                     <Text weight="bold">{selectedLabel}</Text>
                     <Text tone="muted" size="meta">{state.selectedPath ?? "No source selected"}</Text>
                     <Text tone="muted" size="meta">Current timecode: {timecode}</Text>
@@ -129,11 +129,10 @@ export const PlaybackSurface = defineSurface({
                 </PanelSection>
               </VStack>
 
-              <VStack style={{ axis: "column", gap: 10, grow: 1, basis: 0, fill: true, w: "auto", h: "auto" }}>
+              <VStack style={{ gap: 10, grow: 1, basis: 0, fill: true }}>
                 <PanelSection key="playback.preview" title="Preview">
                   <Paint
                     key="playback.preview.canvas"
-                    style={{ w: "auto", h: "auto" }}
                     box={{ fill: "#06090f", stroke: theme.colors.white08, radius: 10 }}
                     measure={(max) => ({ w: max.w, h: Math.max(220, Math.min(360, Math.floor(max.w * 0.5625))) })}
                     draw={(ctx, rect) => {
@@ -234,7 +233,7 @@ export const PlaybackSurface = defineSurface({
                 </PanelSection>
 
                 <PanelSection key="playback.diagnostics" title="Diagnostics">
-                  <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                  <VStack>
                     {diagnostics.map((row) => (
                       <ListRow key={row.id} leftText={row.left} rightText={row.right} />
                     ))}
@@ -257,7 +256,7 @@ export const PlaybackSurface = defineSurface({
                       />
                     ))}
                   </HStack>
-                  <VStack style={{ axis: "column", gap: 4, margin: { t: 10, r: 0, b: 0, l: 0 }, w: "auto", h: "auto" }}>
+                  <VStack style={{ gap: 4, margin: { t: 10, r: 0, b: 0, l: 0 } }}>
                     {logEntries.length ? (
                       logEntries.map((entry) => (
                         <Text key={`playback.log.${entry.id}`} color={logColor(entry.level)} size="meta">{formatDebugEntry(entry)}</Text>

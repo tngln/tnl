@@ -70,7 +70,7 @@ describe("surface builder", () => {
   it("keeps row items visible when nested in row containers", () => {
     const surface = new BuilderSurface({
       id: "Builder.RowItem.Nesting",
-      build: () => column([row([rowItemNode({ key: "r1", leftText: "Nested" })])], { axis: "column" }),
+      build: () => column([row([rowItemNode({ key: "r1", leftText: "Nested" })])]),
     })
     const ctx = fakeCtx()
     const viewport = {
@@ -101,7 +101,7 @@ describe("surface builder", () => {
     try {
       const surface = new BuilderSurface({
         id: "Builder.RowItem.Guard",
-        build: () => column([row([rowItemNode({ key: "r1", leftText: "Nested" })])], { axis: "column" }),
+        build: () => column([row([rowItemNode({ key: "r1", leftText: "Nested" })])]),
       })
       withFakeDocument(() => {
         expect(() => surface.contentSize({ x: 240, y: 120 })).toThrow()
@@ -210,12 +210,12 @@ describe("surface builder", () => {
   it("applies inherited text style from parent containers", () => {
     const defaultSurface = new BuilderSurface({
       id: "Builder.Inherit.Default",
-      build: () => column([textNode("MMMM")], { axis: "column" }),
+      build: () => column([textNode("MMMM")]),
     })
     const inheritedSurface = new BuilderSurface({
       id: "Builder.Inherit.Custom",
       build: () =>
-        column([textNode("MMMM")], { axis: "column" }, {
+        column([textNode("MMMM")], undefined, {
           provideStyle: { text: { fontSize: 20, lineHeight: 24 } },
         }),
     })

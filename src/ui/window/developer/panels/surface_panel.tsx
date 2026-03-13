@@ -117,7 +117,7 @@ export const SurfacePanelSurface = defineSurface<Props>({
           </PanelToolbar>
 
           <PanelSection title="Selection" key="surface.selection">
-            <VStack style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
+            <VStack style={{ gap: 4 }}>
               {selectedLayer ? (
                 <Fragment>
                   <Text weight="bold">{selectedLayer.id}</Text>
@@ -134,7 +134,7 @@ export const SurfacePanelSurface = defineSurface<Props>({
           </PanelSection>
 
           <PanelScroll key="surface.scroll">
-            <VStack style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 2, b: 2 }, w: "auto", h: "auto" }}>
+            <VStack style={{ padding: { l: 2, t: 2, r: 2, b: 2 } }}>
               {visible.map((l: DebugLayerInfo) => {
                 const right = `${l.tag?.surfaceId ? l.tag.surfaceId : "-"} · ${l.wCss}×${l.hCss}@${l.dpr}`
                 return (

@@ -22,13 +22,13 @@ export function createInfoPanel(spec: InfoPanelSpec): DeveloperPanelSpec {
           <Text key={`${spec.id}.meta`} tone="muted" size="meta">Builder Panel</Text>
         </PanelToolbar>
         <PanelScroll key={`${spec.id}.scroll`}>
-          <VStack style={{ axis: "column", padding: 6, gap: 10, w: "auto", h: "auto" }}>
+          <VStack style={{ padding: 6, gap: 10 }}>
               <PanelSection title="Status" key={`${spec.id}.status`}>
                 <RichText key={`${spec.id}.summary`} tone="muted">{spec.summary}</RichText>
               </PanelSection>
             {spec.notes && spec.notes.length > 0 ? (
               <PanelSection title="Next" key={`${spec.id}.next`}>
-                <VStack style={{ axis: "column", gap: 6, w: "auto", h: "auto" }}>
+                <VStack style={{ gap: 6 }}>
                   {spec.notes.map((note, index) => (
                     <RichText
                       key={`${spec.id}.note.${index}`}

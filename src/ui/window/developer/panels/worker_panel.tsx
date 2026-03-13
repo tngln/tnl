@@ -75,9 +75,9 @@ const WorkerPanelSurface = defineSurface({
             ]}
           />
           <PanelScroll key="worker.scroll">
-            <VStack style={{ axis: "column", padding: 6, gap: 10, w: "auto", h: "auto" }}>
+            <VStack style={{ padding: 6, gap: 10 }}>
               <PanelSection key="worker.summary" title="Summary">
-                <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                <VStack>
                   <ListRow key="worker.summary.total" leftText="Total" rightText={String(workers.length)} />
                   <ListRow key="worker.summary.running" leftText="Running" rightText={String(running)} />
                   <ListRow key="worker.summary.stopped" leftText="Stopped" rightText={String(stopped)} />
@@ -87,7 +87,7 @@ const WorkerPanelSurface = defineSurface({
 
               <PanelSection key="worker.list" title="Workers">
                 {workers.length ? (
-                  <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                  <VStack>
                     {workers.map((w) => (
                       <ListRow
                         key={`worker.row.${w.id}`}
@@ -109,7 +109,7 @@ const WorkerPanelSurface = defineSurface({
               <PanelSection key="worker.selected" title="Selected">
                 {selected ? (
                   <Fragment>
-                    <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                    <VStack>
                       <ListRow key="worker.sel.id" leftText="Id" rightText={selected.id} />
                       <ListRow key="worker.sel.kind" leftText="Kind" rightText={selected.kind} />
                       <ListRow key="worker.sel.name" leftText="Name" rightText={selected.name} />

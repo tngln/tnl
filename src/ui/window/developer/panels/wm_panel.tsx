@@ -59,7 +59,7 @@ const WmPanelSurface = defineSurface({
             ]}
           />
           <PanelScroll key="wm.list">
-            <VStack style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
+            <VStack style={{ padding: { l: 2, t: 2, r: 14, b: 2 } }}>
               {windows.map((win) => (
                 <ListRow
                   key={`wm.row.${win.id}`}

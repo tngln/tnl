@@ -218,7 +218,7 @@ export const StoragePanelSurface = defineSurface({
             ]}
           />
           <PanelScroll key="storage.list">
-            <VStack style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
+            <VStack style={{ padding: { l: 2, t: 2, r: 14, b: 2 } }}>
               {entries.map((entry) => (
                 <ListRow
                   key={`storage.row.${entry.path}`}

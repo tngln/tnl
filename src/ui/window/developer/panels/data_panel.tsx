@@ -103,7 +103,7 @@ export const DataPanelSurface = defineSurface({
             <Text key="data.meta" tone="muted" size="meta">{`${items.length} roots`}</Text>
           </PanelToolbar>
           <PanelSection title="Selection" key="data.selection">
-            <VStack style={{ axis: "column", gap: 4, w: "auto", h: "auto" }}>
+            <VStack style={{ gap: 4 }}>
               {selected ? (
                 <Fragment>
                   <Text weight="bold">{selected.debugLabel ?? selected.name ?? `signal#${selected.id}`}</Text>
@@ -132,7 +132,7 @@ export const DataPanelSurface = defineSurface({
                 }}
               />
             ) : (
-              <VStack style={{ axis: "column", gap: 0, padding: { l: 2, t: 2, r: 14, b: 2 }, w: "auto", h: "auto" }}>
+              <VStack style={{ padding: { l: 2, t: 2, r: 14, b: 2 } }}>
                 <Text tone="muted" size="meta">No signals</Text>
               </VStack>
             )}

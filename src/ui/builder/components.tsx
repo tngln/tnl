@@ -313,7 +313,7 @@ export function ListRow(props: RowItemProps) {
 
 export function ScrollArea(props: ScrollAreaProps) {
   const children = resolveChildren(props)
-  const child = children.length <= 1 ? (children[0] ?? spacer()) : column(children, { axis: "column", gap: 0, w: "auto", h: "auto" })
+  const child = children.length <= 1 ? (children[0] ?? spacer()) : column(children)
   return scrollAreaNode(child, common(props))
 }
 
@@ -362,7 +362,7 @@ export function ToolbarRow(props: ToolbarRowProps) {
 export function PanelColumn(props: PanelContainerProps) {
   return Column({
     ...props,
-    style: mergeLayout({ axis: "column", padding: theme.spacing.sm, gap: theme.spacing.sm, w: "auto", h: "auto" }, props.style),
+    style: mergeLayout({ padding: theme.spacing.sm, gap: theme.spacing.sm }, props.style),
     box: props.box,
     provideStyle: mergeInherited(
       {

@@ -10,7 +10,7 @@ export const JsxDemoSurface = defineSurface({
     const clicks = signal(0, { debugLabel: "jsx_demo.clicks" })
 
     return () => (
-      <VStack style={{ axis: "column", padding: theme.spacing.md, gap: theme.spacing.md, w: "auto", h: "auto" }}>
+      <VStack style={{ padding: theme.spacing.md, gap: theme.spacing.md }}>
         <ToolbarRow>
           <Text color={theme.colors.textPrimary} emphasis={{ bold: true }}>JSX Builder Demo</Text>
           <Spacer style={{ fill: true }} />

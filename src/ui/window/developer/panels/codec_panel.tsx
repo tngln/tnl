@@ -238,9 +238,9 @@ const CodecPanelSurface = defineSurface({
             ]}
           />
           <PanelScroll key="codec.scroll">
-            <VStack style={{ axis: "column", padding: 6, gap: 10, w: "auto", h: "auto" }}>
+            <VStack style={{ padding: 6, gap: 10 }}>
               <PanelSection key="info.session" title="Session">
-                <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                <VStack>
                   {sessionInfoRows(startedAtMs).map((row) => (
                     <ListRow key={row.id} leftText={row.label} rightText={row.right} />
                   ))}
@@ -249,7 +249,7 @@ const CodecPanelSurface = defineSurface({
 
               <PanelSection key="info.context" title="Developer Context">
                 {developerContextRows(ctx).length ? (
-                  <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                  <VStack>
                     {developerContextRows(ctx).map((row) => (
                       <ListRow key={row.id} leftText={row.label} rightText={row.right} />
                     ))}
@@ -260,7 +260,7 @@ const CodecPanelSurface = defineSurface({
               </PanelSection>
 
               <PanelSection key="codec.platform" title="Platform">
-                <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                <VStack>
                   {navigatorInfoRows().map((row) => (
                     <ListRow key={row.id} leftText={row.label} rightText={row.right} />
                   ))}
@@ -268,7 +268,7 @@ const CodecPanelSurface = defineSurface({
               </PanelSection>
 
               <PanelSection key="codec.runtime" title="Runtime APIs">
-                <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                <VStack>
                   {runtimeCapabilityRows().map((row) => (
                     <ListRow key={row.id} leftText={row.label} rightText={row.right} />
                   ))}
@@ -277,7 +277,7 @@ const CodecPanelSurface = defineSurface({
 
               <PanelSection key="codec.instances" title="Active Instances">
                 {activeInstances.length > 0 ? (
-                  <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                  <VStack>
                     {runtimeInstanceRows(activeInstances).map((row) => (
                       <ListRow key={row.id} leftText={row.left} rightText={row.right} />
                     ))}
@@ -288,7 +288,7 @@ const CodecPanelSurface = defineSurface({
               </PanelSection>
 
               <PanelSection key="codec.video.decode" title="Video Decode Probe">
-                <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                <VStack>
                   {videoDecoderRows.map((row) => (
                     <ListRow key={row.id} leftText={row.label} rightText={row.detail} />
                   ))}
@@ -296,7 +296,7 @@ const CodecPanelSurface = defineSurface({
               </PanelSection>
 
               <PanelSection key="codec.video.encode" title="Video Encode Probe">
-                <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                <VStack>
                   {videoEncoderRows.map((row) => (
                     <ListRow key={row.id} leftText={row.label} rightText={row.detail} />
                   ))}
@@ -304,7 +304,7 @@ const CodecPanelSurface = defineSurface({
               </PanelSection>
 
               <PanelSection key="codec.audio.decode" title="Audio Decode Probe">
-                <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                <VStack>
                   {audioDecoderRows.map((row) => (
                     <ListRow key={row.id} leftText={row.label} rightText={row.detail} />
                   ))}
@@ -312,7 +312,7 @@ const CodecPanelSurface = defineSurface({
               </PanelSection>
 
               <PanelSection key="codec.audio.encode" title="Audio Encode Probe">
-                <VStack style={{ axis: "column", gap: 0, w: "auto", h: "auto" }}>
+                <VStack>
                   {audioEncoderRows.map((row) => (
                     <ListRow key={row.id} leftText={row.label} rightText={row.detail} />
                   ))}
