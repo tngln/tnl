@@ -42,14 +42,7 @@ export class MenuBar extends UIElement {
     this.topLayer = opts.topLayer
     this.menuId = `menubar:${opts.id}`
     this.stack = new MenuStack({ id: this.menuId, topLayer: this.topLayer, viewport: () => this.topLayer.host.bounds() })
-  }
-
-  bounds(): Rect {
-    return this.rect()
-  }
-
-  protected containsPoint(p: Vec2) {
-    return pointInRect(p, this.bounds())
+    this.setBounds(this.rect)
   }
 
   private syncOpen() {

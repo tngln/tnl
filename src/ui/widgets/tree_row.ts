@@ -45,6 +45,17 @@ export class TreeRow extends UIElement {
   private hover = false
   private readonly press = createPressMachine()
 
+  constructor() {
+    super()
+    this.setBounds(
+      () => this.layout.rect,
+      () => {
+        const r = this.layout.rect
+        return this.activeValue && r.w > 0 && r.h > 0
+      },
+    )
+  }
+
   set(layout: TreeRowLayout, handlers?: { onSelect?: () => void; onToggle?: () => void }, active?: boolean) {
     this.layout = layout
     this.onSelect = handlers?.onSelect
@@ -52,22 +63,11 @@ export class TreeRow extends UIElement {
     if (active !== undefined) this.activeValue = active
   }
 
-  bounds(): Rect {
-    const r = this.layout.rect
-    if (r.w <= 0 || r.h <= 0) return ZERO_RECT
-    if (!this.activeValue) return ZERO_RECT
-    return r
-  }
-
   disclosureRect() {
     const r = this.layout.rect
     const x = r.x + TREE_ROW_LEFT_PAD + Math.max(0, this.layout.depth) * TREE_ROW_INDENT_STEP
     const y = r.y + Math.floor((r.h - TREE_ROW_DISCLOSURE_SLOT) / 2)
     return { x, y, w: TREE_ROW_DISCLOSURE_SLOT, h: TREE_ROW_DISCLOSURE_SLOT }
-  }
-
-  protected containsPoint(p: { x: number; y: number }) {
-    return pointInRect(p, this.bounds())
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {

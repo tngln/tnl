@@ -25,10 +25,7 @@ export class MenuStack extends UIElement {
     this.id = opts.id
     this.topLayer = opts.topLayer
     this.viewport = opts.viewport
-  }
-
-  bounds(): Rect {
-    return this.viewport()
+    this.setBounds(this.viewport)
   }
 
   hitTest(p: Vec2, ctx?: CanvasRenderingContext2D) {
@@ -105,4 +102,3 @@ export class MenuStack extends UIElement {
     this.topLayer.open(this.id, this)
   }
 }
-

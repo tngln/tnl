@@ -59,6 +59,7 @@ export class Scrollbar extends UIElement {
   }) {
     super()
     this.update(opts)
+    this.setBounds(() => this.rectValue, () => !this.hidden())
     this.z = 40
     this.machine = createMachine<ScrollbarState, ScrollbarEvent, ScrollbarContext>({
       initial: "idle",
@@ -209,15 +210,6 @@ export class Scrollbar extends UIElement {
       }
       this.machine.send({ type: "CANCEL", reason: event.reason })
     })
-  }
-
-  bounds(): Rect {
-    if (this.hidden()) return ZERO_RECT
-    return this.rectValue
-  }
-
-  protected containsPoint(p: Vec2) {
-    return pointInRect(p, this.bounds())
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {

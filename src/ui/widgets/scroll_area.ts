@@ -23,6 +23,7 @@ export class ScrollArea extends UIElement {
 
   constructor(private readonly id: string) {
     super()
+    this.setBounds(() => this.rect, () => this.active)
   }
 
   private maxScroll() {
@@ -101,11 +102,6 @@ export class ScrollArea extends UIElement {
     this.rect = ZERO_RECT
     this.active = false
     this.contentSurface?.setNode(null)
-  }
-
-  bounds() {
-    if (!this.active) return ZERO_RECT
-    return this.rect
   }
 }
 

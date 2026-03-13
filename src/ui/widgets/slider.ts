@@ -1,7 +1,7 @@
 import { theme } from "@/config/theme"
 import { draw, Line, RRect } from "@/core/draw"
 import { clamp, type Rect, ZERO_RECT } from "@/core/rect"
-import { PointerUIEvent, pointInRect, UIElement, type Vec2 } from "@/ui/base/ui"
+import { PointerUIEvent, UIElement, type Vec2 } from "@/ui/base/ui"
 import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 
 type Axis = "x" | "y"
@@ -35,6 +35,7 @@ export class Slider extends UIElement {
   }) {
     super()
     this.update(opts)
+    this.setBounds(() => this.rectValue, () => this.activeValue)
     this.z = 20
   }
 
@@ -60,15 +61,6 @@ export class Slider extends UIElement {
     this.disabledValue = opts.disabled ? opts.disabled() : false
     this.thumbSize = Math.max(10, opts.thumbSize ?? 12)
     this.trackThickness = Math.max(3, opts.trackThickness ?? 4)
-  }
-
-  bounds(): Rect {
-    if (!this.activeValue) return ZERO_RECT
-    return this.rectValue
-  }
-
-  protected containsPoint(p: Vec2) {
-    return this.activeValue && pointInRect(p, this.bounds())
   }
 
   private interactive() {

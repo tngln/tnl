@@ -45,14 +45,7 @@ export class Menu extends UIElement {
     this.onSelect = opts.onSelect ?? null
     this.onDismiss = opts.onDismiss ?? null
     this.onHoverItem = opts.onHoverItem ?? null
-  }
-
-  bounds(): Rect {
-    return this.rect()
-  }
-
-  protected containsPoint(p: Vec2) {
-    return pointInRect(p, this.bounds())
+    this.setBounds(this.rect)
   }
 
   private selectableIndexFromPoint(p: Vec2) {

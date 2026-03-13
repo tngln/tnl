@@ -5,7 +5,7 @@ import { signal, type Signal } from "@/core/reactivity"
 import { toGetter, ZERO_RECT, type Rect } from "@/core/rect"
 import { getTextInputBridge, type TextInputBridge } from "@/platform/web"
 import { createMeasureContext } from "@/platform/web/canvas"
-import { CursorRegion, KeyUIEvent, PointerUIEvent, UIElement, pointInRect, type Vec2 } from "@/ui/base/ui"
+import { CursorRegion, KeyUIEvent, PointerUIEvent, UIElement } from "@/ui/base/ui"
 import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 
 const TEXTBOX_HEIGHT = theme.ui.controls.inputHeight
@@ -57,6 +57,7 @@ export class TextBox extends UIElement {
     this.value = opts.value
     this.inputBridge = opts.inputBridge ?? getTextInputBridge()
     this.update(opts)
+    this.setBounds(() => this.rectValue, () => this.activeValue)
     this.add(
       new CursorRegion({
         rect: () => this.bounds(),
@@ -80,15 +81,6 @@ export class TextBox extends UIElement {
     this.activeValue = opts.active ? opts.active() : true
     this.disabledValue = opts.disabled ? opts.disabled() : false
     if (opts.inputBridge) this.inputBridge = opts.inputBridge
-  }
-
-  bounds(): Rect {
-    if (!this.activeValue) return ZERO_RECT
-    return this.rectValue
-  }
-
-  protected containsPoint(p: Vec2) {
-    return pointInRect(p, this.bounds())
   }
 
   canFocus() {

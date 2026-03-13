@@ -1,7 +1,7 @@
-import { ZERO_RECT, type Rect } from "@/core/rect"
+import type { Rect } from "@/core/rect"
 import type { InteractionCancelReason } from "@/core/event_stream"
 import { createPressMachine } from "@/core/fsm"
-import { PointerUIEvent, UIElement, pointInRect, type DebugEventListenerSnapshot, type Vec2 } from "@/ui/base/ui"
+import { PointerUIEvent, UIElement, type DebugEventListenerSnapshot } from "@/ui/base/ui"
 
 /**
  * Shared interactive state mixin for widgets that have hover/down/disabled/active states.
@@ -20,19 +20,11 @@ export class InteractiveElement extends UIElement {
     this._rect = opts.rect
     this._active = opts.active ?? (() => true)
     this._disabled = opts.disabled ?? (() => false)
+    this.setBounds(this._rect, this._active)
   }
 
   protected interactive() {
     return this._active() && !this._disabled()
-  }
-
-  bounds(): Rect {
-    if (!this._active()) return ZERO_RECT
-    return this._rect()
-  }
-
-  protected containsPoint(p: Vec2) {
-    return pointInRect(p, this.bounds())
   }
 
   onPointerEnter() {

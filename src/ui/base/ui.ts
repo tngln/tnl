@@ -428,7 +428,24 @@ export abstract class UIElement {
   z = 0
   private rt: { clip?: Rect; compositor?: Compositor; frameId: number; dpr: number; invalidateRect?: (rect: Rect, opts?: { pad?: number; force?: boolean }) => void } | null = null
 
-  abstract bounds(): Rect
+  protected boundsSpec: Rect | (() => Rect) | null = null
+  protected boundsWhen: (() => boolean) | null = null
+
+  protected setBounds(spec: Rect | (() => Rect), when?: () => boolean) {
+    this.boundsSpec = spec
+    this.boundsWhen = when ?? null
+  }
+
+  protected clearBounds() {
+    this.boundsSpec = null
+    this.boundsWhen = null
+  }
+
+  bounds(): Rect {
+    if (!this.boundsSpec) return ZERO_RECT
+    if (this.boundsWhen && !this.boundsWhen()) return ZERO_RECT
+    return typeof this.boundsSpec === "function" ? this.boundsSpec() : this.boundsSpec
+  }
   
   protected containsPoint(p: Vec2, _ctx?: CanvasRenderingContext2D) {
     return pointInRect(p, this.bounds())
@@ -594,15 +611,7 @@ export class CursorRegion extends UIElement {
     const cursor = opts.cursor
     this.cursor = typeof cursor === "function" ? () => cursor() : () => cursor
     this.active = opts.active ?? (() => true)
-  }
-
-  bounds(): Rect {
-    if (!this.active()) return ZERO_RECT
-    return this.rect()
-  }
-
-  protected containsPoint(p: Vec2) {
-    return this.active() && pointInRect(p, this.rect())
+    this.setBounds(this.rect, this.active)
   }
 
   hitTest(_p: Vec2, _ctx?: CanvasRenderingContext2D): UIElement | null {

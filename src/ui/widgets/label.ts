@@ -1,6 +1,6 @@
 import { draw, Text } from "../../core/draw"
 import { font, theme } from "../../config/theme"
-import { ZERO_RECT, toGetter, type Rect } from "../../core/rect"
+import { toGetter, type Rect } from "../../core/rect"
 import { UIElement } from "../base/ui"
 
 export class Label extends UIElement {
@@ -15,11 +15,7 @@ export class Label extends UIElement {
     this.text = toGetter(opts.text)
     this.color = toGetter(opts.color, theme.colors.textMuted)
     this.active = opts.active ?? (() => true)
-  }
-
-  bounds(): Rect {
-    if (!this.active()) return ZERO_RECT
-    return this.rect()
+    this.setBounds(this.rect, this.active)
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {

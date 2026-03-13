@@ -4,7 +4,7 @@ import { truncateToWidth } from "@/core/draw.text"
 import type { InteractionCancelReason } from "@/core/event_stream"
 import { createPressMachine } from "@/core/fsm"
 import { ZERO_RECT } from "@/core/rect"
-import { PointerUIEvent, UIElement, pointInRect, type Rect } from "@/ui/base/ui"
+import { PointerUIEvent, UIElement, type Rect } from "@/ui/base/ui"
 import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 
 export type RowVariant = "group" | "item"
@@ -24,19 +24,20 @@ export class ListRow extends UIElement {
   private hover = false
   private readonly press = createPressMachine()
 
+  constructor() {
+    super()
+    this.setBounds(
+      () => this.layout.rect,
+      () => {
+        const r = this.layout.rect
+        return r.w > 0 && r.h > 0
+      },
+    )
+  }
+
   set(layout: ListRowLayout, onClick?: () => void) {
     this.layout = layout
     this.onClick = onClick
-  }
-
-  bounds(): Rect {
-    const r = this.layout.rect
-    if (r.w <= 0 || r.h <= 0) return ZERO_RECT
-    return r
-  }
-
-  protected containsPoint(p: { x: number; y: number }) {
-    return pointInRect(p, this.bounds())
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {

@@ -110,6 +110,7 @@ export class ViewportElement extends UIElement {
     else this.scroll = () => ({ x: 0, y: 0 })
     this.active = opts.options?.active ?? (() => true)
     this.surfaceBridge = new SurfaceEventBridge(this)
+    this.setBounds(this.rect, this.active)
   }
 
   setTarget(s: Surface | null) {
@@ -134,11 +135,6 @@ export class ViewportElement extends UIElement {
     if (!this.active() || !this.target) return children
     children.push(surfaceDebugSnapshot(this.target, this.viewportCtx()))
     return children
-  }
-
-  bounds(): BoundsRect {
-    if (!this.active()) return ZERO_RECT
-    return this.rect()
   }
 
   private viewportCtx(): ViewportContext {

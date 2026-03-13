@@ -1,5 +1,5 @@
 import { createRichTextBlock, type RichTextSpan, type RichTextStyle } from "../../core/draw.text"
-import { ZERO_RECT, type Rect } from "../../core/rect"
+import type { Rect } from "../../core/rect"
 import { UIElement } from "../base/ui"
 
 export class Paragraph extends UIElement {
@@ -12,11 +12,7 @@ export class Paragraph extends UIElement {
     this.rect = opts.rect
     this.block = createRichTextBlock(opts.spans, opts.style, { align: "start", wrap: "word" })
     this.active = opts.active ?? (() => true)
-  }
-
-  bounds(): Rect {
-    if (!this.active()) return ZERO_RECT
-    return this.rect()
+    this.setBounds(this.rect, this.active)
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {

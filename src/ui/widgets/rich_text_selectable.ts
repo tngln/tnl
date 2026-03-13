@@ -5,7 +5,7 @@ import { ZERO_RECT, type Rect } from "@/core/rect"
 import { get1pxTextareaBridge } from "@/platform/web/1px_textarea"
 import { writeTextToClipboard } from "@/platform/web/clipboard"
 import { createMeasureContext } from "@/platform/web/canvas"
-import { KeyUIEvent, PointerUIEvent, UIElement, pointInRect, type Vec2 } from "@/ui/base/ui"
+import { KeyUIEvent, PointerUIEvent, UIElement, type Vec2 } from "@/ui/base/ui"
 import type { TopLayerController } from "@/ui/base/top_layer"
 import { clamp } from "@/ui/builder/utils"
 import type { MenuItem } from "./menu"
@@ -128,6 +128,7 @@ export class RichTextSelectable extends UIElement {
       this.stack = new MenuStack({ id: this.menuId, topLayer: opts.topLayer, viewport: () => opts.topLayer!.host.bounds() })
     }
     this.update({ rect: opts.rect, active: opts.active, block: opts.block, topLayer: opts.topLayer })
+    this.setBounds(() => this.rect, () => this.active)
   }
 
   update(next: { rect: () => Rect; active: () => boolean; block: () => RichTextBlock; topLayer?: TopLayerController }) {
@@ -143,15 +144,6 @@ export class RichTextSelectable extends UIElement {
   set(next: { rect: Rect; active: boolean }) {
     this.rect = next.rect
     this.active = next.active && next.rect.w > 0 && next.rect.h > 0
-  }
-
-  bounds(): Rect {
-    if (!this.active) return ZERO_RECT
-    return this.rect
-  }
-
-  protected containsPoint(p: Vec2) {
-    return pointInRect(p, this.bounds())
   }
 
   canFocus() {
