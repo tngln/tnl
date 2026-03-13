@@ -41,7 +41,7 @@ export class Checkbox extends InteractiveElement {
 
     draw(
       ctx,
-      RectOp({ x: box.x, y: box.y, w: box.w, h: box.h }, { radius: box.r, fill: { color: bg }, stroke: { color: stroke, hairline: true }, pixelSnap: true }),
+      RectOp({ x: box.x, y: box.y, w: box.w, h: box.h }, { radius: box.r, fill: { color: bg }, stroke: { color: stroke, hairline: true } }),
       TextOp({
         x: r.x + 24,
         y: r.y,

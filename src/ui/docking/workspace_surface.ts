@@ -199,7 +199,6 @@ class DockTabHandle extends UIElement {
           radius: 6,
           fill: { color: bg },
           stroke: { color: selected ? theme.colors.white14 : theme.colors.white08, hairline: true },
-          pixelSnap: true,
         },
       ),
       TextOp({
@@ -382,9 +381,8 @@ class DockSplitHandle extends UIElement {
         radius: 6,
         fill: { color: bg },
         stroke: { color: theme.colors.white08, hairline: true },
-        pixelSnap: true,
       }),
-      RectOp({ x: grip.x, y: grip.y, w: grip.w, h: grip.h }, { radius: grip.r, fill: { color: theme.colors.white18 }, pixelSnap: true }),
+      RectOp({ x: grip.x, y: grip.y, w: grip.w, h: grip.h }, { radius: grip.r, fill: { color: theme.colors.white18 } }),
     )
   }
 
@@ -772,7 +770,6 @@ export class DockWorkspaceSurface implements Surface {
         radius: theme.radii.sm,
         fill: { color: theme.colors.white015 },
         stroke: { color: theme.colors.white08, hairline: true },
-        pixelSnap: true,
       }),
     )
 
@@ -783,7 +780,6 @@ export class DockWorkspaceSurface implements Surface {
           radius: theme.radii.sm,
           fill: { color: theme.colors.white02 },
           stroke: { color: theme.colors.white08, hairline: true },
-          pixelSnap: true,
         }),
         RectOp(layout.headerRect, { fill: { color: theme.colors.white018 } }),
         LineOp(
@@ -802,7 +798,6 @@ export class DockWorkspaceSurface implements Surface {
           radius: theme.radii.sm,
           fill: { color: theme.colors.accentOverlay },
           stroke: { color: theme.colors.accentOutline, width: 2 },
-          pixelSnap: true,
         }),
       )
     }

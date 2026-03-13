@@ -61,7 +61,6 @@ class SnapPreviewOverlay extends UIElement {
           radius: theme.radii.sm,
           fill: { color: theme.colors.accentOverlay },
           stroke: { color: theme.colors.accentOutline, width: 2 },
-          pixelSnap: true,
         },
       ),
     )

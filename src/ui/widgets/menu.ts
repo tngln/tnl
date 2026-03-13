@@ -172,7 +172,7 @@ export class Menu extends UIElement {
       ctx,
       RectOp(
         { x: menu.x, y: menu.y, w: menu.w, h: menu.h },
-        { radius: theme.radii.sm, fill: { color: theme.colors.appBg96 }, stroke: { color: theme.colors.white12, hairline: true }, pixelSnap: true },
+        { radius: theme.radii.sm, fill: { color: theme.colors.appBg96 }, stroke: { color: theme.colors.white12, hairline: true } },
       ),
     )
 

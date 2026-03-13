@@ -29,7 +29,7 @@ class TabButton extends InteractiveElement {
     const sel = this.selected()
     const bg = sel ? theme.colors.white06 : this.pressed() ? theme.colors.white05 : this.hover ? theme.colors.white04 : "transparent"
     const stroke = sel || this.hover ? { color: theme.colors.white14, hairline: true } : undefined
-    if (bg !== "transparent" || stroke) draw(ctx, RectOp({ x: r.x, y: r.y, w: r.w, h: r.h }, { radius: 6, fill: bg !== "transparent" ? { color: bg } : undefined, stroke, pixelSnap: true }))
+    if (bg !== "transparent" || stroke) draw(ctx, RectOp({ x: r.x, y: r.y, w: r.w, h: r.h }, { radius: 6, fill: bg !== "transparent" ? { color: bg } : undefined, stroke }))
     draw(
       ctx,
       TextOp({
@@ -162,7 +162,7 @@ export class TabPanelSurface implements Surface {
   render(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, viewport: ViewportContext) {
     this.size = { x: viewport.contentRect.w, y: viewport.contentRect.h }
 
-    draw(ctx as any, RectOp({ x: 0, y: 0, w: this.size.x, h: this.size.y }, { radius: theme.radii.sm, fill: { color: theme.colors.white02 }, stroke: { color: theme.colors.white10, hairline: true }, pixelSnap: true }))
+    draw(ctx as any, RectOp({ x: 0, y: 0, w: this.size.x, h: this.size.y }, { radius: theme.radii.sm, fill: { color: theme.colors.white02 }, stroke: { color: theme.colors.white10, hairline: true } }))
     draw(ctx as any, RectOp({ x: 0, y: 0, w: this.size.x, h: this.tabBarH }, { fill: { color: theme.colors.white015 } }))
 
     const s = this.currentSurface()

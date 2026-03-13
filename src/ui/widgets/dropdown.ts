@@ -127,7 +127,7 @@ export class Dropdown extends InteractiveElement {
       ctx,
       RectOp(
         { x: r.x, y: r.y, w: r.w, h: r.h },
-        { radius: theme.radii.sm, fill: { color: bg }, stroke: { color: stroke, hairline: true }, pixelSnap: true },
+        { radius: theme.radii.sm, fill: { color: bg }, stroke: { color: stroke, hairline: true } },
       ),
       TextOp({
         x: r.x + theme.ui.controls.labelPadX,

@@ -47,7 +47,7 @@ export type Text = {
 }
 
 export type DrawOp =
-  | { kind: "Rect"; rect: Rect; radius?: number; fill?: FillStyle; stroke?: StrokeStyle; pixelSnap?: boolean }
+  | { kind: "Rect"; rect: Rect; radius?: number; fill?: FillStyle; stroke?: StrokeStyle }
   | { kind: "Circle"; circle: Circle; fill?: FillStyle; stroke?: StrokeStyle }
   | { kind: "Text"; text: Text }
   | { kind: "Line"; a: Vec2; b: Vec2; stroke: StrokeStyle }
@@ -155,12 +155,12 @@ export function draw(ctx: CanvasRenderingContext2D, ...ops: DrawOp[]) {
         const radius = Math.max(0, op.radius ?? 0)
         if (radius <= 0) {
           if (op.fill) fillRectOp(ctx, op.rect, op.fill)
-          if (op.stroke) strokeRectOp(ctx, op.pixelSnap ? snappedRect(ctx, op.rect) : op.rect, op.stroke)
+          if (op.stroke) strokeRectOp(ctx, snappedRect(ctx, op.rect), op.stroke)
           break
         }
         if (op.fill) fillPathOp(ctx, op.fill, () => rectPath(ctx, op.rect, radius))
         if (op.stroke) {
-          const rounded = op.pixelSnap ? snappedRoundedRect(ctx, op.rect, radius) : { ...op.rect, radius }
+          const rounded = snappedRoundedRect(ctx, op.rect, radius)
           strokePathOp(ctx, op.stroke, () => rectPath(ctx, rounded, rounded.radius))
         }
         break
@@ -206,8 +206,8 @@ export function draw(ctx: CanvasRenderingContext2D, ...ops: DrawOp[]) {
   }
 }
 
-export function RectOp(rect: Rect, style?: { radius?: number; fill?: FillStyle; stroke?: StrokeStyle; pixelSnap?: boolean }): DrawOp {
-  return { kind: "Rect", rect, radius: style?.radius, fill: style?.fill, stroke: style?.stroke, pixelSnap: style?.pixelSnap }
+export function RectOp(rect: Rect, style?: { radius?: number; fill?: FillStyle; stroke?: StrokeStyle }): DrawOp {
+  return { kind: "Rect", rect, radius: style?.radius, fill: style?.fill, stroke: style?.stroke }
 }
 
 export function CircleOp(circle: Circle, style?: { fill?: FillStyle; stroke?: StrokeStyle }): DrawOp {

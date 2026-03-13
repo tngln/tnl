@@ -224,7 +224,7 @@ class TimelineTrackContentSurface implements Surface {
         const label = fitLabel(ctx, item.label, w - 14, labelFont)
         draw(
           ctx as CanvasRenderingContext2D,
-          RectOp({ x: rect.x, y: rect.y, w: rect.w, h: rect.h }, { radius: Math.min(theme.radii.sm, rect.h / 2), fill: { color: fill }, stroke: { color: alpha(fill, "aa"), hairline: true }, pixelSnap: true }),
+          RectOp({ x: rect.x, y: rect.y, w: rect.w, h: rect.h }, { radius: Math.min(theme.radii.sm, rect.h / 2), fill: { color: fill }, stroke: { color: alpha(fill, "aa"), hairline: true } }),
         )
         if (!label) continue
         draw(
@@ -510,7 +510,7 @@ export class TimelineCompositeSurface implements Surface {
       draw(
         ctx as CanvasRenderingContext2D,
         LineOp({ x: playheadX + 0.5, y: 0 }, { x: playheadX + 0.5, y: this.layoutState.rulerRect.h + this.layoutState.contentRect.h }, { color: theme.colors.playheadStroke, width: 2 }),
-        RectOp({ x: playheadX - 18, y: 4, w: 36, h: 16 }, { radius: 6, fill: { color: theme.colors.playheadFill }, pixelSnap: true }),
+        RectOp({ x: playheadX - 18, y: 4, w: 36, h: 16 }, { radius: 6, fill: { color: theme.colors.playheadFill } }),
         TextOp({ x: playheadX, y: 12.5, text: "PH", style: { color: "#1b0b0b", font: `${700} 10px ${theme.typography.family}`, align: "center", baseline: "middle" } }),
       )
     }

@@ -325,7 +325,7 @@ export class ModalWindow extends UIElement {
       ctx,
       RectOp(
         { x, y, w, h },
-        { fill: { color: theme.colors.windowBg, shadow: theme.shadows.window }, stroke: { color: theme.colors.windowBorder, hairline: true }, pixelSnap: true },
+        { fill: { color: theme.colors.windowBg, shadow: theme.shadows.window }, stroke: { color: theme.colors.windowBorder, hairline: true } },
       ),
     )
 
@@ -664,13 +664,13 @@ const MAXIMIZE_BUTTON_SPEC: TitleBarButtonSpec = {
     if (win.maximized.peek() || win.screenUsage.peek() !== "none") {
       draw(
         ctx,
-        RectOp({ x: r.x + 5, y: r.y + 6, w: r.w - 10, h: r.h - 10 }, { stroke: { color, width: 1.4 }, pixelSnap: true }),
-        RectOp({ x: r.x + 7, y: r.y + 4, w: r.w - 10, h: r.h - 10 }, { stroke: { color, width: 1.4 }, pixelSnap: true }),
+        RectOp({ x: r.x + 5, y: r.y + 6, w: r.w - 10, h: r.h - 10 }, { stroke: { color, width: 1.4 } }),
+        RectOp({ x: r.x + 7, y: r.y + 4, w: r.w - 10, h: r.h - 10 }, { stroke: { color, width: 1.4 } }),
       )
       return
     }
 
-    draw(ctx, RectOp({ x: r.x + 5, y: r.y + 5, w: r.w - 10, h: r.h - 10 }, { stroke: { color, width: 1.4 }, pixelSnap: true }))
+    draw(ctx, RectOp({ x: r.x + 5, y: r.y + 5, w: r.w - 10, h: r.h - 10 }, { stroke: { color, width: 1.4 } }))
   },
   onClick: (win) => {
     if (win.maximized.peek() || win.screenUsage.peek() !== "none") win.restoreScreenUsage()

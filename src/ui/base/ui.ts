@@ -1,29 +1,29 @@
 import { theme } from "@/config/theme"
 import type { Shape } from "@/core/draw"
 import type { InteractionCancelReason } from "@/core/event_stream"
-import type { Circle, RRect } from "@/core/geometry"
+import type { Circle } from "@/core/geometry"
 import { clamp, clampRect, inflateRect, intersects, mergeRectInto, normalizeRect, rectArea, unionRect, ZERO_RECT } from "@/core/rect"
 import type { Rect, Vec2 } from "@/core/rect"
 import { addBrowserInteractionCancelListener, addLostPointerCaptureListener, addWindowResizeListener, getClampedDevicePixelRatio, releaseElementPointerCapture, resetElementCursor, scheduleAnimationFrame, setElementCursor, setElementPointerCapture, type CursorKind } from "@/platform/web"
 import { Compositor } from "./compositor"
 
 export type { Vec2, Rect }
-export type { Circle, RRect }
+export type { Circle }
 export type { CursorKind }
 
 export function pointInRect(p: Vec2, r: Rect) {
   return p.x >= r.x && p.y >= r.y && p.x <= r.x + r.w && p.y <= r.y + r.h
 }
 
-export function pointInRRect(p: Vec2, rr: RRect) {
-  if (!pointInRect(p, rr)) return false
-  const r = clamp(rr.r, 0, Math.min(rr.w, rr.h) / 2)
+export function pointInRoundedRect(p: Vec2, rect: Rect, radius?: number) {
+  if (!pointInRect(p, rect)) return false
+  const r = clamp(radius ?? 0, 0, Math.min(rect.w, rect.h) / 2)
   if (r <= 0) return true
 
-  const x0 = rr.x
-  const y0 = rr.y
-  const x1 = rr.x + rr.w
-  const y1 = rr.y + rr.h
+  const x0 = rect.x
+  const y0 = rect.y
+  const x1 = rect.x + rect.w
+  const y1 = rect.y + rect.h
 
   if (p.x >= x0 + r && p.x <= x1 - r) return true
   if (p.y >= y0 + r && p.y <= y1 - r) return true

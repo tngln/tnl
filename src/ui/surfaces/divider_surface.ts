@@ -105,12 +105,10 @@ class DividerHandle extends UIElement {
         radius: metrics.frame.r,
         fill: { color: chrome.fill },
         stroke: { color: chrome.stroke, hairline: true },
-        pixelSnap: true,
       }),
       RectOp({ x: metrics.grip.x, y: metrics.grip.y, w: metrics.grip.w, h: metrics.grip.h }, {
         radius: metrics.grip.r,
         fill: { color: chrome.grip },
-        pixelSnap: true,
       }),
     )
   }

@@ -114,7 +114,6 @@ function drawNodeBox(drawOps: Array<(ctx: CanvasRenderingContext2D) => void>, re
           radius,
           fill: fill ? { color: fill } : undefined,
           stroke: stroke ? { color: stroke, hairline: true } : undefined,
-          pixelSnap: true,
         },
       ),
     )
