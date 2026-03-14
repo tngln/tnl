@@ -1,4 +1,4 @@
-import { font, theme } from "@/config/theme"
+import { font, theme, neutral } from "@/config/theme"
 import { draw, LineOp, RectOp, TextOp } from "@/core/draw"
 import type { InteractionCancelReason } from "@/core/event_stream"
 import { signal, type Signal } from "@/core/reactivity"
@@ -642,7 +642,7 @@ const MINIMIZE_BUTTON_SPEC: TitleBarButtonSpec = {
   visible: (win) => win.minimizable,
   slotFromRight: (win) => (win.chrome === "default" && win.resizable ? 2 : 1),
   draw: (ctx, r, win, state) => {
-    const bg = state.down ? theme.colors.appBg22 : state.hover ? theme.colors.appBg12 : "transparent"
+    const bg = state.down ? neutral[2] : state.hover ? neutral[1] : "transparent"
     if (bg !== "transparent") draw(ctx, RectOp(r, { fill: { color: bg } }))
     const x0 = r.x + 5
     const x1 = r.x + r.w - 5
@@ -657,7 +657,7 @@ const MAXIMIZE_BUTTON_SPEC: TitleBarButtonSpec = {
   visible: (win) => win.chrome === "default" && win.resizable,
   slotFromRight: () => 1,
   draw: (ctx, r, win, state) => {
-    const bg = state.down ? theme.colors.appBg22 : state.hover ? theme.colors.appBg12 : "transparent"
+    const bg = state.down ? neutral[2] : state.hover ? neutral[1] : "transparent"
     if (bg !== "transparent") draw(ctx, RectOp(r, { fill: { color: bg } }))
 
     const color = win.chrome === "tool" ? theme.colors.textPrimary : theme.colors.windowTitleText

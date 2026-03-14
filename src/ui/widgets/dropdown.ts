@@ -1,4 +1,4 @@
-import { font, theme } from "@/config/theme"
+import { font, theme, neutral } from "@/config/theme"
 import { draw, RectOp, TextOp } from "@/core/draw"
 import { truncateToWidth } from "@/core/draw.text"
 import { signal, type Signal } from "@/core/reactivity"
@@ -109,7 +109,7 @@ export class Dropdown extends InteractiveElement {
         : this.hover
           ? theme.colors.controlHover
           : "transparent"
-    const stroke = disabled ? theme.colors.white10 : theme.colors.windowBorder
+    const stroke = disabled ? neutral[6] : theme.colors.windowBorder
     const textColor = disabled ? theme.colors.textMuted : theme.colors.textPrimary
     const f = font(theme, theme.typography.body)
 

@@ -1,4 +1,4 @@
-import { font, theme } from "@/config/theme"
+import { font, theme, neutral } from "@/config/theme"
 import { draw, LineOp, RectOp, TextOp } from "@/core/draw"
 import { measureTextWidth } from "@/core/draw.text"
 import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "@/core/event_stream"
@@ -191,7 +191,7 @@ class DockTabHandle extends UIElement {
     // to start (especially when dragging out of a window). Visual "pressed"
     // feedback should only remain while hovering; dragging stays active.
     const active = this.machine.matches("dragging") || (this.hover && this.machine.matches("pressed"))
-    const bg = selected ? theme.colors.white08 : active ? theme.colors.white05 : this.hover ? theme.colors.white04 : theme.colors.white02
+    const bg = selected ? neutral[5] : active ? neutral[4] : this.hover ? neutral[3] : neutral[2]
     draw(
       ctx,
       RectOp(
@@ -199,7 +199,7 @@ class DockTabHandle extends UIElement {
         {
           radius: 6,
           fill: { color: bg },
-          stroke: { color: selected ? theme.colors.white14 : theme.colors.white08, hairline: true },
+          stroke: { color: selected ? neutral[7] : neutral[5], hairline: true },
         },
       ),
       TextOp({
@@ -370,7 +370,7 @@ class DockSplitHandle extends UIElement {
   protected onDraw(ctx: CanvasRenderingContext2D) {
     const r = this.rect()
     const active = this.machine.matches("pressed") || this.machine.matches("dragging")
-    const bg = active ? theme.colors.white08 : this.hover ? theme.colors.white05 : theme.colors.white03
+    const bg = active ? neutral[5] : this.hover ? neutral[4] : neutral[3]
     const grip =
       this.axis() === "x"
         ? { x: r.x + Math.max(0, (r.w - 4) / 2), y: r.y + 8, w: 4, h: Math.max(0, r.h - 16), r: 2 }
@@ -381,9 +381,9 @@ class DockSplitHandle extends UIElement {
       RectOp({ x: r.x + 1, y: r.y + 1, w: Math.max(0, r.w - 2), h: Math.max(0, r.h - 2) }, {
         radius: 6,
         fill: { color: bg },
-        stroke: { color: theme.colors.white08, hairline: true },
+        stroke: { color: neutral[5], hairline: true },
       }),
-      RectOp({ x: grip.x, y: grip.y, w: grip.w, h: grip.h }, { radius: grip.r, fill: { color: theme.colors.white18 } }),
+      RectOp({ x: grip.x, y: grip.y, w: grip.w, h: grip.h }, { radius: grip.r, fill: { color: neutral[8] } }),
     )
   }
 
@@ -764,8 +764,8 @@ export class DockWorkspaceSurface implements Surface {
       ctx as CanvasRenderingContext2D,
       RectOp({ x: 0, y: 0, w: this.size.x, h: this.size.y }, {
         radius: theme.radii.sm,
-        fill: { color: theme.colors.white015 },
-        stroke: { color: theme.colors.white08, hairline: true },
+        fill: { color: neutral[1] },
+        stroke: { color: neutral[5], hairline: true },
       }),
     )
 
@@ -774,14 +774,14 @@ export class DockWorkspaceSurface implements Surface {
         ctx as CanvasRenderingContext2D,
         RectOp({ x: layout.rect.x, y: layout.rect.y, w: layout.rect.w, h: layout.rect.h }, {
           radius: theme.radii.sm,
-          fill: { color: theme.colors.white02 },
-          stroke: { color: theme.colors.white08, hairline: true },
+          fill: { color: neutral[2] },
+          stroke: { color: neutral[5], hairline: true },
         }),
-        RectOp(layout.headerRect, { fill: { color: theme.colors.white018 } }),
+        RectOp(layout.headerRect, { fill: { color: neutral[1] } }),
         LineOp(
           { x: layout.headerRect.x, y: layout.headerRect.y + layout.headerRect.h },
           { x: layout.headerRect.x + layout.headerRect.w, y: layout.headerRect.y + layout.headerRect.h },
-          { color: theme.colors.white10, hairline: true },
+          { color: neutral[6], hairline: true },
         ),
       )
     }

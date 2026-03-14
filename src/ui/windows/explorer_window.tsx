@@ -1,4 +1,4 @@
-import { theme } from "@/config/theme"
+import { theme, neutral } from "@/config/theme"
 import { normalizePath, openOpfs, type OpfsEntryV1 } from "@/core/opfs"
 import { signal } from "@/core/reactivity"
 import { getSeekableEnd, probeVideoDuration, resolvePlaybackDuration } from "@/platform/web/video_duration"
@@ -791,8 +791,8 @@ export const ExplorerSurface = defineSurface({
                         key={`explorer.thumb.${e.path}`}
                         style={{ fixed: 168, padding: 6 }}
                         box={{
-                          fill: isSelected ? theme.colors.selectionFill : theme.colors.white02,
-                          stroke: isSelected ? theme.colors.selectionStroke : theme.colors.white08,
+                          fill: isSelected ? theme.colors.selectionFill : neutral[2],
+                          stroke: isSelected ? theme.colors.selectionStroke : neutral[5],
                           radius: 8,
                         }}
                       >
@@ -802,7 +802,7 @@ export const ExplorerSurface = defineSurface({
                             measure={(max) => ({ w: Math.min(156, max.w), h: 88 })}
                             draw={(ctx, rect) => {
                               ctx.save()
-                              ctx.fillStyle = theme.colors.black22
+                              ctx.fillStyle = neutral[0]
                               ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
                               if (img) {
                                 const iw = img.naturalWidth || 1
@@ -894,7 +894,7 @@ export const ExplorerSurface = defineSurface({
               measure={(max) => ({ w: Math.min(240, max.w), h: 120 })}
               draw={(ctx, rect) => {
                 ctx.save()
-                ctx.fillStyle = theme.colors.black22
+                ctx.fillStyle = neutral[0]
                 ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
                 if (img) {
                   const iw = img.naturalWidth || 1
@@ -1002,7 +1002,7 @@ export const ExplorerSurface = defineSurface({
             <VStack
               key="explorer.details"
               style={{ fixed: 280 }}
-              box={{ fill: theme.colors.white02, stroke: theme.colors.white08, radius: 10 }}
+              box={{ fill: neutral[2], stroke: neutral[5], radius: 10 }}
             >
               {details}
             </VStack>

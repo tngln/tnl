@@ -18,19 +18,8 @@ export type InheritedTextStyle = {
   emphasis?: TextEmphasis
 }
 
-export type InheritedSurfaceStyle = {
-  tone?: "default" | "subtle"
-  density?: "comfortable" | "compact"
-  panelFill?: string
-  panelStroke?: string
-  sectionFill?: string
-  sectionStroke?: string
-  scrollFill?: string
-}
-
 export type InheritedStyle = {
   text?: InheritedTextStyle
-  surface?: InheritedSurfaceStyle
 }
 
 type NodeBase = {

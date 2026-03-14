@@ -1,4 +1,4 @@
-import { theme, font } from "@/config/theme"
+import { theme, neutral, font } from "@/config/theme"
 import { draw, RectOp, TextOp as DrawTextOp } from "@/core/draw"
 import { getDebugLevel, listDebugEntries, setDebugLevel, type DebugEntry, type DebugLevel } from "@/core/debug"
 import { baseNameOr } from "@/util/util"
@@ -133,12 +133,12 @@ export const PlaybackSurface = defineSurface({
                 <PanelSection key="playback.preview" title="Preview">
                   <Paint
                     key="playback.preview.canvas"
-                    box={{ fill: "#06090f", stroke: theme.colors.white08, radius: 10 }}
+                    box={{ fill: "#06090f", stroke: neutral[5], radius: 10 }}
                     measure={(max) => ({ w: max.w, h: Math.max(220, Math.min(360, Math.floor(max.w * 0.5625))) })}
                     draw={(ctx, rect) => {
                       draw(
                         ctx,
-                        RectOp({ x: rect.x, y: rect.y, w: rect.w, h: rect.h }, { radius: 10, fill: { color: "#06090f" }, stroke: { color: theme.colors.white08, hairline: true } }),
+                        RectOp({ x: rect.x, y: rect.y, w: rect.w, h: rect.h }, { radius: 10, fill: { color: "#06090f" }, stroke: { color: neutral[5], hairline: true } }),
                       )
                       const inner = { x: rect.x + 12, y: rect.y + 12, w: Math.max(0, rect.w - 24), h: Math.max(0, rect.h - 24) }
                       const drewVideo = session.drawVideo(ctx, inner)

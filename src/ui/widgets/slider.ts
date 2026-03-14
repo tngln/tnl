@@ -1,4 +1,4 @@
-import { theme } from "@/config/theme"
+import { theme, neutral } from "@/config/theme"
 import { draw, LineOp, RectOp } from "@/core/draw"
 import { clamp, type Rect, ZERO_RECT } from "@/core/rect"
 import { PointerUIEvent, UIElement, type Vec2 } from "@/ui/base/ui"
@@ -116,12 +116,12 @@ export class Slider extends UIElement {
     const cy = r.y + r.h / 2
     const cx = r.x + r.w / 2
     const trackColor = this.disabledValue
-      ? theme.colors.white08
+      ? neutral[5]
       : this.dragging
-        ? theme.colors.white18
+        ? neutral[8]
         : this.hover
-          ? theme.colors.white14
-          : theme.colors.white10
+          ? neutral[7]
+          : neutral[6]
     const fillColor = this.disabledValue ? theme.colors.sliderFillDisabled : theme.colors.sliderFill
     const thumbColor = this.disabledValue
       ? theme.colors.controlDisabled
@@ -130,7 +130,7 @@ export class Slider extends UIElement {
         : this.hover
           ? theme.colors.controlHover
           : theme.colors.controlActive
-    const thumbStroke = this.disabledValue ? theme.colors.white12 : theme.colors.appBg46
+    const thumbStroke = this.disabledValue ? neutral[6] : neutral[3]
 
     if (this.axis === "y") {
       const x = cx

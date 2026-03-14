@@ -1,4 +1,4 @@
-import { theme } from "@/config/theme"
+import { theme, neutral } from "@/config/theme"
 import type { LayoutStyle } from "@/core/layout"
 import type { Signal } from "@/core/reactivity"
 import {
@@ -195,16 +195,14 @@ function commonWithoutStyle(base: {
 
 function mergeInherited(base: Partial<InheritedStyle> | undefined, patch: Partial<InheritedStyle> | undefined): Partial<InheritedStyle> | undefined {
   if (!base && !patch) return undefined
-  return {
+  const text = {
     text: {
       ...(base?.text ?? {}),
       ...(patch?.text ?? {}),
     },
-    surface: {
-      ...(base?.surface ?? {}),
-      ...(patch?.surface ?? {}),
-    },
   }
+  if (!Object.keys(text.text).length) return undefined
+  return text
 }
 
 function mergeLayout(base: LayoutStyle, patch: LayoutStyle | undefined) {
@@ -387,10 +385,6 @@ export function PanelColumn(props: PanelContainerProps) {
           fontWeight: theme.typography.body.weight,
           lineHeight: theme.spacing.lg,
         },
-        surface: {
-          tone: "default",
-          density: "comfortable",
-        },
       },
       props.provideStyle,
     ),
@@ -442,16 +436,8 @@ export function PanelScroll(props: PanelContainerProps) {
   return ScrollArea({
     ...props,
     style: mergeLayout({ fill: true }, props.style),
-    box: mergeBox({ fill: theme.colors.white01 }, props.box),
-    provideStyle: mergeInherited(
-      {
-        surface: {
-          tone: "subtle",
-          scrollFill: theme.colors.white01,
-        },
-      },
-      props.provideStyle,
-    ),
+    box: mergeBox({ fill: neutral[1] }, props.box),
+    provideStyle: props.provideStyle,
   })
 }
 
@@ -460,8 +446,8 @@ export function PanelSection(props: SectionProps) {
     ...props,
     box: mergeBox(
       {
-        fill: theme.colors.white02,
-        stroke: theme.colors.white08,
+        fill: neutral[2],
+        stroke: neutral[5],
       },
       props.box,
     ),

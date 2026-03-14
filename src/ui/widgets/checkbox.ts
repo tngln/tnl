@@ -1,4 +1,4 @@
-import { font, theme } from "@/config/theme"
+import { font, theme, neutral } from "@/config/theme"
 import { draw, LineOp, RectOp, TextOp } from "@/core/draw"
 import { signal, type Signal } from "@/core/reactivity"
 import { type Rect, ZERO_RECT } from "@/core/rect"
@@ -36,7 +36,7 @@ export class Checkbox extends InteractiveElement {
         : this.hover
           ? theme.colors.controlHover
           : "transparent"
-    const stroke = disabled ? theme.colors.white10 : theme.colors.windowBorder
+    const stroke = disabled ? neutral[6] : theme.colors.windowBorder
     const textColor = disabled ? theme.colors.textMuted : theme.colors.textPrimary
 
     draw(

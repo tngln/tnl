@@ -1,7 +1,7 @@
 import { JobScheduler } from "./scheduler"
 import type { RenderGraphSnapshotV1, RenderQuality } from "./types"
 import type { RenderWorkerRequest, RenderWorkerResponse } from "./worker_protocol"
-import { theme } from "../config/theme"
+import { theme, neutral } from "../config/theme"
 
 type PendingRender = {
   requestId: number
@@ -39,13 +39,13 @@ async function renderFakeFrame(args: { frame: number; fps: number; w: number; h:
   ctx.fillRect(0, 0, canvas.width, canvas.height)
 
   // Simple debug overlay (v1).
-  ctx.fillStyle = theme.colors.white10
+  ctx.fillStyle = neutral[6]
   ctx.fillRect(0, 0, canvas.width, 40)
-  ctx.fillStyle = theme.colors.white92
+  ctx.fillStyle = neutral[9]
   ctx.font = "600 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
   ctx.textBaseline = "middle"
   ctx.fillText(`tnl render worker`, 12, 20)
-  ctx.fillStyle = theme.colors.white78
+  ctx.fillStyle = neutral[9]
   ctx.font = "12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
   ctx.fillText(`frame=${args.frame} fps=${args.fps} quality=${args.quality}`, 12, 20 + 18)
 

@@ -1,6 +1,6 @@
 import { theme } from "../../config/theme"
 import type { RichTextStyle, TextEmphasis } from "../../core/draw.text"
-import type { InheritedStyle, InheritedSurfaceStyle, InheritedTextStyle, TextNode } from "./types"
+import type { InheritedStyle, InheritedTextStyle, TextNode } from "./types"
 
 export function defaultBodyStyle(): RichTextStyle {
   return {
@@ -21,15 +21,6 @@ export function defaultInheritedStyle(): InheritedStyle {
       fontWeight: theme.typography.body.weight,
       lineHeight: theme.spacing.lg,
     },
-    surface: {
-      tone: "default",
-      density: "comfortable",
-      panelFill: theme.colors.white02,
-      panelStroke: theme.colors.white10,
-      sectionFill: theme.colors.white02,
-      sectionStroke: theme.colors.white08,
-      scrollFill: theme.colors.white01,
-    },
   }
 }
 
@@ -45,24 +36,10 @@ function mergeTextStyle(base: InheritedTextStyle | undefined, patch: InheritedTe
   }
 }
 
-function mergeSurfaceStyle(base: InheritedSurfaceStyle | undefined, patch: InheritedSurfaceStyle | undefined): InheritedSurfaceStyle | undefined {
-  if (!base && !patch) return undefined
-  return {
-    tone: patch?.tone ?? base?.tone,
-    density: patch?.density ?? base?.density,
-    panelFill: patch?.panelFill ?? base?.panelFill,
-    panelStroke: patch?.panelStroke ?? base?.panelStroke,
-    sectionFill: patch?.sectionFill ?? base?.sectionFill,
-    sectionStroke: patch?.sectionStroke ?? base?.sectionStroke,
-    scrollFill: patch?.scrollFill ?? base?.scrollFill,
-  }
-}
-
 export function mergeInheritedStyle(base: InheritedStyle, patch: Partial<InheritedStyle> | undefined): InheritedStyle {
   if (!patch) return base
   return {
     text: mergeTextStyle(base.text, patch.text),
-    surface: mergeSurfaceStyle(base.surface, patch.surface),
   }
 }
 

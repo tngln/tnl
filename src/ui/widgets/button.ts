@@ -1,4 +1,4 @@
-import { font, theme } from "@/config/theme"
+import { font, theme, neutral } from "@/config/theme"
 import { draw, RectOp, TextOp } from "@/core/draw"
 import { type Rect, ZERO_RECT } from "@/core/rect"
 import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
@@ -35,7 +35,7 @@ export class Button extends InteractiveElement {
         : this.hover
           ? theme.colors.controlHover
           : "transparent"
-    const stroke = disabled ? theme.colors.white10 : theme.colors.windowBorder
+    const stroke = disabled ? neutral[6] : theme.colors.windowBorder
     const textColor = disabled ? theme.colors.textMuted : theme.colors.textPrimary
     draw(
       ctx,
@@ -72,7 +72,7 @@ export class Button extends InteractiveElement {
       ctx,
       RectOp(
         { x: tipX, y: tipY, w: tipW, h: tipH },
-        { radius: theme.radii.sm, fill: { color: theme.colors.appBg96 }, stroke: { color: theme.colors.white12, hairline: true } },
+        { radius: theme.radii.sm, fill: { color: neutral[0] }, stroke: { color: neutral[6], hairline: true } },
       ),
       TextOp({
         x: tipX + tipW / 2,

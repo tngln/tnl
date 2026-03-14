@@ -1,4 +1,4 @@
-import { font, theme } from "@/config/theme"
+import { font, theme, neutral } from "@/config/theme"
 import { draw, TextOp as DrawTextOp } from "@/core/draw"
 import { Paint, Stack, Text, VStack } from "@/ui/builder/components"
 import { defineSurface, mountSurface, type SurfaceDefinition } from "@/ui/builder/surface_builder"
@@ -41,7 +41,7 @@ export const TimecodeSurfaceDefinition: SurfaceDefinition<TimecodeSurfaceProps> 
           <Stack
             key="timecode.card"
             style={{ fill: true, padding: 12 }}
-            box={{ fill: theme.colors.white03, stroke: theme.colors.white10, radius: 12 }}
+            box={{ fill: neutral[3], stroke: neutral[6], radius: 12 }}
           >
             <VStack key="timecode.center" style={{ align: "center", gap: 12, alignSelf: "center" }}>
               <Text key="timecode.value" style={{ alignSelf: "center" }} weight="bold" size="headline">{timecode}</Text>

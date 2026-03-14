@@ -1,4 +1,4 @@
-import { theme } from "@/config/theme"
+import { theme, neutral } from "@/config/theme"
 import { draw, RectOp } from "@/core/draw"
 import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "@/core/event_stream"
 import { signal, type Signal } from "@/core/reactivity"
@@ -61,9 +61,9 @@ class DividerHandle extends UIElement {
 
   private chrome(): DividerHandleChrome {
     return {
-      fill: this.down ? theme.colors.white08 : this.hover ? theme.colors.white06 : theme.colors.white04,
-      stroke: theme.colors.white10,
-      grip: theme.colors.white18,
+      fill: this.down ? neutral[5] : this.hover ? neutral[4] : neutral[3],
+      stroke: neutral[6],
+      grip: neutral[8],
     }
   }
 

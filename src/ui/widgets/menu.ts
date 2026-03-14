@@ -1,4 +1,4 @@
-import { font, theme } from "@/config/theme"
+import { font, theme, neutral } from "@/config/theme"
 import { draw, RectOp, TextOp } from "@/core/draw"
 import type { InteractionCancelReason } from "@/core/event_stream"
 import { createPressMachine } from "@/core/fsm"
@@ -172,7 +172,7 @@ export class Menu extends UIElement {
       ctx,
       RectOp(
         { x: menu.x, y: menu.y, w: menu.w, h: menu.h },
-        { radius: theme.radii.sm, fill: { color: theme.colors.appBg96 }, stroke: { color: theme.colors.white12, hairline: true } },
+        { radius: theme.radii.sm, fill: { color: neutral[0] }, stroke: { color: neutral[6], hairline: true } },
       ),
     )
 
@@ -191,7 +191,7 @@ export class Menu extends UIElement {
             kind: "Line",
             a: { x: row.x + 10, y: cy },
             b: { x: row.x + row.w - 10, y: cy },
-            stroke: { color: theme.colors.white10, hairline: true },
+            stroke: { color: neutral[6], hairline: true },
           },
         )
         y += h
@@ -200,7 +200,7 @@ export class Menu extends UIElement {
       const hovered = i === this.hoveredIndex
       const selected = it.key === selectedKey
       if ((hovered && !it.disabled) || selected) {
-        draw(ctx, { kind: "Rect", rect: row, fill: { color: hovered ? theme.colors.white08 : theme.colors.white06 } })
+        draw(ctx, { kind: "Rect", rect: row, fill: { color: hovered ? neutral[5] : neutral[4] } })
       }
       const textColor = it.disabled ? theme.colors.textDisabled : theme.colors.textPrimary
       draw(

@@ -6,7 +6,7 @@ import { createTimecodeToolSurface, TIMECODE_TOOL_WINDOW_ID } from "../windows/t
 import { createTimelineToolSurface, TIMELINE_TOOL_WINDOW_ID } from "../windows/timeline_tool_window"
 import { createToolsSurface, TOOLS_DIALOG_ID } from "../windows/tools_dialog"
 import type { DockablePaneInit } from "./manager"
-import { theme } from "../../config/theme"
+import { theme, neutral } from "../../config/theme"
 import { createLayerCanvas, getCanvas2DContext } from "../../platform/web/canvas"
 import type { DragImageSpec } from "../base/drag_drop"
 
@@ -22,7 +22,7 @@ export function createDefaultDockablePanes(ctx: DeveloperContext): DockablePaneI
 
     const r = 8
     g.fillStyle = theme.colors.paneBg92
-    g.strokeStyle = theme.colors.white14
+    g.strokeStyle = neutral[7]
     g.lineWidth = 1
     g.beginPath()
     g.moveTo(r, 0)

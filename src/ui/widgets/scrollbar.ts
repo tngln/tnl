@@ -1,4 +1,4 @@
-import { theme } from "@/config/theme"
+import { theme, neutral } from "@/config/theme"
 import { draw, RectOp } from "@/core/draw"
 import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "@/core/event_stream"
 import { createMachine, type Machine } from "@/core/fsm"
@@ -217,7 +217,7 @@ export class Scrollbar extends UIElement {
     const r = this.rectValue
     const t = this.thumbRect()
     const active = this.machine.matches("pressed") || this.machine.matches("dragging")
-    const track = active ? theme.colors.white07 : this.hover ? theme.colors.white05 : theme.colors.white04
+    const track = active ? neutral[5] : this.hover ? neutral[4] : neutral[3]
     const thumb = active ? theme.colors.scrollbarThumbActive : this.hover ? theme.colors.scrollbarThumbHover : theme.colors.scrollbarThumb
     draw(
       ctx,

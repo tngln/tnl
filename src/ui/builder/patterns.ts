@@ -1,4 +1,4 @@
-import { theme } from "../../config/theme"
+import { theme, neutral } from "../../config/theme"
 import { column, row, textNode } from "./nodes"
 import type { BuilderNode, CommonNodeProps } from "./types"
 import type { LayoutStyle } from "../../core/layout"
@@ -18,7 +18,7 @@ export function section(title: string, body: BuilderNode[], opts: PatternBase = 
     { padding: theme.spacing.md, ...(opts.style ?? {}) },
     {
       key: opts.key,
-      box: opts.box ?? { fill: theme.colors.white02, stroke: theme.colors.white08 },
+      box: opts.box ?? { fill: neutral[2], stroke: neutral[5] },
       active: opts.active,
       visible: opts.visible,
       provideStyle: opts.provideStyle,
