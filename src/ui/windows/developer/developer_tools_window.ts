@@ -1,6 +1,6 @@
 import { TabPanelSurface } from "../../surfaces/tab_panel_surface"
 import type { Surface } from "../../base/viewport"
-import { SurfaceWindow } from "../window"
+import { SurfaceWindow } from "../../base/window"
 import { defaultDeveloperPanels, type DeveloperContext } from "./index"
 
 export const DEVELOPER_WINDOW_ID = "Developer"

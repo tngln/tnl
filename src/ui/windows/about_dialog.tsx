@@ -2,7 +2,7 @@ import { createElement, Fragment } from "../jsx"
 import { PanelColumn, RichText, Spacer, Text } from "../builder/components"
 import { defineSurface, surfaceMount } from "../builder/surface_builder"
 import { theme } from "../../config/theme"
-import { SurfaceWindow } from "./window"
+import { SurfaceWindow } from "../base/window"
 
 export const ABOUT_DIALOG_ID = "Help.About"
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
-import { Root, SurfaceWindow } from "../window/window"
-import { WindowManager } from "../window/window_manager"
+import { Root, SurfaceWindow } from "../base/window"
+import { WindowManager } from "../base/window_manager"
 import { DockingManager } from "./manager"
 import { firstLeaf } from "./model"
 

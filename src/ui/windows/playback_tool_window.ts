@@ -1,6 +1,6 @@
 import { PlaybackSurface } from "../surfaces/playback_surface"
 import { mountSurface } from "../builder/surface_builder"
-import { SurfaceWindow } from "./window"
+import { SurfaceWindow } from "../base/window"
 
 export const PLAYBACK_TOOL_WINDOW_ID = "Playback.Tool"
 

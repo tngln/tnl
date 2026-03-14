@@ -4,7 +4,7 @@ import { TabPanelSurface } from "../surfaces/tab_panel_surface"
 import { TextSurface } from "../surfaces/text_surface"
 import { mountSurface } from "../builder/surface_builder"
 import type { Surface } from "../base/viewport"
-import { SurfaceWindow } from "./window"
+import { SurfaceWindow } from "../base/window"
 
 export const TOOLS_DIALOG_ID = "Tools.Dialog"
 

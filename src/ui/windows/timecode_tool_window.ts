@@ -1,6 +1,6 @@
 import type { Surface } from "../base/viewport"
 import { createTimecodeToolSurface } from "../surfaces/timecode_surface"
-import { SurfaceWindow } from "./window"
+import { SurfaceWindow } from "../base/window"
 
 export const TIMECODE_TOOL_WINDOW_ID = "Timecode.Tool"
 export { createTimecodeToolSurface }

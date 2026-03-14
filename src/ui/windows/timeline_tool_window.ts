@@ -2,7 +2,7 @@ import { TimelineCompositeSurface } from "../surfaces/timeline_surface"
 import { createFrameUnitAdapter } from "../timeline/model"
 import { getPlaybackSession } from "../playback/session"
 import type { Surface } from "../base/viewport"
-import { SurfaceWindow } from "./window"
+import { SurfaceWindow } from "../base/window"
 
 export const TIMELINE_TOOL_WINDOW_ID = "Timeline.Tool"
 
