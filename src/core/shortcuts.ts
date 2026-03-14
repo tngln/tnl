@@ -1,7 +1,9 @@
+import { CommandRegistry, type CommandExecuteResult, type CommandId, type CommandSpec } from "./commands"
+
 export type ShortcutModifier = "Ctrl" | "Meta" | "Alt" | "Shift"
 export type PointerButtonName = "Primary" | "Middle" | "Secondary"
 export type ShortcutContextKey = string
-export type CommandId = string
+export type { CommandId } from "./commands"
 
 export type ShortcutTrigger =
   | { kind: "key-down"; code: string }
@@ -25,11 +27,7 @@ export type ShortcutExecutionContext = {
   captureTopLevelTarget?: unknown
 }
 
-export type ShortcutCommand<TContext extends ShortcutExecutionContext = ShortcutExecutionContext> = {
-  id: CommandId
-  run(ctx: TContext): void
-  enabled?: (ctx: TContext) => boolean
-}
+export type ShortcutCommand<TContext extends ShortcutExecutionContext = ShortcutExecutionContext> = CommandSpec<TContext>
 
 export type ShortcutBinding<TContext extends ShortcutExecutionContext = ShortcutExecutionContext> = {
   command: CommandId
@@ -222,19 +220,42 @@ export class InputState {
 
 export class ShortcutManager<TContext extends ShortcutExecutionContext = ShortcutExecutionContext> {
   readonly input = new InputState()
-  private readonly commands = new Map<CommandId, ShortcutCommand<TContext>>()
+  readonly commandRegistry: CommandRegistry<TContext>
   private bindings: InternalBinding<TContext>[] = []
   private readonly resolver: ShortcutContextResolver<TContext>
   private readonly getExecutionContext: () => TContext
   private nextOrder = 0
 
-  constructor(opts: { resolver: ShortcutContextResolver<TContext>; getExecutionContext: () => TContext }) {
+  constructor(opts: { resolver: ShortcutContextResolver<TContext>; getExecutionContext: () => TContext; commandRegistry?: CommandRegistry<TContext> }) {
     this.resolver = opts.resolver
     this.getExecutionContext = opts.getExecutionContext
+    this.commandRegistry = opts.commandRegistry ?? new CommandRegistry<TContext>()
   }
 
   registerCommand(command: ShortcutCommand<TContext>) {
-    this.commands.set(command.id, command)
+    this.commandRegistry.register(command)
+  }
+
+  unregisterCommand(commandId: CommandId) {
+    this.commandRegistry.unregister(commandId)
+  }
+
+  getCommand(commandId: CommandId) {
+    return this.commandRegistry.get(commandId)
+  }
+
+  listCommands() {
+    return this.commandRegistry.list()
+  }
+
+  canExecuteCommand(commandId: CommandId, ctx?: TContext) {
+    const nextCtx = ctx ?? this.getExecutionContext()
+    return this.commandRegistry.canExecute(commandId, nextCtx)
+  }
+
+  executeCommand(commandId: CommandId, ctx?: TContext): CommandExecuteResult {
+    const nextCtx = ctx ?? this.getExecutionContext()
+    return this.commandRegistry.execute(commandId, nextCtx)
   }
 
   registerBinding(binding: ShortcutBinding<TContext>) {
@@ -315,11 +336,8 @@ export class ShortcutManager<TContext extends ShortcutExecutionContext = Shortcu
         if (!this.pointerButtonsMatch(state.pointerButtons, binding.withPointerButtons)) continue
         if (binding.when && !binding.when(ctx)) continue
 
-        const command = this.commands.get(binding.command)
-        if (!command) continue
-        if (command.enabled && !command.enabled(ctx)) continue
-
-        command.run(ctx)
+        const result = this.commandRegistry.execute(binding.command, ctx)
+        if (result.status !== "executed") continue
         if (binding.preventDefault !== false) nativeEvent?.preventDefault?.()
         if (binding.stop !== false) return true
       }

@@ -207,4 +207,32 @@ describe("shortcuts", () => {
 
     expect(ctx.log).toEqual(["toggle"])
   })
+
+  it("executes commands directly without shortcut triggers", () => {
+    const { manager, ctx } = createManager()
+    manager.registerCommand({
+      id: "edit.deleteSelection",
+      enabled(current) {
+        return current.enabled
+      },
+      run(current) {
+        current.log.push("delete")
+      },
+    })
+
+    expect(manager.canExecuteCommand("edit.deleteSelection")).toBe(true)
+    expect(manager.executeCommand("edit.deleteSelection")).toEqual({
+      status: "executed",
+      commandId: "edit.deleteSelection",
+      resolvedId: "edit.deleteSelection",
+    })
+    expect(ctx.log).toEqual(["delete"])
+
+    ctx.enabled = false
+    expect(manager.executeCommand("edit.deleteSelection")).toEqual({
+      status: "disabled",
+      commandId: "edit.deleteSelection",
+      resolvedId: "edit.deleteSelection",
+    })
+  })
 })
