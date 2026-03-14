@@ -179,6 +179,20 @@ function common(base: {
   }
 }
 
+function commonWithoutStyle(base: {
+  key?: string
+  style?: CommonNodeProps["style"]
+  active?: boolean
+  visible?: boolean
+  box?: BoxStyle
+  provideStyle?: CommonNodeProps["provideStyle"]
+  styleOverride?: CommonNodeProps["styleOverride"]
+} | undefined): Omit<CommonNodeProps, "style"> {
+  const next = common(base)
+  const { style: _style, ...rest } = next
+  return rest
+}
+
 function mergeInherited(base: Partial<InheritedStyle> | undefined, patch: Partial<InheritedStyle> | undefined): Partial<InheritedStyle> | undefined {
   if (!base && !patch) return undefined
   return {
@@ -226,7 +240,7 @@ function inheritedTextPatch(props: { tone?: "primary" | "muted"; weight?: "norma
 }
 
 export function Column(props: ContainerProps) {
-  return column(resolveChildren(props), props.style, common(props))
+  return column(resolveChildren(props), props.style, commonWithoutStyle(props))
 }
 
 export function VStack(props: ContainerProps) {
@@ -234,7 +248,7 @@ export function VStack(props: ContainerProps) {
 }
 
 export function Row(props: ContainerProps) {
-  return row(resolveChildren(props), props.style, common(props))
+  return row(resolveChildren(props), props.style, commonWithoutStyle(props))
 }
 
 export function HStack(props: ContainerProps) {
@@ -243,11 +257,11 @@ export function HStack(props: ContainerProps) {
 
 export function Flex(props: ContainerProps & { axis?: "row" | "column" }) {
   const style = props.axis ? { ...(props.style ?? {}), axis: props.axis } : props.style
-  return flex(resolveChildren(props), style, common(props))
+  return flex(resolveChildren(props), style, commonWithoutStyle(props))
 }
 
 export function Stack(props: ContainerProps) {
-  return stack(resolveChildren(props), props.style, common(props))
+  return stack(resolveChildren(props), props.style, commonWithoutStyle(props))
 }
 
 export function Spacer(props: JSXNodeProps) {

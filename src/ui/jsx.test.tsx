@@ -1,6 +1,6 @@
 import { createElement, Fragment } from "./jsx"
 import { describe, expect, it } from "bun:test"
-import { RichText, Text, VStack } from "./builder/components"
+import { HStack, RichText, Stack, Text, VStack } from "./builder/components"
 import { theme } from "../config/theme"
 import { resolveRichTextChildren } from "./builder/rich_text_children"
 
@@ -30,6 +30,15 @@ describe("jsx runtime", () => {
     const node: any = <Demo />
     expect(node.kind).toBe("text")
     expect(node.text).toBe("ok")
+  })
+
+  it("keeps implied axes for stack helpers", () => {
+    const vNode: any = <VStack style={{ gap: 4 }}><Text>a</Text><Text>b</Text></VStack>
+    const hNode: any = <HStack style={{ gap: 4 }}><Text>a</Text><Text>b</Text></HStack>
+    const sNode: any = <Stack><Text>a</Text><Text>b</Text></Stack>
+    expect(vNode.style?.axis).toBe("column")
+    expect(hNode.style?.axis).toBe("row")
+    expect(sNode.kind).toBe("stack")
   })
 
   it("creates rich text intrinsic nodes", () => {
