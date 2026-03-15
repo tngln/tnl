@@ -42,7 +42,6 @@ export class TreeRow extends UIElement {
   private onSelect: (() => void) | undefined
   private onToggle: (() => void) | undefined
   private onDoubleClickHandler: (() => void) | undefined
-  private hover = false
   private readonly press = createPressMachine()
 
   constructor() {
@@ -55,11 +54,7 @@ export class TreeRow extends UIElement {
       },
     )
 
-    this.on("pointerenter", () => {
-      this.hover = true
-    })
     this.on("pointerleave", () => {
-      this.hover = false
       if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "leave" })
     })
     this.on("pointerdown", (e) => {
@@ -85,7 +80,6 @@ export class TreeRow extends UIElement {
       this.onDoubleClickHandler?.()
     })
     this.on("pointercancel", ({ reason }) => {
-      this.hover = false
       if (!this.press.matches("pressed")) return
       this.press.send({ type: "CANCEL", reason })
     })

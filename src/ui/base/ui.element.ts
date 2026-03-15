@@ -38,6 +38,7 @@ export abstract class UIElement {
   children: UIElement[] = []
   visible = true
   z = 0
+  hover = false
   private rt: DrawRuntime | null = null
   private handlers: Map<string, Set<Function>> | null = null
 
@@ -220,6 +221,8 @@ export abstract class UIElement {
   }
 
   emit<K extends keyof UIElementEventMap>(type: K, ...args: UIElementEventMap[K] extends void ? [] : [UIElementEventMap[K]]): void {
+    if (type === "pointerenter") this.hover = true
+    else if (type === "pointerleave" || type === "pointercancel") this.hover = false
     const set = this.handlers?.get(type)
     if (!set) return
     const event = args[0]

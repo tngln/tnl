@@ -19,7 +19,6 @@ export class MenuBar extends UIElement {
   private readonly topLayer: TopLayerController
   private readonly menuId: string
 
-  private hover = false
   private hoveredIndex = -1
   private readonly press = createPressMachine()
 
@@ -43,11 +42,7 @@ export class MenuBar extends UIElement {
     this.stack = new MenuStack({ id: this.menuId, topLayer: this.topLayer, viewport: () => this.topLayer.host.bounds() })
     this.setBounds(this.rect)
 
-    this.on("pointerenter", () => {
-      this.hover = true
-    })
     this.on("pointerleave", () => {
-      this.hover = false
       this.hoveredIndex = -1
       if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "leave" })
     })
@@ -80,7 +75,6 @@ export class MenuBar extends UIElement {
       if (idx >= 0) this.openMenu(idx)
     })
     this.on("pointercancel", ({ reason }) => {
-      this.hover = false
       this.hoveredIndex = -1
       if (!this.press.matches("pressed")) return
       this.press.send({ type: "CANCEL", reason })

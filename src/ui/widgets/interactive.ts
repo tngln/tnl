@@ -12,7 +12,6 @@ export class InteractiveElement extends UIElement {
   protected readonly _active: () => boolean
   protected readonly _disabled: () => boolean
 
-  protected hover = false
   private readonly press = createPressMachine()
 
   constructor(opts: { rect: () => Rect; active?: () => boolean; disabled?: () => boolean }) {
@@ -29,13 +28,7 @@ export class InteractiveElement extends UIElement {
   }
 
   protected setupInteractiveHandlers() {
-    this.on("pointerenter", () => {
-      if (!this.interactive()) return
-      this.hover = true
-    })
-
     this.on("pointerleave", () => {
-      this.hover = false
       if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "leave" })
     })
 
@@ -58,7 +51,6 @@ export class InteractiveElement extends UIElement {
     })
 
     this.on("pointercancel", (payload: { event: PointerUIEvent | null; reason: InteractionCancelReason }) => {
-      this.hover = false
       if (!this.press.matches("pressed")) return
       this.press.send({ type: "CANCEL", reason: payload.reason })
     })

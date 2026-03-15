@@ -21,7 +21,6 @@ export class ListRow extends UIElement {
   private layout: ListRowLayout = { rect: ZERO_RECT, leftText: "" }
   private onClick: (() => void) | undefined
   private onDoubleClickHandler: (() => void) | undefined
-  private hover = false
   private readonly press = createPressMachine()
 
   constructor() {
@@ -34,11 +33,7 @@ export class ListRow extends UIElement {
       },
     )
 
-    this.on("pointerenter", () => {
-      this.hover = true
-    })
     this.on("pointerleave", () => {
-      this.hover = false
       if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "leave" })
     })
     this.on("pointerdown", (e) => {
@@ -58,7 +53,6 @@ export class ListRow extends UIElement {
       this.onDoubleClickHandler?.()
     })
     this.on("pointercancel", ({ reason }) => {
-      this.hover = false
       if (!this.press.matches("pressed")) return
       this.press.send({ type: "CANCEL", reason })
     })

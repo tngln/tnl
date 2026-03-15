@@ -26,7 +26,6 @@ export class Menu extends UIElement {
   private readonly onDismiss: (() => void) | null
   private readonly onHoverItem: ((item: { index: number; rect: Rect; item: Exclude<MenuItem, { kind: "separator" }> } | null) => void) | null
 
-  private hover = false
   private hoveredIndex = -1
   private readonly press = createPressMachine()
 
@@ -47,12 +46,7 @@ export class Menu extends UIElement {
     this.onHoverItem = opts.onHoverItem ?? null
     this.setBounds(this.rect)
 
-    this.on("pointerenter", () => {
-      this.hover = true
-    })
-
     this.on("pointerleave", () => {
-      this.hover = false
       this.hoveredIndex = -1
       if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "leave" })
     })
@@ -64,7 +58,6 @@ export class Menu extends UIElement {
     })
 
     this.on("pointermove", (e: PointerUIEvent) => {
-      this.hover = pointInRect({ x: e.x, y: e.y }, this.bounds())
       const idx = this.rawIndexFromPoint({ x: e.x, y: e.y })
       if (idx !== this.hoveredIndex) {
         e.handle()
@@ -95,7 +88,6 @@ export class Menu extends UIElement {
     this.on("pointerup", (e: PointerUIEvent) => {
       if (!this.press.matches("pressed")) return
       this.press.send({ type: "RELEASE", point: { x: e.x, y: e.y } })
-      this.hover = pointInRect({ x: e.x, y: e.y }, this.bounds())
       if (!this.hover) return
       const idx = this.selectableIndexFromPoint({ x: e.x, y: e.y })
       const item = this.items()[idx]
@@ -124,7 +116,6 @@ export class Menu extends UIElement {
     })
 
     this.on("pointercancel", (payload: { event: PointerUIEvent | null; reason: InteractionCancelReason }) => {
-      this.hover = false
       this.hoveredIndex = -1
       if (!this.press.matches("pressed")) return
       this.press.send({ type: "CANCEL", reason: payload.reason })

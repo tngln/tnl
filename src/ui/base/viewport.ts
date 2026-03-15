@@ -102,7 +102,7 @@ export class ViewportElement extends UIElement {
   private readonly active: () => boolean
 
   private capture: UIEventTargetNode | null = null
-  private hover: UIElement | null = null
+  private hoverChild: UIElement | null = null
   private readonly surfaceBridge: SurfaceEventBridge
 
   constructor(opts: { rect: () => BoundsRect; target?: Surface | null; options?: ViewportOptions }) {
@@ -120,8 +120,8 @@ export class ViewportElement extends UIElement {
     this.setBounds(this.rect, this.active)
 
     this.on("pointerleave", () => {
-      if (this.hover) this.hover.emit("pointerleave")
-      this.hover = null
+      if (this.hoverChild) this.hoverChild.emit("pointerleave")
+      this.hoverChild = null
     })
 
     this.on("pointerdown", (e: PointerUIEvent) => {
@@ -131,13 +131,13 @@ export class ViewportElement extends UIElement {
       const { viewport: vp, local } = this.localPointFromPointer(e)
       ;(s as any).lightDismiss?.(local)
       const hit = s.hitTest?.(local, vp) ?? null
-      if (hit && hit !== this.hover) {
-        this.hover?.emit("pointerleave")
+      if (hit && hit !== this.hoverChild) {
+        this.hoverChild?.emit("pointerleave")
         hit.emit("pointerenter")
-        this.hover = hit
-      } else if (!hit && this.hover) {
-        this.hover.emit("pointerleave")
-        this.hover = null
+        this.hoverChild = hit
+      } else if (!hit && this.hoverChild) {
+        this.hoverChild.emit("pointerleave")
+        this.hoverChild = null
       }
 
       const target = hit ?? this.surfaceBridge
@@ -158,13 +158,13 @@ export class ViewportElement extends UIElement {
       const { viewport: vp, local } = this.localPointFromPointer(e)
       const hit = s.hitTest?.(local, vp) ?? null
       const hoverTarget = hit instanceof UIElement ? hit : null
-      if (hoverTarget && hoverTarget !== this.hover) {
-        this.hover?.emit("pointerleave")
+      if (hoverTarget && hoverTarget !== this.hoverChild) {
+        this.hoverChild?.emit("pointerleave")
         hoverTarget.emit("pointerenter")
-        this.hover = hoverTarget
-      } else if (!hoverTarget && this.hover) {
-        this.hover.emit("pointerleave")
-        this.hover = null
+        this.hoverChild = hoverTarget
+      } else if (!hoverTarget && this.hoverChild) {
+        this.hoverChild.emit("pointerleave")
+        this.hoverChild = null
       }
 
       const target = this.surfacePathTarget(local, vp)
@@ -202,8 +202,8 @@ export class ViewportElement extends UIElement {
         dispatchPointerCancelEvent(target, null, payload.reason)
       }
       this.capture = null
-      if (this.hover) this.hover.emit("pointerleave")
-      this.hover = null
+      if (this.hoverChild) this.hoverChild.emit("pointerleave")
+      this.hoverChild = null
     })
 
     this.on("wheel", (e: WheelUIEvent) => {

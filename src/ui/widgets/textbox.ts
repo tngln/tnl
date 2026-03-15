@@ -34,7 +34,6 @@ export class TextBox extends UIElement {
   private inputBridge: TextInputBridge
   private readonly sessionId = `${SESSION_PREFIX}.${nextSessionId++}`
 
-  private hover = false
   private focused = false
   private dragAnchor: number | null = null
   private selectionStart = 0
@@ -85,13 +84,6 @@ export class TextBox extends UIElement {
       this.stopCaretBlink()
       this.inputBridge.blur(this.sessionId)
       this.invalidateSelf({ pad: 6 })
-    })
-    this.on("pointerenter", () => {
-      if (!this.interactive()) return
-      this.hover = true
-    })
-    this.on("pointerleave", () => {
-      this.hover = false
     })
     this.on("pointerdown", (e) => {
       if (!this.interactive() || e.button !== 0) return

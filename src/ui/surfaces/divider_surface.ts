@@ -25,7 +25,6 @@ class DividerHandle extends UIElement {
   private readonly minB: () => number
   private readonly total: () => number
 
-  private hover = false
   private down = false
   private startPos = 0
   private readonly downEvents = createEventStream<PointerUIEvent>()
@@ -51,12 +50,6 @@ class DividerHandle extends UIElement {
     )
     this.setupGestures()
 
-    this.on("pointerenter", () => {
-      this.hover = true
-    })
-    this.on("pointerleave", () => {
-      this.hover = false
-    })
     this.on("pointerdown", (e) => {
       if (e.button !== 0) return
       this.down = true
@@ -74,7 +67,6 @@ class DividerHandle extends UIElement {
     this.on("pointercancel", ({ reason }) => {
       this.cancelEvents.emit(reason)
       this.down = false
-      this.hover = false
     })
   }
 

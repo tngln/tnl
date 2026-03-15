@@ -689,7 +689,6 @@ const MAXIMIZE_BUTTON_SPEC: TitleBarButtonSpec = {
 }
 
 class TitleBarButton extends UIElement {
-  private hover = false
   private down = false
 
   constructor(
@@ -699,11 +698,7 @@ class TitleBarButton extends UIElement {
     super()
     this.z = 100
 
-    this.on("pointerenter", () => {
-      this.hover = true
-    })
     this.on("pointerleave", () => {
-      this.hover = false
       this.down = false
     })
     this.on("pointerdown", (e) => {
@@ -718,7 +713,6 @@ class TitleBarButton extends UIElement {
       this.spec.onClick(this.win)
     })
     this.on("pointercancel", () => {
-      this.hover = false
       this.down = false
     })
   }

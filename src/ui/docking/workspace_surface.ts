@@ -90,7 +90,6 @@ class DockTabHandle extends UIElement {
   private readonly onDragEnd: (pointer: Vec2) => void
   private readonly toGlobal: (point: Vec2) => Vec2
 
-  private hover = false
   private readonly downEvents = createEventStream<PointerUIEvent>()
   private readonly moveEvents = createEventStream<PointerUIEvent>()
   private readonly upEvents = createEventStream<PointerUIEvent>()
@@ -277,7 +276,6 @@ class DockSplitHandle extends UIElement {
   private readonly rect: () => Rect
   private readonly axis: () => "x" | "y"
   private readonly onDrag: (point: Vec2) => void
-  private hover = false
   private readonly downEvents = createEventStream<PointerUIEvent>()
   private readonly moveEvents = createEventStream<PointerUIEvent>()
   private readonly upEvents = createEventStream<PointerUIEvent>()
@@ -349,12 +347,6 @@ class DockSplitHandle extends UIElement {
     })
     this.setupGestures()
 
-    this.on("pointerenter", () => {
-      this.hover = true
-    })
-    this.on("pointerleave", () => {
-      this.hover = false
-    })
     this.on("pointerdown", (e) => {
       if (e.button !== 0) return
       this.machine.send({ type: "PRESS", point: { x: e.x, y: e.y } })
@@ -370,7 +362,6 @@ class DockSplitHandle extends UIElement {
       this.upEvents.emit(e)
     })
     this.on("pointercancel", () => {
-      this.hover = false
       this.cancelEvents.emit()
     })
   }

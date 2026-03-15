@@ -18,7 +18,6 @@ export class Slider extends UIElement {
   private thumbSize: number = 12
   private trackThickness: number = 4
 
-  private hover = false
   private dragging = false
 
   constructor(opts: {
@@ -40,11 +39,9 @@ export class Slider extends UIElement {
 
     this.on("pointerenter", () => {
       if (!this.activeValue) return
-      this.hover = true
       this.invalidateSelf({ pad: 12 })
     })
     this.on("pointerleave", () => {
-      this.hover = false
       if (!this.dragging) this.invalidateSelf({ pad: 12 })
     })
     this.on("pointerdown", (e) => {

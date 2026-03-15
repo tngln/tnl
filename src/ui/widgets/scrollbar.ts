@@ -39,7 +39,6 @@ export class Scrollbar extends UIElement {
   private autoHide: boolean = true
   private activeValue: boolean = true
 
-  private hover = false
   private readonly downEvents = createEventStream<PointerUIEvent>()
   private readonly moveEvents = createEventStream<PointerUIEvent>()
   private readonly upEvents = createEventStream<PointerUIEvent>()
@@ -118,11 +117,7 @@ export class Scrollbar extends UIElement {
     })
     this.setupGestures()
 
-    this.on("pointerenter", () => {
-      this.hover = true
-    })
     this.on("pointerleave", () => {
-      this.hover = false
       if (this.machine.matches("pressed")) this.cancelEvents.emit("leave")
     })
     this.on("pointerdown", (e) => {
@@ -151,7 +146,6 @@ export class Scrollbar extends UIElement {
       this.upEvents.emit(e)
     })
     this.on("pointercancel", ({ reason }) => {
-      this.hover = false
       this.cancelEvents.emit(reason)
     })
   }
