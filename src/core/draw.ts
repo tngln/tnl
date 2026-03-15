@@ -9,8 +9,17 @@ export type Shape = {
   fillRule?: CanvasFillRule
 }
 
+export type GradientStop = { offset: number; color: string }
+
+export type LinearGradientDef = { kind: "linear"; x0: number; y0: number; x1: number; y1: number; stops: GradientStop[] }
+export type RadialGradientDef = { kind: "radial"; x0: number; y0: number; r0: number; x1: number; y1: number; r1: number; stops: GradientStop[] }
+export type ConicGradientDef = { kind: "conic"; angle: number; cx: number; cy: number; stops: GradientStop[] }
+
+export type GradientDef = LinearGradientDef | RadialGradientDef | ConicGradientDef
+export type Paint = string | GradientDef
+
 export type FillStyle = {
-  color: string
+  paint: Paint
   shadow?: ShadowStyle
 }
 
@@ -72,8 +81,23 @@ function withShadow<T>(ctx: CanvasRenderingContext2D, shadow: ShadowStyle | unde
   return out
 }
 
-function applyFillStyle(ctx: CanvasRenderingContext2D, style: FillStyle) {
-  ctx.fillStyle = style.color
+function buildGradient(ctx: CanvasRenderingContext2D, g: GradientDef, bounds: Rect): CanvasGradient {
+  const { x, y, w, h } = bounds
+  const s = Math.min(w, h)
+  let grad: CanvasGradient
+  if (g.kind === "linear") {
+    grad = ctx.createLinearGradient(x + g.x0 * w, y + g.y0 * h, x + g.x1 * w, y + g.y1 * h)
+  } else if (g.kind === "radial") {
+    grad = ctx.createRadialGradient(x + g.x0 * w, y + g.y0 * h, g.r0 * s, x + g.x1 * w, y + g.y1 * h, g.r1 * s)
+  } else {
+    grad = ctx.createConicGradient(g.angle, x + g.cx * w, y + g.cy * h)
+  }
+  for (const stop of g.stops) grad.addColorStop(stop.offset, stop.color)
+  return grad
+}
+
+function applyFillStyle(ctx: CanvasRenderingContext2D, style: FillStyle, bounds: Rect) {
+  ctx.fillStyle = typeof style.paint === "string" ? style.paint : buildGradient(ctx, style.paint, bounds)
 }
 
 function applyStrokeStyle(ctx: CanvasRenderingContext2D, style: StrokeStyle) {
@@ -111,7 +135,7 @@ function rectPath(ctx: CanvasRenderingContext2D, rect: Rect, radius = 0) {
 
 function fillRectOp(ctx: CanvasRenderingContext2D, rect: Rect, fill: FillStyle) {
   withShadow(ctx, fill.shadow, () => {
-    applyFillStyle(ctx, fill)
+    applyFillStyle(ctx, fill, rect)
     ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
   })
 }
@@ -123,9 +147,9 @@ function strokeRectOp(ctx: CanvasRenderingContext2D, rect: Rect, stroke: StrokeS
   })
 }
 
-function fillPathOp(ctx: CanvasRenderingContext2D, fill: FillStyle, buildPath: () => void, fillRule?: CanvasFillRule) {
+function fillPathOp(ctx: CanvasRenderingContext2D, fill: FillStyle, bounds: Rect, buildPath: () => void, fillRule?: CanvasFillRule) {
   withShadow(ctx, fill.shadow, () => {
-    applyFillStyle(ctx, fill)
+    applyFillStyle(ctx, fill, bounds)
     buildPath()
     if (fillRule) ctx.fill(fillRule)
     else ctx.fill()
@@ -140,9 +164,9 @@ function strokePathOp(ctx: CanvasRenderingContext2D, stroke: StrokeStyle, buildP
   })
 }
 
-function fillShapeOp(ctx: CanvasRenderingContext2D, fill: FillStyle, path: Path2D, fillRule?: CanvasFillRule) {
+function fillShapeOp(ctx: CanvasRenderingContext2D, fill: FillStyle, path: Path2D, bounds: Rect, fillRule?: CanvasFillRule) {
   withShadow(ctx, fill.shadow, () => {
-    applyFillStyle(ctx, fill)
+    applyFillStyle(ctx, fill, bounds)
     if (fillRule) ctx.fill(path, fillRule)
     else ctx.fill(path)
   })
@@ -158,7 +182,7 @@ export function draw(ctx: CanvasRenderingContext2D, ...ops: DrawOp[]) {
           if (op.stroke) strokeRectOp(ctx, snappedRect(ctx, op.rect), op.stroke)
           break
         }
-        if (op.fill) fillPathOp(ctx, op.fill, () => rectPath(ctx, op.rect, radius))
+        if (op.fill) fillPathOp(ctx, op.fill, op.rect, () => rectPath(ctx, op.rect, radius))
         if (op.stroke) {
           const rounded = snappedRoundedRect(ctx, op.rect, radius)
           strokePathOp(ctx, op.stroke, () => rectPath(ctx, rounded, rounded.radius))
@@ -166,15 +190,18 @@ export function draw(ctx: CanvasRenderingContext2D, ...ops: DrawOp[]) {
         break
       }
       case "Circle": {
-        if (op.fill)
-          fillPathOp(ctx, op.fill, () => {
+        const c = op.circle
+        if (op.fill) {
+          const cb = { x: c.x - c.r, y: c.y - c.r, w: 2 * c.r, h: 2 * c.r }
+          fillPathOp(ctx, op.fill, cb, () => {
             ctx.beginPath()
-            ctx.arc(op.circle.x, op.circle.y, op.circle.r, 0, Math.PI * 2)
+            ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2)
           })
+        }
         if (op.stroke)
           strokePathOp(ctx, op.stroke, () => {
             ctx.beginPath()
-            ctx.arc(op.circle.x, op.circle.y, op.circle.r, 0, Math.PI * 2)
+            ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2)
           })
         break
       }
@@ -199,7 +226,7 @@ export function draw(ctx: CanvasRenderingContext2D, ...ops: DrawOp[]) {
         break
       }
       case "Shape": {
-        fillShapeOp(ctx, op.fill, op.shape.path, op.shape.fillRule)
+        fillShapeOp(ctx, op.fill, op.shape.path, op.shape.viewBox, op.shape.fillRule)
         break
       }
     }

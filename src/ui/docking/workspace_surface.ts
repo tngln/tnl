@@ -198,7 +198,7 @@ class DockTabHandle extends UIElement {
         { x: r.x, y: r.y, w: r.w, h: r.h },
         {
           radius: 6,
-          fill: { color: bg },
+          fill: { paint: bg },
           stroke: { color: selected ? neutral[300] : neutral[500], hairline: true },
         },
       ),
@@ -380,10 +380,10 @@ class DockSplitHandle extends UIElement {
       ctx,
       RectOp({ x: r.x + 1, y: r.y + 1, w: Math.max(0, r.w - 2), h: Math.max(0, r.h - 2) }, {
         radius: 6,
-        fill: { color: bg },
+        fill: { paint: bg },
         stroke: { color: neutral[500], hairline: true },
       }),
-      RectOp({ x: grip.x, y: grip.y, w: grip.w, h: grip.h }, { radius: grip.r, fill: { color: neutral[200] } }),
+      RectOp({ x: grip.x, y: grip.y, w: grip.w, h: grip.h }, { radius: grip.r, fill: { paint: neutral[200] } }),
     )
   }
 
@@ -764,7 +764,7 @@ export class DockWorkspaceSurface implements Surface {
       ctx as CanvasRenderingContext2D,
       RectOp({ x: 0, y: 0, w: this.size.x, h: this.size.y }, {
         radius: theme.radii.sm,
-        fill: { color: neutral[800] },
+        fill: { paint: neutral[800] },
         stroke: { color: neutral[500], hairline: true },
       }),
     )
@@ -774,10 +774,10 @@ export class DockWorkspaceSurface implements Surface {
         ctx as CanvasRenderingContext2D,
         RectOp({ x: layout.rect.x, y: layout.rect.y, w: layout.rect.w, h: layout.rect.h }, {
           radius: theme.radii.sm,
-          fill: { color: neutral[750] },
+          fill: { paint: neutral[750] },
           stroke: { color: neutral[500], hairline: true },
         }),
-        RectOp(layout.headerRect, { fill: { color: neutral[800] } }),
+        RectOp(layout.headerRect, { fill: { paint: neutral[800] } }),
         LineOp(
           { x: layout.headerRect.x, y: layout.headerRect.y + layout.headerRect.h },
           { x: layout.headerRect.x + layout.headerRect.w, y: layout.headerRect.y + layout.headerRect.h },
@@ -792,7 +792,7 @@ export class DockWorkspaceSurface implements Surface {
         ctx as CanvasRenderingContext2D,
         RectOp({ x: preview.rect.x, y: preview.rect.y, w: preview.rect.w, h: preview.rect.h }, {
           radius: theme.radii.sm,
-          fill: { color: alpha(theme.colors.accent, 0.12) },
+          fill: { paint: alpha(theme.colors.accent, 0.12) },
           stroke: { color: alpha(theme.colors.accent, 0.48), width: 2 },
         }),
       )

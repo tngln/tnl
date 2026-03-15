@@ -59,7 +59,7 @@ class SnapPreviewOverlay extends UIElement {
         { x: this.rect.x, y: this.rect.y, w: this.rect.w, h: this.rect.h },
         {
           radius: theme.radii.sm,
-          fill: { color: alpha(theme.colors.accent, 0.12) },
+          fill: { paint: alpha(theme.colors.accent, 0.12) },
           stroke: { color: alpha(theme.colors.accent, 0.48), width: 2 },
         },
       ),

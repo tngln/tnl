@@ -350,7 +350,7 @@ export class RichTextSelectable extends UIElement {
         const xOff = lineXOffset(layout, line)
         const selX = r.x + xOff + Math.min(x0, x1)
         const selW = Math.abs(x1 - x0)
-        draw(ctx, RectOp({ x: selX, y: r.y + i * lh, w: selW, h: lh }, { fill: { color: theme.colors.inputSelection } }))
+        draw(ctx, RectOp({ x: selX, y: r.y + i * lh, w: selW, h: lh }, { fill: { paint: theme.colors.inputSelection } }))
       }
     }
 

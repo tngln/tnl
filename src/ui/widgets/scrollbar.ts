@@ -221,10 +221,10 @@ export class Scrollbar extends UIElement {
     const thumb = active ? theme.colors.scrollThumbActive : this.hover ? theme.colors.scrollThumbHover : theme.colors.scrollThumb
     draw(
       ctx,
-      RectOp({ x: r.x, y: r.y, w: r.w, h: r.h }, { radius: Math.min(theme.radii.sm, Math.min(r.w, r.h) / 2), fill: { color: track } }),
+      RectOp({ x: r.x, y: r.y, w: r.w, h: r.h }, { radius: Math.min(theme.radii.sm, Math.min(r.w, r.h) / 2), fill: { paint: track } }),
       RectOp(
         { x: t.x + 1, y: t.y + 1, w: Math.max(0, t.w - 2), h: Math.max(0, t.h - 2) },
-        { radius: Math.min(theme.radii.sm, Math.min(t.w, t.h) / 2), fill: { color: thumb } },
+        { radius: Math.min(theme.radii.sm, Math.min(t.w, t.h) / 2), fill: { paint: thumb } },
       ),
     )
   }

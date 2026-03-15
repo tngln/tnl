@@ -50,7 +50,7 @@ export class ListRow extends UIElement {
         ? theme.colors.hover
         : "transparent"
     const resolvedBg = pressed ? theme.colors.pressed : bg
-    if (resolvedBg !== "transparent") draw(ctx, RectOp(r, { fill: { color: resolvedBg } }))
+    if (resolvedBg !== "transparent") draw(ctx, RectOp(r, { fill: { paint: resolvedBg } }))
 
     const indent = Math.max(0, this.layout.indent ?? 0)
     const isGroup = (this.layout.variant ?? "item") === "group"

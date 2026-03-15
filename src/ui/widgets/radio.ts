@@ -43,7 +43,7 @@ export class Radio extends InteractiveElement {
     draw(ctx, CircleOp({ x: cx, y: cy, r: 8 }, { stroke: { color: stroke, hairline: true } }))
 
     if (this.selected.peek() === this.value) {
-      draw(ctx, CircleOp({ x: cx, y: cy, r: 4 }, { fill: { color: disabled ? theme.colors.textMuted : theme.colors.text } }))
+      draw(ctx, CircleOp({ x: cx, y: cy, r: 4 }, { fill: { paint: disabled ? theme.colors.textMuted : theme.colors.text } }))
     }
 
     draw(

@@ -325,14 +325,14 @@ export class ModalWindow extends UIElement {
       ctx,
       RectOp(
         { x, y, w, h },
-        { fill: { color: neutral[875], shadow: theme.shadows.window }, stroke: { color: theme.colors.border, hairline: true } },
+        { fill: { paint: neutral[875], shadow: theme.shadows.window }, stroke: { color: theme.colors.border, hairline: true } },
       ),
     )
 
     if (this.chrome === "default") {
       draw(
         ctx,
-        RectOp({ x, y, w, h: this.titleBarHeight }, { fill: { color: neutral[50] } }),
+        RectOp({ x, y, w, h: this.titleBarHeight }, { fill: { paint: neutral[50] } }),
         TextOp({
           x: x + theme.spacing.sm,
           y: y + this.titleBarHeight / 2 + 0.5,
@@ -623,7 +623,7 @@ const CLOSE_BUTTON_SPEC: TitleBarButtonSpec = {
           : state.hover
             ? theme.colors.closeBg
             : "transparent"
-    if (bg !== "transparent") draw(ctx, RectOp(r, { fill: { color: bg } }))
+    if (bg !== "transparent") draw(ctx, RectOp(r, { fill: { paint: bg } }))
     const cx = r.x + r.w / 2
     const cy = r.y + r.h / 2
     const color = win.chrome === "tool" ? theme.colors.text : state.hover || state.down ? neutral[50] : neutral[925]
@@ -643,7 +643,7 @@ const MINIMIZE_BUTTON_SPEC: TitleBarButtonSpec = {
   slotFromRight: (win) => (win.chrome === "default" && win.resizable ? 2 : 1),
   draw: (ctx, r, win, state) => {
     const bg = state.down ? neutral[750] : state.hover ? neutral[800] : "transparent"
-    if (bg !== "transparent") draw(ctx, RectOp(r, { fill: { color: bg } }))
+    if (bg !== "transparent") draw(ctx, RectOp(r, { fill: { paint: bg } }))
     const x0 = r.x + 5
     const x1 = r.x + r.w - 5
     const y = r.y + r.h - 6
@@ -658,7 +658,7 @@ const MAXIMIZE_BUTTON_SPEC: TitleBarButtonSpec = {
   slotFromRight: () => 1,
   draw: (ctx, r, win, state) => {
     const bg = state.down ? neutral[750] : state.hover ? neutral[800] : "transparent"
-    if (bg !== "transparent") draw(ctx, RectOp(r, { fill: { color: bg } }))
+    if (bg !== "transparent") draw(ctx, RectOp(r, { fill: { paint: bg } }))
 
     const color = win.chrome === "tool" ? theme.colors.text : neutral[925]
     if (win.maximized.peek() || win.screenUsage.peek() !== "none") {

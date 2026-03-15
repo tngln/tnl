@@ -41,7 +41,7 @@ export class Button extends InteractiveElement {
       ctx,
       RectOp(
         { x: r.x, y: r.y, w: r.w, h: r.h },
-        { radius: theme.radii.sm, fill: { color: bg }, stroke: { color: stroke, hairline: true } },
+        { radius: theme.radii.sm, fill: { paint: bg }, stroke: { color: stroke, hairline: true } },
       ),
       TextOp({
         x: r.x + r.w / 2,
@@ -72,7 +72,7 @@ export class Button extends InteractiveElement {
       ctx,
       RectOp(
         { x: tipX, y: tipY, w: tipW, h: tipH },
-        { radius: theme.radii.sm, fill: { color: neutral[900] }, stroke: { color: neutral[400], hairline: true } },
+        { radius: theme.radii.sm, fill: { paint: neutral[900] }, stroke: { color: neutral[400], hairline: true } },
       ),
       TextOp({
         x: tipX + tipW / 2,

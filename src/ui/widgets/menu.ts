@@ -172,7 +172,7 @@ export class Menu extends UIElement {
       ctx,
       RectOp(
         { x: menu.x, y: menu.y, w: menu.w, h: menu.h },
-        { radius: theme.radii.sm, fill: { color: neutral[900] }, stroke: { color: neutral[400], hairline: true } },
+        { radius: theme.radii.sm, fill: { paint: neutral[900] }, stroke: { color: neutral[400], hairline: true } },
       ),
     )
 
@@ -200,7 +200,7 @@ export class Menu extends UIElement {
       const hovered = i === this.hoveredIndex
       const selected = it.key === selectedKey
       if ((hovered && !it.disabled) || selected) {
-        draw(ctx, { kind: "Rect", rect: row, fill: { color: hovered ? neutral[500] : neutral[600] } })
+        draw(ctx, { kind: "Rect", rect: row, fill: { paint: hovered ? neutral[500] : neutral[600] } })
       }
       const textColor = it.disabled ? theme.colors.textDim : theme.colors.text
       draw(
@@ -231,7 +231,7 @@ export class Menu extends UIElement {
           TextOp({
             x: row.x + row.w - theme.ui.controls.rowTextPadX,
             y: row.y + row.h / 2 + 0.5,
-            text: "›",
+             text: "▸",
             style: { color: it.disabled ? theme.colors.textDim : theme.colors.textMuted, font: f, baseline: "middle", align: "right" },
           }),
         )

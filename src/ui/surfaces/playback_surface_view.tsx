@@ -138,7 +138,7 @@ export const PlaybackSurface = defineSurface({
                     draw={(ctx, rect) => {
                       draw(
                         ctx,
-                        RectOp({ x: rect.x, y: rect.y, w: rect.w, h: rect.h }, { radius: 10, fill: { color: neutral[950] }, stroke: { color: neutral[500], hairline: true } }),
+                        RectOp({ x: rect.x, y: rect.y, w: rect.w, h: rect.h }, { radius: 10, fill: { paint: neutral[950] }, stroke: { color: neutral[500], hairline: true } }),
                       )
                       const inner = { x: rect.x + 12, y: rect.y + 12, w: Math.max(0, rect.w - 24), h: Math.max(0, rect.h - 24) }
                       const drewVideo = session.drawVideo(ctx, inner)

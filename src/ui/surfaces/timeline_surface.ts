@@ -80,7 +80,7 @@ class TimelineRulerSurface implements Surface {
 
     draw(
       ctx as CanvasRenderingContext2D,
-      RectOp({ x: 0, y: 0, w: viewport.contentRect.w, h: viewport.contentRect.h }, { fill: { color: neutral[875] } }),
+      RectOp({ x: 0, y: 0, w: viewport.contentRect.w, h: viewport.contentRect.h }, { fill: { paint: neutral[875] } }),
       LineOp({ x: 0, y: viewport.contentRect.h - 0.5, }, { x: viewport.contentRect.w, y: viewport.contentRect.h - 0.5 }, { color: neutral[400], hairline: true }),
     )
 
@@ -125,7 +125,7 @@ class TimelineContainerBackgroundSurface implements Surface {
     const visibleValues = findVisibleValueRange(viewport.scroll.x, layout.contentRect.w, view.rangeStart, scale.pxPerUnit)
     const visibleTracks = findVisibleTrackRange(viewport.scroll.y, layout.contentRect.h, metrics)
 
-    draw(ctx as CanvasRenderingContext2D, RectOp({ x: 0, y: 0, w: viewport.contentRect.w, h: viewport.contentRect.h }, { fill: { color: neutral[925] } }))
+    draw(ctx as CanvasRenderingContext2D, RectOp({ x: 0, y: 0, w: viewport.contentRect.w, h: viewport.contentRect.h }, { fill: { paint: neutral[925] } }))
 
     if (visibleTracks) {
       for (let i = visibleTracks.first; i <= visibleTracks.last; i++) {
@@ -134,7 +134,7 @@ class TimelineContainerBackgroundSurface implements Surface {
         const fill = i % 2 === 0 ? neutral[800] : neutral[700]
         draw(
           ctx as CanvasRenderingContext2D,
-          RectOp({ x: 0, y, w: viewport.contentRect.w, h: track.height }, { fill: { color: fill } }),
+          RectOp({ x: 0, y, w: viewport.contentRect.w, h: track.height }, { fill: { paint: fill } }),
           LineOp({ x: 0, y: y + track.height + 0.5 }, { x: viewport.contentRect.w, y: y + track.height + 0.5 }, { color: neutral[600], hairline: true }),
         )
       }
@@ -166,7 +166,7 @@ class TimelineTrackHeaderSurface implements Surface {
     const bodyFont = font(theme, theme.typography.body)
     const titleFont = font(theme, { ...theme.typography.body, weight: 600 })
 
-    draw(ctx as CanvasRenderingContext2D, RectOp({ x: 0, y: 0, w: viewport.contentRect.w, h: viewport.contentRect.h }, { fill: { color: neutral[875] } }))
+    draw(ctx as CanvasRenderingContext2D, RectOp({ x: 0, y: 0, w: viewport.contentRect.w, h: viewport.contentRect.h }, { fill: { paint: neutral[875] } }))
     if (!visibleTracks) return
 
     for (let i = visibleTracks.first; i <= visibleTracks.last; i++) {
@@ -175,7 +175,7 @@ class TimelineTrackHeaderSurface implements Surface {
       const y = metric.top
       draw(
         ctx as CanvasRenderingContext2D,
-        RectOp({ x: 0, y, w: viewport.contentRect.w, h: metric.height }, { fill: { color: i % 2 === 0 ? neutral[700] : neutral[750] } }),
+        RectOp({ x: 0, y, w: viewport.contentRect.w, h: metric.height }, { fill: { paint: i % 2 === 0 ? neutral[700] : neutral[750] } }),
         LineOp({ x: 0, y: y + metric.height + 0.5 }, { x: viewport.contentRect.w, y: y + metric.height + 0.5 }, { color: neutral[500], hairline: true }),
         TextOp({ x: 12, y: y + 12, text: track.name, style: { color: theme.colors.text, font: titleFont, baseline: "top" } }),
         TextOp({
@@ -222,7 +222,7 @@ class TimelineTrackContentSurface implements Surface {
         const label = fitLabel(ctx, item.label, w - 14, labelFont)
         draw(
           ctx as CanvasRenderingContext2D,
-          RectOp({ x: rect.x, y: rect.y, w: rect.w, h: rect.h }, { radius: Math.min(theme.radii.sm, rect.h / 2), fill: { color: fill }, stroke: { color: alpha(fill, 0.67), hairline: true } }),
+          RectOp({ x: rect.x, y: rect.y, w: rect.w, h: rect.h }, { radius: Math.min(theme.radii.sm, rect.h / 2), fill: { paint: fill }, stroke: { color: alpha(fill, 0.67), hairline: true } }),
         )
         if (!label) continue
         draw(
@@ -489,8 +489,8 @@ export class TimelineCompositeSurface implements Surface {
 
     draw(
       ctx as CanvasRenderingContext2D,
-      RectOp({ x: 0, y: 0, w: this.size.x, h: this.size.y }, { fill: { color: neutral[925] } }),
-      RectOp(this.layoutState.cornerRect, { fill: { color: neutral[875] } }),
+      RectOp({ x: 0, y: 0, w: this.size.x, h: this.size.y }, { fill: { paint: neutral[925] } }),
+      RectOp(this.layoutState.cornerRect, { fill: { paint: neutral[875] } }),
       LineOp({ x: this.layoutState.cornerRect.w + 0.5, y: 0 }, { x: this.layoutState.cornerRect.w + 0.5, y: this.size.y }, { color: neutral[400], hairline: true }),
       LineOp({ x: 0, y: this.layoutState.cornerRect.h + 0.5 }, { x: this.size.x, y: this.layoutState.cornerRect.h + 0.5 }, { color: neutral[400], hairline: true }),
       TextOp({
@@ -508,7 +508,7 @@ export class TimelineCompositeSurface implements Surface {
       draw(
         ctx as CanvasRenderingContext2D,
         LineOp({ x: playheadX + 0.5, y: 0 }, { x: playheadX + 0.5, y: this.layoutState.rulerRect.h + this.layoutState.contentRect.h }, { color: theme.colors.playhead, width: 2 }),
-        RectOp({ x: playheadX - 18, y: 4, w: 36, h: 16 }, { radius: 6, fill: { color: theme.colors.playhead } }),
+        RectOp({ x: playheadX - 18, y: 4, w: 36, h: 16 }, { radius: 6, fill: { paint: theme.colors.playhead } }),
         TextOp({ x: playheadX, y: 12.5, text: "PH", style: { color: neutral[950], font: `${700} 10px ${theme.typography.family}`, align: "center", baseline: "middle" } }),
       )
     }

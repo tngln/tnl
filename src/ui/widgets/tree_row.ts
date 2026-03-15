@@ -80,7 +80,7 @@ export class TreeRow extends UIElement {
         ? theme.colors.hover
         : "transparent"
     const resolvedBg = pressed ? theme.colors.pressed : bg
-    if (resolvedBg !== "transparent") draw(ctx, RectOp(r, { fill: { color: resolvedBg } }))
+    if (resolvedBg !== "transparent") draw(ctx, RectOp(r, { fill: { paint: resolvedBg } }))
 
     const isGroup = (this.layout.variant ?? "item") === "group"
     const leftColor = isGroup ? theme.colors.text : theme.colors.textMuted
@@ -102,7 +102,7 @@ export class TreeRow extends UIElement {
             w: Math.max(0, disclosureRect.w - pad * 2),
             h: Math.max(0, disclosureRect.h - pad * 2),
           },
-          { color: theme.colors.textMuted },
+                  { paint: theme.colors.textMuted },
         ),
       )
     }

@@ -113,7 +113,7 @@ function drawNodeBox(drawOps: Array<(ctx: CanvasRenderingContext2D) => void>, re
         { x: rect.x, y: rect.y, w: rect.w, h: rect.h },
         {
           radius,
-          fill: fill ? { color: fill } : undefined,
+                    fill: fill ? { paint: fill } : undefined,
           stroke: stroke ? { color: stroke, hairline: true } : undefined,
         },
       ),

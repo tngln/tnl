@@ -1,8 +1,8 @@
-import { ShapeOp, type DrawOp } from "../../core/draw"
+import { ShapeOp, type DrawOp, type FillStyle } from "../../core/draw"
 import type { Rect } from "../../core/rect"
 import type { IconDef } from "./types"
 
-export function iconToShape(icon: IconDef, dst: Rect, fill: { color: string }): DrawOp {
+export function iconToShape(icon: IconDef, dst: Rect, fill: FillStyle): DrawOp {
   if (typeof Path2D === "undefined") return ShapeOp({ viewBox: dst, path: null as any }, fill)
   const vb = icon.viewBox
   const vbW = Math.max(0, vb.w)

@@ -236,7 +236,7 @@ export class TextBox extends UIElement {
       ctx,
       RectOp(
         { x: rect.x, y: rect.y, w: rect.w, h: rect.h },
-        { radius: theme.radii.sm, fill: { color: bg }, stroke: { color: stroke, hairline: true } },
+        { radius: theme.radii.sm, fill: { paint: bg }, stroke: { color: stroke, hairline: true } },
       ),
     )
 
