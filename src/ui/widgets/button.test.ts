@@ -28,9 +28,9 @@ describe("button", () => {
       },
     })
 
-    button.onPointerEnter()
-    button.onPointerDown(pointer())
-    button.onPointerUp(pointer())
+    button.emit("pointerenter")
+    button.emit("pointerdown", pointer())
+    button.emit("pointerup", pointer())
 
     expect(clicks).toBe(0)
   })
@@ -45,9 +45,9 @@ describe("button", () => {
       },
     })
 
-    button.onPointerEnter()
-    button.onPointerDown(pointer())
-    button.onPointerUp(pointer())
+    button.emit("pointerenter")
+    button.emit("pointerdown", pointer())
+    button.emit("pointerup", pointer())
 
     expect(clicks).toBe(1)
   })

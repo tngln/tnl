@@ -411,8 +411,8 @@ describe("surface builder", () => {
     surface.render(ctx, viewport)
     const toggleTarget = surface.hitTest({ x: 12, y: 10 })
     expect(toggleTarget).toBeTruthy()
-    toggleTarget?.onPointerEnter()
-    toggleTarget?.onPointerDown(
+    toggleTarget?.emit("pointerenter")
+    toggleTarget?.emit("pointerdown",
       new PointerUIEvent({
         pointerId: 1,
         x: 12,
@@ -425,7 +425,7 @@ describe("surface builder", () => {
         metaKey: false,
       }),
     )
-    toggleTarget?.onPointerUp(
+    toggleTarget?.emit("pointerup",
       new PointerUIEvent({
         pointerId: 1,
         x: 12,
@@ -441,8 +441,8 @@ describe("surface builder", () => {
 
     const selectTarget = surface.hitTest({ x: 32, y: 10 })
     expect(selectTarget).toBeTruthy()
-    selectTarget?.onPointerEnter()
-    selectTarget?.onPointerDown(
+    selectTarget?.emit("pointerenter")
+    selectTarget?.emit("pointerdown",
       new PointerUIEvent({
         pointerId: 1,
         x: 32,
@@ -455,7 +455,7 @@ describe("surface builder", () => {
         metaKey: false,
       }),
     )
-    selectTarget?.onPointerUp(
+    selectTarget?.emit("pointerup",
       new PointerUIEvent({
         pointerId: 1,
         x: 32,

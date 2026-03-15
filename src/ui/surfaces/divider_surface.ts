@@ -1,6 +1,6 @@
 import { theme, neutral } from "@/config/theme"
 import { draw, RectOp } from "@/core/draw"
-import { createEventStream, pointerDragSession, type InteractionCancelReason } from "@/core/event_stream"
+import { createEventStream, pointerDragSession } from "@/core/event_stream"
 import { signal, type Signal } from "@/core/reactivity"
 import { clamp } from "@/core/rect"
 import { CursorRegion, UIElement, type Rect, type Vec2, PointerUIEvent, pointInRect } from "@/ui/base/ui"
@@ -50,6 +50,32 @@ class DividerHandle extends UIElement {
       }),
     )
     this.setupGestures()
+
+    this.on("pointerenter", () => {
+      this.hover = true
+    })
+    this.on("pointerleave", () => {
+      this.hover = false
+    })
+    this.on("pointerdown", (e) => {
+      if (e.button !== 0) return
+      this.down = true
+      this.downEvents.emit(e)
+      e.capture()
+    })
+    this.on("pointermove", (e) => {
+      if (!this.down) return
+      this.moveEvents.emit(e)
+    })
+    this.on("pointerup", (e) => {
+      this.upEvents.emit(e)
+      this.down = false
+    })
+    this.on("pointercancel", ({ reason }) => {
+      this.cancelEvents.emit(reason)
+      this.down = false
+      this.hover = false
+    })
   }
 
   bounds(): Rect {
@@ -146,36 +172,6 @@ class DividerHandle extends UIElement {
     return this.axis === "x" ? "ew-resize" : "ns-resize"
   }
 
-  onPointerEnter() {
-    this.hover = true
-  }
-
-  onPointerLeave() {
-    this.hover = false
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (e.button !== 0) return
-    this.down = true
-    this.downEvents.emit(e)
-    e.capture()
-  }
-
-  onPointerMove(e: PointerUIEvent) {
-    if (!this.down) return
-    this.moveEvents.emit(e)
-  }
-
-  onPointerUp(e: PointerUIEvent) {
-    this.upEvents.emit(e)
-    this.down = false
-  }
-
-  onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
-    this.cancelEvents.emit(reason)
-    this.down = false
-    this.hover = false
-  }
 }
 
 export class DividerSurface implements Surface {

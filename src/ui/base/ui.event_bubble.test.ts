@@ -1,29 +1,29 @@
 import { describe, expect, it } from "bun:test"
-import { CanvasUI, KeyUIEvent, PointerUIEvent, UIElement, WheelUIEvent, type Rect } from "./ui"
+import { CanvasUI, UIElement, type Rect } from "./ui"
 import { SurfaceRoot, ViewportElement, type Surface } from "./viewport"
 import { pointerEvent, wheelEvent, withFakeDom } from "./test_utils"
 
 class HostElement extends UIElement {
   readonly events: string[] = []
 
+  constructor() {
+    super()
+    this.on("pointerdown", (e) => {
+      this.events.push(`down:${e.phase}:${e.target === this ? "self" : "child"}:${e.x},${e.y}`)
+    })
+    this.on("pointermove", (e) => {
+      this.events.push(`move:${e.phase}:${e.target === this ? "self" : "child"}:${e.x},${e.y}`)
+    })
+    this.on("pointercancel", ({ event: e, reason }) => {
+      this.events.push(`cancel:${reason}:${e?.phase ?? "none"}:${e?.target === this ? "self" : "child"}`)
+    })
+    this.on("wheel", (e) => {
+      this.events.push(`wheel:${e.phase}:${e.target === this ? "self" : "child"}:${e.x},${e.y}:${e.didHandle ? "handled" : "open"}`)
+    })
+  }
+
   bounds(): Rect {
     return { x: 0, y: 0, w: 200, h: 200 }
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    this.events.push(`down:${e.phase}:${e.target === this ? "self" : "child"}:${e.x},${e.y}`)
-  }
-
-  onPointerMove(e: PointerUIEvent) {
-    this.events.push(`move:${e.phase}:${e.target === this ? "self" : "child"}:${e.x},${e.y}`)
-  }
-
-  onPointerCancel(e: PointerUIEvent | null, reason: string) {
-    this.events.push(`cancel:${reason}:${e?.phase ?? "none"}:${e?.target === this ? "self" : "child"}`)
-  }
-
-  onWheel(e: WheelUIEvent) {
-    this.events.push(`wheel:${e.phase}:${e.target === this ? "self" : "child"}:${e.x},${e.y}:${e.didHandle ? "handled" : "open"}`)
   }
 }
 
@@ -35,42 +35,40 @@ class ChildElement extends UIElement {
   focused = false
   blurred = false
 
+  constructor() {
+    super()
+    this.on("pointerdown", (e) => {
+      this.events.push(`down:${e.phase}:${e.x},${e.y}`)
+      if (this.captureOnDown) e.capturePointer()
+      if (this.stop) e.stopPropagation()
+    })
+    this.on("pointermove", (e) => {
+      this.events.push(`move:${e.phase}:${e.x},${e.y}`)
+    })
+    this.on("pointercancel", ({ reason }) => {
+      this.events.push(`cancel:${reason}`)
+    })
+    this.on("focus", () => {
+      this.focused = true
+      this.blurred = false
+    })
+    this.on("blur", () => {
+      this.focused = false
+      this.blurred = true
+    })
+    this.on("keydown", (e) => {
+      this.events.push(`key:${e.phase}:${e.code}`)
+      e.handle()
+      if (this.stopKey) e.stopPropagation()
+    })
+  }
+
   bounds(): Rect {
     return { x: 20, y: 20, w: 40, h: 40 }
   }
 
   canFocus() {
     return true
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    this.events.push(`down:${e.phase}:${e.x},${e.y}`)
-    if (this.captureOnDown) e.capturePointer()
-    if (this.stop) e.stopPropagation()
-  }
-
-  onPointerMove(e: PointerUIEvent) {
-    this.events.push(`move:${e.phase}:${e.x},${e.y}`)
-  }
-
-  onPointerCancel(_e: PointerUIEvent | null, reason: string) {
-    this.events.push(`cancel:${reason}`)
-  }
-
-  onFocus() {
-    this.focused = true
-    this.blurred = false
-  }
-
-  onBlur() {
-    this.focused = false
-    this.blurred = true
-  }
-
-  onKeyDown(e: KeyUIEvent) {
-    this.events.push(`key:${e.phase}:${e.code}`)
-    e.handle()
-    if (this.stopKey) e.stopPropagation()
   }
 }
 
@@ -80,6 +78,22 @@ class LocalLeaf extends UIElement {
   stopPointer = false
   focused = false
 
+  constructor() {
+    super()
+    this.on("focus", () => {
+      this.focused = true
+    })
+    this.on("pointerdown", (e) => {
+      this.events.push(`down:${e.phase}:${e.x},${e.y}`)
+      if (this.stopPointer) e.stopPropagation()
+      e.capturePointer()
+    })
+    this.on("wheel", (e) => {
+      this.events.push(`wheel:${e.phase}:${e.x},${e.y}`)
+      if (this.handleWheel) e.handle()
+    })
+  }
+
   bounds(): Rect {
     return { x: 0, y: 0, w: 30, h: 30 }
   }
@@ -87,27 +101,15 @@ class LocalLeaf extends UIElement {
   canFocus() {
     return true
   }
-
-  onFocus() {
-    this.focused = true
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    this.events.push(`down:${e.phase}:${e.x},${e.y}`)
-    if (this.stopPointer) e.stopPropagation()
-    e.capturePointer()
-  }
-
-  onWheel(e: WheelUIEvent) {
-    this.events.push(`wheel:${e.phase}:${e.x},${e.y}`)
-    if (this.handleWheel) e.handle()
-  }
 }
 
 class FocusHostElement extends HostElement {
-  onKeyDown(e: KeyUIEvent) {
-    this.events.push(`key:${e.phase}:${e.target === this ? "self" : "child"}:${e.code}`)
-    e.handle()
+  constructor() {
+    super()
+    this.on("keydown", (e) => {
+      this.events.push(`key:${e.phase}:${e.target === this ? "self" : "child"}:${e.code}`)
+      e.handle()
+    })
   }
 }
 
@@ -117,19 +119,21 @@ class CancelProbeElement extends UIElement {
   cancelReasonFromEvent: string | null = null
   cancelEventTimestamp: number | null = null
 
+  constructor() {
+    super()
+    this.on("pointerdown", (e) => {
+      this.pointerDownSeen = true
+      e.capturePointer()
+    })
+    this.on("pointercancel", ({ event: e, reason }) => {
+      this.cancelReasonFromArg = reason
+      this.cancelReasonFromEvent = e?.cancelReason ?? null
+      this.cancelEventTimestamp = e?.timeStamp ?? null
+    })
+  }
+
   bounds(): Rect {
     return { x: 20, y: 20, w: 40, h: 40 }
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    this.pointerDownSeen = true
-    e.capturePointer()
-  }
-
-  onPointerCancel(e: PointerUIEvent | null, reason: string) {
-    this.cancelReasonFromArg = reason
-    this.cancelReasonFromEvent = e?.cancelReason ?? null
-    this.cancelEventTimestamp = e?.timeStamp ?? null
   }
 }
 

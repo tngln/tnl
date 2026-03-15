@@ -24,11 +24,14 @@ class BoxElement extends UIElement {
 }
 
 class PointerElement extends UIElement {
+  constructor() {
+    super()
+    this.on("pointerdown", () => {})
+  }
+
   bounds() {
     return { x: 0, y: 0, w: 10, h: 10 }
   }
-
-  onPointerDown() {}
 }
 
 class ClickElement extends UIElement {

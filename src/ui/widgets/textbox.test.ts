@@ -69,7 +69,7 @@ describe("textbox", () => {
       inputBridge: bridge,
     })
 
-    textbox.onFocus()
+    textbox.emit("focus")
     expect(bridge.states.at(-1)).toMatchObject({ value: "abc", selectionStart: 0, selectionEnd: 0 })
 
     bridge.session?.onStateChange({ value: "abcd", selectionStart: 4, selectionEnd: 4 })
@@ -86,22 +86,22 @@ describe("textbox", () => {
       inputBridge: bridge,
     })
 
-    textbox.onFocus()
+    textbox.emit("focus")
     bridge.session?.onStateChange({ value: "hello", selectionStart: 5, selectionEnd: 5 })
 
     const left = key("ArrowLeft", "ArrowLeft")
-    textbox.onKeyDown(left)
+    textbox.emit("keydown", left)
     expect(left.didConsume).toBe(true)
     expect(left.didPreventDefault).toBe(true)
     expect(bridge.states.at(-1)).toMatchObject({ selectionStart: 4, selectionEnd: 4 })
 
     const selectAll = key("KeyA", "a", { ctrlKey: true })
-    textbox.onKeyDown(selectAll)
+    textbox.emit("keydown", selectAll)
     expect(selectAll.didPreventDefault).toBe(true)
     expect(bridge.states.at(-1)).toMatchObject({ selectionStart: 0, selectionEnd: 5 })
 
     const copy = key("KeyC", "c", { ctrlKey: true })
-    textbox.onKeyDown(copy)
+    textbox.emit("keydown", copy)
     expect(copy.didConsume).toBe(true)
     expect(copy.didPreventDefault).toBe(false)
   })
@@ -116,10 +116,10 @@ describe("textbox", () => {
         inputBridge: bridge,
       })
 
-      textbox.onFocus()
-      textbox.onPointerDown(pointer(8, 1))
-      textbox.onPointerMove(pointer(36, 1))
-      textbox.onPointerUp(pointer(36, 0))
+      textbox.emit("focus")
+      textbox.emit("pointerdown", pointer(8, 1))
+      textbox.emit("pointermove", pointer(36, 1))
+      textbox.emit("pointerup", pointer(36, 0))
 
       expect(bridge.states.at(-1)?.selectionEnd).toBeGreaterThan(bridge.states.at(-1)?.selectionStart ?? 0)
     })
@@ -136,7 +136,7 @@ describe("textbox", () => {
     })
 
     expect(textbox.canFocus()).toBe(false)
-    textbox.onFocus()
+    textbox.emit("focus")
     expect(bridge.session).toBe(null)
   })
 
@@ -149,7 +149,7 @@ describe("textbox", () => {
       inputBridge: bridge,
     })
 
-    textbox.onFocus()
+    textbox.emit("focus")
     expect(bridge.session).toBeTruthy()
 
     textbox.onRuntimeDeactivate()

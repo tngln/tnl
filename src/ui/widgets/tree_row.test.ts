@@ -79,9 +79,9 @@ describe("tree row", () => {
       },
     )
 
-    row.onPointerEnter()
-    row.onPointerDown(pointer(24, 10))
-    row.onPointerUp(pointer(24, 10))
+    row.emit("pointerenter")
+    row.emit("pointerdown", pointer(24, 10))
+    row.emit("pointerup", pointer(24, 10))
 
     expect(toggles).toBe(1)
     expect(selects).toBe(0)
@@ -109,9 +109,9 @@ describe("tree row", () => {
       },
     )
 
-    row.onPointerEnter()
-    row.onPointerDown(pointer(40, 10))
-    row.onPointerUp(pointer(40, 10))
+    row.emit("pointerenter")
+    row.emit("pointerdown", pointer(40, 10))
+    row.emit("pointerup", pointer(40, 10))
 
     expect(toggles).toBe(0)
     expect(selects).toBe(1)
@@ -139,9 +139,9 @@ describe("tree row", () => {
       },
     )
 
-    row.onPointerEnter()
-    row.onPointerDown(pointer(10, 10))
-    row.onPointerUp(pointer(10, 10))
+    row.emit("pointerenter")
+    row.emit("pointerdown", pointer(10, 10))
+    row.emit("pointerup", pointer(10, 10))
 
     expect(toggles).toBe(0)
     expect(selects).toBe(1)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { CanvasUI, CursorRegion, PointerUIEvent, UIElement, type Rect } from "./ui"
+import { CanvasUI, CursorRegion, UIElement, type Rect } from "./ui"
 import { pointerEvent, withFakeDom } from "./test_utils"
 
 class CaptureElement extends UIElement {
@@ -8,34 +8,33 @@ class CaptureElement extends UIElement {
   focused = false
   blurred = false
 
+  constructor() {
+    super()
+    this.on("pointerdown", (e) => {
+      e.capture()
+    })
+    this.on("pointermove", () => {
+      this.moves += 1
+    })
+    this.on("pointercancel", ({ reason }) => {
+      this.cancels.push(reason)
+    })
+    this.on("focus", () => {
+      this.focused = true
+      this.blurred = false
+    })
+    this.on("blur", () => {
+      this.focused = false
+      this.blurred = true
+    })
+  }
+
   bounds(): Rect {
     return { x: 0, y: 0, w: 80, h: 80 }
   }
 
   canFocus() {
     return true
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    e.capture()
-  }
-
-  onPointerMove() {
-    this.moves += 1
-  }
-
-  onPointerCancel(_e: PointerUIEvent | null, reason: string) {
-    this.cancels.push(reason)
-  }
-
-  onFocus() {
-    this.focused = true
-    this.blurred = false
-  }
-
-  onBlur() {
-    this.focused = false
-    this.blurred = true
   }
 }
 
@@ -72,14 +71,13 @@ class ParentCaptureElement extends UIElement {
     const childHost = new NestedCursorHost()
     childHost.z = 1
     this.add(childHost)
+    this.on("pointerdown", (e) => {
+      e.capturePointer()
+    })
   }
 
   bounds(): Rect {
     return { x: 0, y: 0, w: 100, h: 100 }
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    e.capturePointer()
   }
 }
 

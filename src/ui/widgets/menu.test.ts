@@ -33,31 +33,31 @@ describe("menu", () => {
       onDismiss: () => events.push("dismiss"),
     })
 
-    menu.onPointerEnter()
-    menu.onPointerMove(pointer(10, 10, 0))
-    menu.onPointerDown(pointer(10, 10))
-    menu.onPointerUp(pointer(10, 10))
+    menu.emit("pointerenter")
+    menu.emit("pointermove", pointer(10, 10, 0))
+    menu.emit("pointerdown", pointer(10, 10))
+    menu.emit("pointerup", pointer(10, 10))
     expect(events).toEqual(["a", "select:a"])
 
     events.length = 0
     const sepY = MENU_ROW_HEIGHT + Math.floor(MENU_SEPARATOR_HEIGHT / 2)
-    menu.onPointerMove(pointer(10, sepY, 0))
-    menu.onPointerDown(pointer(10, sepY))
-    menu.onPointerUp(pointer(10, sepY))
+    menu.emit("pointermove", pointer(10, sepY, 0))
+    menu.emit("pointerdown", pointer(10, sepY))
+    menu.emit("pointerup", pointer(10, sepY))
     expect(events).toEqual(["dismiss"])
 
     events.length = 0
     const disabledY = MENU_ROW_HEIGHT + MENU_SEPARATOR_HEIGHT + Math.floor(MENU_ROW_HEIGHT / 2)
-    menu.onPointerMove(pointer(10, disabledY, 0))
-    menu.onPointerDown(pointer(10, disabledY))
-    menu.onPointerUp(pointer(10, disabledY))
+    menu.emit("pointermove", pointer(10, disabledY, 0))
+    menu.emit("pointerdown", pointer(10, disabledY))
+    menu.emit("pointerup", pointer(10, disabledY))
     expect(events).toEqual(["dismiss"])
 
     events.length = 0
     const cY = MENU_ROW_HEIGHT + MENU_SEPARATOR_HEIGHT + MENU_ROW_HEIGHT + Math.floor(MENU_ROW_HEIGHT / 2)
-    menu.onPointerMove(pointer(10, cY, 0))
-    menu.onPointerDown(pointer(10, cY))
-    menu.onPointerUp(pointer(10, cY))
+    menu.emit("pointermove", pointer(10, cY, 0))
+    menu.emit("pointerdown", pointer(10, cY))
+    menu.emit("pointerup", pointer(10, cY))
     expect(events).toEqual(["c", "select:c"])
   })
 

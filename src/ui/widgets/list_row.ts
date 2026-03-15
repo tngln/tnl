@@ -1,10 +1,9 @@
 import { theme } from "@/config/theme"
 import { draw, RectOp, TextOp } from "@/core/draw"
 import { truncateToWidth } from "@/core/draw.text"
-import type { InteractionCancelReason } from "@/core/event_stream"
 import { createPressMachine } from "@/core/fsm"
 import { ZERO_RECT } from "@/core/rect"
-import { PointerUIEvent, UIElement, type Rect } from "@/ui/base/ui"
+import { UIElement, type Rect } from "@/ui/base/ui"
 import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 
 export type RowVariant = "group" | "item"
@@ -34,6 +33,35 @@ export class ListRow extends UIElement {
         return r.w > 0 && r.h > 0
       },
     )
+
+    this.on("pointerenter", () => {
+      this.hover = true
+    })
+    this.on("pointerleave", () => {
+      this.hover = false
+      if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "leave" })
+    })
+    this.on("pointerdown", (e) => {
+      if (e.button !== 0) return
+      this.press.send({ type: "PRESS", point: { x: e.x, y: e.y } })
+      e.capture()
+    })
+    this.on("pointerup", (e) => {
+      if (!this.press.matches("pressed")) return
+      this.press.send({ type: "RELEASE", point: { x: e.x, y: e.y } })
+      if (!this.hover) return
+      this.onClick?.()
+    })
+    this.on("doubleclick", (e) => {
+      if (!this.hover) return
+      if (e.button !== 0) return
+      this.onDoubleClickHandler?.()
+    })
+    this.on("pointercancel", ({ reason }) => {
+      this.hover = false
+      if (!this.press.matches("pressed")) return
+      this.press.send({ type: "CANCEL", reason })
+    })
   }
 
   set(layout: ListRowLayout, handlers?: { onClick?: () => void; onDoubleClick?: () => void }) {
@@ -109,39 +137,6 @@ export class ListRow extends UIElement {
     }
   }
 
-  onPointerEnter() {
-    this.hover = true
-  }
-
-  onPointerLeave() {
-    this.hover = false
-    if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "leave" })
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (e.button !== 0) return
-    this.press.send({ type: "PRESS", point: { x: e.x, y: e.y } })
-    e.capture()
-  }
-
-  onPointerUp(e: PointerUIEvent) {
-    if (!this.press.matches("pressed")) return
-    this.press.send({ type: "RELEASE", point: { x: e.x, y: e.y } })
-    if (!this.hover) return
-    this.onClick?.()
-  }
-
-  onDoubleClick(e: PointerUIEvent) {
-    if (!this.hover) return
-    if (e.button !== 0) return
-    this.onDoubleClickHandler?.()
-  }
-
-  onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
-    this.hover = false
-    if (!this.press.matches("pressed")) return
-    this.press.send({ type: "CANCEL", reason })
-  }
 }
 
 type ListRowState = {

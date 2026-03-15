@@ -35,6 +35,15 @@ export class Dropdown extends InteractiveElement {
     super(opts)
     this.selected = opts.selected
     this.update(opts)
+
+    this.on("blur", () => {
+      this.closeMenu()
+    })
+
+    this.on("pointerdown", (e: PointerUIEvent) => {
+      if (!this.interactive() || e.button !== 0) return
+      e.requestFocus(this)
+    })
   }
 
   update(opts: { id: string; options: DropdownOption[] | (() => DropdownOption[]); selected: any; topLayer?: TopLayerController }) {
@@ -55,16 +64,6 @@ export class Dropdown extends InteractiveElement {
   private closeMenu() {
     this.dismissCleanup?.()
     this.dismissCleanup = null
-  }
-
-  onBlur() {
-    this.closeMenu()
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (!this.interactive() || e.button !== 0) return
-    e.requestFocus(this)
-    super.onPointerDown(e)
   }
 
   private menuId() {

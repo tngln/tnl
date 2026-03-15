@@ -29,12 +29,11 @@ export function dispatchPointerEvent(
   }
   const path = buildEventPath(target)
   const originalTarget = path[0]
+  const type = kind === "down" ? "pointerdown" : kind === "move" ? "pointermove" : "pointerup"
   for (let i = 0; i < path.length; i++) {
     const current = path[i]
     event.withDispatch(originalTarget, current, i === 0 ? "target" : "bubble", pointForTarget?.(current))
-    if (kind === "down") current.onPointerDown?.(event)
-    else if (kind === "move") current.onPointerMove?.(event)
-    else current.onPointerUp?.(event)
+    current.emit(type, event)
     if (event.propagationStopped) break
   }
   return {
@@ -53,7 +52,7 @@ export function dispatchDoubleClickEvent(target: UIEventTargetNode | null, event
   for (let i = 0; i < path.length; i++) {
     const current = path[i]
     event.withDispatch(originalTarget, current, i === 0 ? "target" : "bubble", pointForTarget?.(current))
-    current.onDoubleClick?.(event)
+    current.emit("doubleclick", event)
     if (event.propagationStopped) break
   }
 }
@@ -65,7 +64,7 @@ export function dispatchWheelEvent(target: UIEventTargetNode | null, event: Whee
   for (let i = 0; i < path.length; i++) {
     const current = path[i]
     event.withDispatch(originalTarget, current, i === 0 ? "target" : "bubble", pointForTarget?.(current))
-    current.onWheel?.(event)
+    current.emit("wheel", event)
     if (event.propagationStopped) break
   }
 }
@@ -74,11 +73,11 @@ export function dispatchKeyEvent(target: UIEventTargetNode | null, event: KeyUIE
   if (!target) return
   const path = buildEventPath(target)
   const originalTarget = path[0]
+  const type = kind === "down" ? "keydown" : "keyup"
   for (let i = 0; i < path.length; i++) {
     const current = path[i]
     event.withDispatch(originalTarget, current, i === 0 ? "target" : "bubble")
-    if (kind === "down") current.onKeyDown?.(event)
-    else current.onKeyUp?.(event)
+    current.emit(type, event)
     if (event.propagationStopped) break
   }
 }
@@ -96,7 +95,7 @@ export function dispatchPointerCancelEvent(
   for (let i = 0; i < path.length; i++) {
     const current = path[i]
     if (event) event.withDispatch(originalTarget, current, i === 0 ? "target" : "bubble", pointForTarget?.(current))
-    current.onPointerCancel?.(event, reason)
+    current.emit("pointercancel", { event, reason })
     if (event?.propagationStopped) break
   }
 }

@@ -175,6 +175,35 @@ class DockTabHandle extends UIElement {
       },
     })
     this.setupGestures()
+
+    this.on("pointerenter", () => {
+      this.hover = true
+    })
+    this.on("pointerleave", () => {
+      this.hover = false
+    })
+    this.on("pointerdown", (e) => {
+      if (e.button !== 0) return
+      this.machine.send({ type: "PRESS", point: { x: e.x, y: e.y } })
+      this.downEvents.emit(e)
+      e.capture()
+    })
+    this.on("pointermove", (e) => {
+      if (this.machine.matches("idle")) return
+      this.moveEvents.emit(e)
+    })
+    this.on("pointerup", (e) => {
+      const wasPressed = this.machine.matches("pressed")
+      const wasDragging = this.machine.matches("dragging")
+      if (!wasPressed && !wasDragging) return
+      this.upEvents.emit(e)
+      if (wasDragging) return
+      if (this.hover) this.onSelect()
+    })
+    this.on("pointercancel", () => {
+      this.hover = false
+      this.cancelEvents.emit()
+    })
   }
 
   bounds(): Rect {
@@ -242,39 +271,6 @@ class DockTabHandle extends UIElement {
     })
   }
 
-  onPointerEnter() {
-    this.hover = true
-  }
-
-  onPointerLeave() {
-    this.hover = false
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (e.button !== 0) return
-    this.machine.send({ type: "PRESS", point: { x: e.x, y: e.y } })
-    this.downEvents.emit(e)
-    e.capture()
-  }
-
-  onPointerMove(e: PointerUIEvent) {
-    if (this.machine.matches("idle")) return
-    this.moveEvents.emit(e)
-  }
-
-  onPointerUp(e: PointerUIEvent) {
-    const wasPressed = this.machine.matches("pressed")
-    const wasDragging = this.machine.matches("dragging")
-    if (!wasPressed && !wasDragging) return
-    this.upEvents.emit(e)
-    if (wasDragging) return
-    if (this.hover) this.onSelect()
-  }
-
-  onPointerCancel() {
-    this.hover = false
-    this.cancelEvents.emit()
-  }
 }
 
 class DockSplitHandle extends UIElement {
@@ -352,6 +348,31 @@ class DockSplitHandle extends UIElement {
       },
     })
     this.setupGestures()
+
+    this.on("pointerenter", () => {
+      this.hover = true
+    })
+    this.on("pointerleave", () => {
+      this.hover = false
+    })
+    this.on("pointerdown", (e) => {
+      if (e.button !== 0) return
+      this.machine.send({ type: "PRESS", point: { x: e.x, y: e.y } })
+      this.downEvents.emit(e)
+      e.capture()
+    })
+    this.on("pointermove", (e) => {
+      if (this.machine.matches("idle")) return
+      this.moveEvents.emit(e)
+    })
+    this.on("pointerup", (e) => {
+      if (this.machine.matches("idle")) return
+      this.upEvents.emit(e)
+    })
+    this.on("pointercancel", () => {
+      this.hover = false
+      this.cancelEvents.emit()
+    })
   }
 
   bounds(): Rect {
@@ -411,35 +432,6 @@ class DockSplitHandle extends UIElement {
     })
   }
 
-  onPointerEnter() {
-    this.hover = true
-  }
-
-  onPointerLeave() {
-    this.hover = false
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (e.button !== 0) return
-    this.machine.send({ type: "PRESS", point: { x: e.x, y: e.y } })
-    this.downEvents.emit(e)
-    e.capture()
-  }
-
-  onPointerMove(e: PointerUIEvent) {
-    if (this.machine.matches("idle")) return
-    this.moveEvents.emit(e)
-  }
-
-  onPointerUp(e: PointerUIEvent) {
-    if (this.machine.matches("idle")) return
-    this.upEvents.emit(e)
-  }
-
-  onPointerCancel() {
-    this.hover = false
-    this.cancelEvents.emit()
-  }
 }
 
 function tabWidth(ctx: CanvasRenderingContext2D, title: string) {

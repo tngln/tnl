@@ -146,13 +146,13 @@ describe("window manager", () => {
     coordinator.register(a)
     coordinator.setCanvasSize({ x: 640, y: 480 })
 
-    // Double-click detection is now done by CanvasUI and dispatched via onDoubleClick.
-    // The window's responsibility is solely to toggleMaximize when onDoubleClick lands on the title bar.
-    a.onDoubleClick(pointer(40, 24, 0))
+    // Double-click detection is now done by CanvasUI and dispatched via emit("doubleclick").
+    // The window's responsibility is solely to toggleMaximize when doubleclick lands on the title bar.
+    a.emit("doubleclick", pointer(40, 24, 0))
     expect(a.maximized.peek()).toBe(true)
     expect(a.bounds()).toEqual({ x: 0, y: 0, w: 640, h: 480 })
 
-    a.onDoubleClick(pointer(40, 24, 0))
+    a.emit("doubleclick", pointer(40, 24, 0))
     expect(a.maximized.peek()).toBe(false)
     expect(a.bounds()).toEqual({ x: 10, y: 20, w: 200, h: 120 })
   })
@@ -170,18 +170,18 @@ describe("window manager", () => {
     const target = root.hitTest(point)
     expect(target).toBeTruthy()
 
-    target?.onPointerEnter()
-    target?.onPointerDown(pointer(point.x, point.y, 1))
-    target?.onPointerUp(pointer(point.x, point.y, 0))
+    target?.emit("pointerenter")
+    target?.emit("pointerdown", pointer(point.x, point.y, 1))
+    target?.emit("pointerup", pointer(point.x, point.y, 0))
     expect(a.maximized.peek()).toBe(true)
     expect(a.bounds()).toEqual({ x: 0, y: 0, w: 900, h: 600 })
 
     const restorePoint = maximizeButtonPoint(a)
     const restoreTarget = root.hitTest(restorePoint)
     expect(restoreTarget).toBeTruthy()
-    restoreTarget?.onPointerEnter()
-    restoreTarget?.onPointerDown(pointer(restorePoint.x, restorePoint.y, 1))
-    restoreTarget?.onPointerUp(pointer(restorePoint.x, restorePoint.y, 0))
+    restoreTarget?.emit("pointerenter")
+    restoreTarget?.emit("pointerdown", pointer(restorePoint.x, restorePoint.y, 1))
+    restoreTarget?.emit("pointerup", pointer(restorePoint.x, restorePoint.y, 0))
     expect(a.maximized.peek()).toBe(false)
     expect(a.bounds()).toEqual({ x: 10, y: 20, w: 200, h: 120 })
   })
@@ -195,10 +195,10 @@ describe("window manager", () => {
     coordinator.setCanvasSize({ x: 900, y: 600 })
     coordinator.maximize("A")
 
-    a.onPointerDown(pointer(360, 16, 1))
-    a.onPointerMove(pointer(420, 48, 1))
-    a.onPointerMove(pointer(460, 64, 1))
-    a.onPointerUp(pointer(460, 64, 0))
+    a.emit("pointerdown", pointer(360, 16, 1))
+    a.emit("pointermove", pointer(420, 48, 1))
+    a.emit("pointermove", pointer(460, 64, 1))
+    a.emit("pointerup", pointer(460, 64, 0))
 
     expect(a.maximized.peek()).toBe(false)
     expect(a.bounds().w).toBe(200)
@@ -216,12 +216,12 @@ describe("window manager", () => {
 
     coordinator.register(a)
 
-    a.onPointerDown(pointer(40, 24, 1))
-    a.onPointerMove(pointer(90, 54, 1))
+    a.emit("pointerdown", pointer(40, 24, 1))
+    a.emit("pointermove", pointer(90, 54, 1))
     const moved = a.bounds()
 
-    a.onPointerCancel(null, "blur")
-    a.onPointerMove(pointer(140, 90, 1))
+    a.emit("pointercancel", { event: null, reason: "blur" })
+    a.emit("pointermove", pointer(140, 90, 1))
 
     expect(a.bounds()).toEqual(moved)
   })
@@ -233,10 +233,10 @@ describe("window manager", () => {
     coordinator.register(a)
     const original = { x: a.x.peek(), y: a.y.peek() }
 
-    // Move only 2px horizontally and 1px vertically: dist² = 5 < threshold 16
-    a.onPointerDown(pointer(40, 24, 1))
-    a.onPointerMove(pointer(42, 25, 1))
-    a.onPointerUp(pointer(42, 25, 0))
+    // Move only 1px horizontally and 1px vertically: dist² = 2 < threshold 4
+    a.emit("pointerdown", pointer(40, 24, 1))
+    a.emit("pointermove", pointer(41, 25, 1))
+    a.emit("pointerup", pointer(41, 25, 0))
 
     expect(a.x.peek()).toBe(original.x)
     expect(a.y.peek()).toBe(original.y)
@@ -249,15 +249,15 @@ describe("window manager", () => {
     coordinator.register(a)
 
     // Drag past threshold so drag starts
-    a.onPointerDown(pointer(40, 24, 1))
-    a.onPointerMove(pointer(90, 54, 1))
+    a.emit("pointerdown", pointer(40, 24, 1))
+    a.emit("pointermove", pointer(90, 54, 1))
     const draggingBounds = { x: a.x.peek(), y: a.y.peek() }
 
     // Button mask drops to 0 — interactionCancelStream fires "buttons-released"
-    a.onPointerMove(pointer(100, 64, 0))
+    a.emit("pointermove", pointer(100, 64, 0))
 
     // Subsequent moves with button held again must not affect position
-    a.onPointerMove(pointer(140, 90, 1))
+    a.emit("pointermove", pointer(140, 90, 1))
 
     expect(a.x.peek()).toBe(draggingBounds.x)
     expect(a.y.peek()).toBe(draggingBounds.y)
@@ -271,9 +271,9 @@ describe("window manager", () => {
     coordinator.register(a)
     coordinator.setCanvasSize({ x: 1000, y: 700 })
 
-    a.onPointerDown(pointer(40, 24, 1))
-    a.onPointerMove(pointer(8, 120, 1))
-    a.onPointerUp(pointer(8, 120, 0))
+    a.emit("pointerdown", pointer(40, 24, 1))
+    a.emit("pointermove", pointer(8, 120, 1))
+    a.emit("pointerup", pointer(8, 120, 0))
 
     expect(a.maximized.peek()).toBe(false)
     expect(a.screenUsage.peek()).toBe("left-half")
@@ -288,9 +288,9 @@ describe("window manager", () => {
     coordinator.register(a)
     coordinator.setCanvasSize({ x: 1001, y: 700 })
 
-    a.onPointerDown(pointer(40, 24, 1))
-    a.onPointerMove(pointer(996, 120, 1))
-    a.onPointerUp(pointer(996, 120, 0))
+    a.emit("pointerdown", pointer(40, 24, 1))
+    a.emit("pointermove", pointer(996, 120, 1))
+    a.emit("pointerup", pointer(996, 120, 0))
 
     expect(a.maximized.peek()).toBe(false)
     expect(a.screenUsage.peek()).toBe("right-half")
@@ -305,9 +305,9 @@ describe("window manager", () => {
     coordinator.register(a)
     coordinator.setCanvasSize({ x: 960, y: 640 })
 
-    a.onPointerDown(pointer(40, 24, 1))
-    a.onPointerMove(pointer(320, 8, 1))
-    a.onPointerUp(pointer(320, 8, 0))
+    a.emit("pointerdown", pointer(40, 24, 1))
+    a.emit("pointermove", pointer(320, 8, 1))
+    a.emit("pointerup", pointer(320, 8, 0))
 
     expect(a.maximized.peek()).toBe(true)
     expect(a.screenUsage.peek()).toBe("none")
@@ -322,12 +322,12 @@ describe("window manager", () => {
     coordinator.register(a)
     coordinator.setCanvasSize({ x: 1000, y: 700 })
 
-    a.onPointerDown(pointer(40, 24, 1))
-    a.onPointerMove(pointer(8, 120, 1))
+    a.emit("pointerdown", pointer(40, 24, 1))
+    a.emit("pointermove", pointer(8, 120, 1))
 
     expect(coordinator.getSnapPreviewRect()).toEqual({ x: 0, y: 0, w: 500, h: 700 })
 
-    a.onPointerUp(pointer(8, 120, 0))
+    a.emit("pointerup", pointer(8, 120, 0))
 
     expect(coordinator.getSnapPreviewRect()).toBe(null)
   })
@@ -362,9 +362,9 @@ describe("window manager", () => {
     const handle = root.hitTest(start)
     expect(handle).toBeTruthy()
 
-    handle?.onPointerDown(pointer(start.x, start.y, 1))
-    handle?.onPointerMove(pointer(start.x + 40, start.y + 30, 1))
-    handle?.onPointerUp(pointer(start.x + 40, start.y + 30, 0))
+    handle?.emit("pointerdown", pointer(start.x, start.y, 1))
+    handle?.emit("pointermove", pointer(start.x + 40, start.y + 30, 1))
+    handle?.emit("pointerup", pointer(start.x + 40, start.y + 30, 0))
 
     expect(a.w.peek()).toBe(240)
     expect(a.h.peek()).toBe(150)

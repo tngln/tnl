@@ -28,9 +28,9 @@ describe("choice controls", () => {
       disabled: () => true,
     })
 
-    checkbox.onPointerEnter()
-    checkbox.onPointerDown(pointer())
-    checkbox.onPointerUp(pointer())
+    checkbox.emit("pointerenter")
+    checkbox.emit("pointerdown", pointer())
+    checkbox.emit("pointerup", pointer())
 
     expect(checked.peek()).toBe(false)
   })
@@ -45,9 +45,9 @@ describe("choice controls", () => {
       disabled: () => true,
     })
 
-    radio.onPointerEnter()
-    radio.onPointerDown(pointer())
-    radio.onPointerUp(pointer())
+    radio.emit("pointerenter")
+    radio.emit("pointerdown", pointer())
+    radio.emit("pointerup", pointer())
 
     expect(selected.peek()).toBe("A")
   })

@@ -1,6 +1,6 @@
 import { theme, neutral } from "@/config/theme"
 import { draw, RectOp } from "@/core/draw"
-import { createEventStream, pointerDragSession, type InteractionCancelReason } from "@/core/event_stream"
+import { createEventStream, pointerDragSession } from "@/core/event_stream"
 import { createMachine, type Machine } from "@/core/fsm"
 import { clamp, ZERO_RECT } from "@/core/rect"
 import { PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "@/ui/base/ui"
@@ -117,6 +117,43 @@ export class Scrollbar extends UIElement {
       },
     })
     this.setupGestures()
+
+    this.on("pointerenter", () => {
+      this.hover = true
+    })
+    this.on("pointerleave", () => {
+      this.hover = false
+      if (this.machine.matches("pressed")) this.cancelEvents.emit("leave")
+    })
+    this.on("pointerdown", (e) => {
+      if (this.hidden()) return
+      if (e.button !== 0) return
+      const thumb = this.thumbRect()
+      const p = this.axis === "y" ? e.y : e.x
+      let dragOffset = 0
+      if (pointInRect({ x: e.x, y: e.y }, thumb)) {
+        dragOffset = this.axis === "y" ? e.y - thumb.y : e.x - thumb.x
+      } else {
+        const thumbLen = this.axis === "y" ? thumb.h : thumb.w
+        dragOffset = thumbLen / 2
+        this.setByPointer(p, dragOffset)
+      }
+      this.machine.send({ type: "PRESS", pointer: { x: e.x, y: e.y }, dragOffset })
+      this.downEvents.emit(e)
+      e.capture()
+    })
+    this.on("pointermove", (e) => {
+      if (this.machine.matches("idle")) return
+      this.moveEvents.emit(e)
+    })
+    this.on("pointerup", (e) => {
+      if (this.machine.matches("idle")) return
+      this.upEvents.emit(e)
+    })
+    this.on("pointercancel", ({ reason }) => {
+      this.hover = false
+      this.cancelEvents.emit(reason)
+    })
   }
 
   update(opts: {
@@ -231,48 +268,6 @@ export class Scrollbar extends UIElement {
         { radius: Math.min(theme.radii.sm, Math.min(t.w, t.h) / 2), fill: { paint: thumb } },
       ),
     )
-  }
-
-  onPointerEnter() {
-    this.hover = true
-  }
-
-  onPointerLeave() {
-    this.hover = false
-    if (this.machine.matches("pressed")) this.cancelEvents.emit("leave")
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (this.hidden()) return
-    if (e.button !== 0) return
-    const thumb = this.thumbRect()
-    const p = this.axis === "y" ? e.y : e.x
-    let dragOffset = 0
-    if (pointInRect({ x: e.x, y: e.y }, thumb)) {
-      dragOffset = this.axis === "y" ? e.y - thumb.y : e.x - thumb.x
-    } else {
-      const thumbLen = this.axis === "y" ? thumb.h : thumb.w
-      dragOffset = thumbLen / 2
-      this.setByPointer(p, dragOffset)
-    }
-    this.machine.send({ type: "PRESS", pointer: { x: e.x, y: e.y }, dragOffset })
-    this.downEvents.emit(e)
-    e.capture()
-  }
-
-  onPointerMove(e: PointerUIEvent) {
-    if (this.machine.matches("idle")) return
-    this.moveEvents.emit(e)
-  }
-
-  onPointerUp(e: PointerUIEvent) {
-    if (this.machine.matches("idle")) return
-    this.upEvents.emit(e)
-  }
-
-  onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
-    this.hover = false
-    this.cancelEvents.emit(reason)
   }
 }
 

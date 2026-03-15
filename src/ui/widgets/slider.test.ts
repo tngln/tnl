@@ -29,8 +29,8 @@ describe("slider", () => {
       },
     })
 
-    slider.onPointerEnter()
-    slider.onPointerDown(pointer(75, 10))
+    slider.emit("pointerenter")
+    slider.emit("pointerdown", pointer(75, 10))
 
     expect(value).toBeGreaterThan(6)
     expect(value).toBeLessThan(9)
@@ -49,8 +49,8 @@ describe("slider", () => {
       },
     })
 
-    slider.onPointerEnter()
-    slider.onPointerDown(pointer(90, 10))
+    slider.emit("pointerenter")
+    slider.emit("pointerdown", pointer(90, 10))
 
     expect(value).toBe(3)
   })

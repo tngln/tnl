@@ -44,7 +44,7 @@ type TitleContext = {
 }
 
 const TITLE_BUTTON_GAP = 2
-const TITLE_DRAG_THRESHOLD_SQ = 16
+const TITLE_DRAG_THRESHOLD_SQ = 4
 
 function titleButtonRect(win: ModalWindow, slotFromRight: number): BoundsRect {
   const pad = win.chrome === "tool" ? 6 : theme.ui.closeButtonPad
@@ -176,6 +176,52 @@ export class ModalWindow extends UIElement {
     this.add(new TitleBarButton(this, MINIMIZE_BUTTON_SPEC))
     if (this.resizable) this.add(new ResizeHandle(this))
     this.setupTitleGestures()
+
+    this.on("pointerdown", (e) => {
+      if (!this.open.peek()) return
+      if (e.button !== 0) return
+      if (this.minimized.peek()) {
+        this.restore()
+        return
+      }
+      const p = { x: e.x, y: e.y }
+      if (!this.isInTitleBar(p)) return
+      const s = this.titleInteraction
+      s.pressed = true
+      s.dragging = false
+      s.context.originPointer = p
+      s.context.dragOffset = { x: 0, y: 0 }
+      s.lastPointer = p
+      this.titleDownEvents.emit(e)
+      e.capture()
+    })
+    this.on("pointermove", (e) => {
+      const s = this.titleInteraction
+      if (!s.pressed && !s.dragging) return
+      const pointer = { x: e.x, y: e.y }
+      s.lastPointer = pointer
+      this.titleMoveEvents.emit(e)
+    })
+    this.on("pointerup", (e) => {
+      const s = this.titleInteraction
+      if (!s.pressed && !s.dragging) return
+      const pointer = { x: e.x, y: e.y }
+      s.lastPointer = pointer
+      this.titleUpEvents.emit(e)
+
+      s.pressed = false
+      s.dragging = false
+    })
+    this.on("doubleclick", (e) => {
+      if (!this.resizable) return
+      const p = { x: e.x, y: e.y }
+      if (!this.isInTitleBar(p)) return
+      this.toggleMaximize()
+    })
+    this.on("pointercancel", ({ reason }) => {
+      this.titleCancelEvents.emit(reason)
+      this.cancelTitleInteraction(reason)
+    })
   }
 
   private setupTitleGestures() {
@@ -422,56 +468,6 @@ export class ModalWindow extends UIElement {
     return true
   }
 
-  onPointerDown(e: PointerUIEvent) {
-    if (!this.open.peek()) return
-    if (e.button !== 0) return
-    if (this.minimized.peek()) {
-      this.restore()
-      return
-    }
-    const p = { x: e.x, y: e.y }
-    if (!this.isInTitleBar(p)) return
-    const s = this.titleInteraction
-    s.pressed = true
-    s.dragging = false
-    s.context.originPointer = p
-    s.context.dragOffset = { x: 0, y: 0 }
-    s.lastPointer = p
-    this.titleDownEvents.emit(e)
-    e.capture()
-  }
-
-  onPointerMove(e: PointerUIEvent) {
-    const s = this.titleInteraction
-    if (!s.pressed && !s.dragging) return
-    const pointer = { x: e.x, y: e.y }
-    s.lastPointer = pointer
-    this.titleMoveEvents.emit(e)
-  }
-
-  onPointerUp(e: PointerUIEvent) {
-    const s = this.titleInteraction
-    if (!s.pressed && !s.dragging) return
-    const pointer = { x: e.x, y: e.y }
-    s.lastPointer = pointer
-    this.titleUpEvents.emit(e)
-
-    s.pressed = false
-    s.dragging = false
-  }
-
-  onDoubleClick(e: PointerUIEvent) {
-    if (!this.resizable) return
-    const p = { x: e.x, y: e.y }
-    if (!this.isInTitleBar(p)) return
-    this.toggleMaximize()
-  }
-
-  onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
-    this.titleCancelEvents.emit(reason)
-    this.cancelTitleInteraction(reason)
-  }
-
   openWindow() {
     if (this.open.peek()) return
     this.open.set(true)
@@ -702,6 +698,29 @@ class TitleBarButton extends UIElement {
   ) {
     super()
     this.z = 100
+
+    this.on("pointerenter", () => {
+      this.hover = true
+    })
+    this.on("pointerleave", () => {
+      this.hover = false
+      this.down = false
+    })
+    this.on("pointerdown", (e) => {
+      if (e.button !== 0) return
+      this.down = true
+      e.capture()
+    })
+    this.on("pointerup", () => {
+      if (!this.down) return
+      this.down = false
+      if (!this.hover) return
+      this.spec.onClick(this.win)
+    })
+    this.on("pointercancel", () => {
+      this.hover = false
+      this.down = false
+    })
   }
 
   bounds(): BoundsRect {
@@ -715,33 +734,6 @@ class TitleBarButton extends UIElement {
     if (!this.spec.visible(this.win)) return
     const r = this.bounds()
     this.spec.draw(ctx, r, this.win, { hover: this.hover, down: this.down })
-  }
-
-  onPointerEnter() {
-    this.hover = true
-  }
-
-  onPointerLeave() {
-    this.hover = false
-    this.down = false
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (e.button !== 0) return
-    this.down = true
-    e.capture()
-  }
-
-  onPointerUp(_e: PointerUIEvent) {
-    if (!this.down) return
-    this.down = false
-    if (!this.hover) return
-    this.spec.onClick(this.win)
-  }
-
-  onPointerCancel() {
-    this.hover = false
-    this.down = false
   }
 
   protected debugListeners(): DebugEventListenerSnapshot[] | null {
@@ -765,6 +757,30 @@ class ResizeHandle extends UIElement {
         cursor: "nwse-resize",
       }),
     )
+
+    this.on("pointerdown", (e) => {
+      if (this.win.maximized.peek()) return
+      if (e.button !== 0) return
+      this.resizing = true
+      this.originPointer = { x: e.x, y: e.y }
+      this.startSize = { x: this.win.w.peek(), y: this.win.h.peek() }
+      e.capture()
+    })
+    this.on("pointermove", (e) => {
+      if (!this.resizing) return
+      if ((e.buttons & 1) === 0) return
+      const nw = clamp(this.startSize.x + (e.x - this.originPointer.x), this.win.minW, this.win.maxW)
+      const nh = clamp(this.startSize.y + (e.y - this.originPointer.y), this.win.minH, this.win.maxH)
+      this.win.w.set(nw)
+      this.win.h.set(nh)
+    })
+    this.on("pointerup", () => {
+      if (!this.resizing) return
+      this.resizing = false
+    })
+    this.on("pointercancel", () => {
+      this.resizing = false
+    })
   }
 
   bounds(): BoundsRect {
@@ -790,35 +806,6 @@ class ResizeHandle extends UIElement {
 
   captureCursor() {
     return "nwse-resize" as const
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (this.win.maximized.peek()) return
-    if (e.button !== 0) return
-    this.resizing = true
-    this.originPointer = { x: e.x, y: e.y }
-    this.startSize = { x: this.win.w.peek(), y: this.win.h.peek() }
-    e.capture()
-  }
-
-  onPointerMove(e: PointerUIEvent) {
-    if (!this.resizing) return
-    if ((e.buttons & 1) === 0) return
-    const nw = clamp(this.startSize.x + (e.x - this.originPointer.x), this.win.minW, this.win.maxW)
-    const nh = clamp(this.startSize.y + (e.y - this.originPointer.y), this.win.minH, this.win.maxH)
-    this.win.w.set(nw)
-    this.win.h.set(nh)
-  }
-
-  onPointerUp(e: PointerUIEvent) {
-    if (!this.resizing) return
-    void e
-    this.resizing = false
-  }
-
-  onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
-    void reason
-    this.resizing = false
   }
 
   protected debugListeners(): DebugEventListenerSnapshot[] | null {

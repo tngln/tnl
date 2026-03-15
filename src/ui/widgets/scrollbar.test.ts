@@ -30,16 +30,16 @@ describe("scrollbar", () => {
       autoHide: false,
     })
 
-    scrollbar.onPointerEnter()
-    scrollbar.onPointerDown(pointer(6, 80))
+    scrollbar.emit("pointerenter")
+    scrollbar.emit("pointerdown", pointer(6, 80))
     expect(value).toBeGreaterThan(100)
 
-    scrollbar.onPointerMove(pointer(6, 90))
+    scrollbar.emit("pointermove", pointer(6, 90))
     expect(value).toBeGreaterThan(150)
 
     const finalValue = value
-    scrollbar.onPointerUp(pointer(6, 90, 0))
-    scrollbar.onPointerMove(pointer(6, 10))
+    scrollbar.emit("pointerup", pointer(6, 90, 0))
+    scrollbar.emit("pointermove", pointer(6, 10))
     expect(value).toBe(finalValue)
   })
 
@@ -56,14 +56,14 @@ describe("scrollbar", () => {
       autoHide: false,
     })
 
-    scrollbar.onPointerEnter()
-    scrollbar.onPointerDown(pointer(6, 80))
-    scrollbar.onPointerMove(pointer(6, 90))
+    scrollbar.emit("pointerenter")
+    scrollbar.emit("pointerdown", pointer(6, 80))
+    scrollbar.emit("pointermove", pointer(6, 90))
     const finalValue = value
 
-    scrollbar.onPointerLeave()
-    scrollbar.onPointerMove(pointer(6, 20, 0))
-    scrollbar.onPointerMove(pointer(6, 10, 0))
+    scrollbar.emit("pointerleave")
+    scrollbar.emit("pointermove", pointer(6, 20, 0))
+    scrollbar.emit("pointermove", pointer(6, 10, 0))
 
     expect(value).toBe(finalValue)
   })
@@ -81,13 +81,13 @@ describe("scrollbar", () => {
       autoHide: false,
     })
 
-    scrollbar.onPointerEnter()
-    scrollbar.onPointerDown(pointer(6, 80))
-    scrollbar.onPointerMove(pointer(6, 90))
+    scrollbar.emit("pointerenter")
+    scrollbar.emit("pointerdown", pointer(6, 80))
+    scrollbar.emit("pointermove", pointer(6, 90))
     const finalValue = value
 
-    scrollbar.onPointerCancel(null, "blur")
-    scrollbar.onPointerMove(pointer(6, 10))
+    scrollbar.emit("pointercancel", { event: null, reason: "blur" })
+    scrollbar.emit("pointermove", pointer(6, 10))
 
     expect(value).toBe(finalValue)
   })

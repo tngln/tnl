@@ -46,6 +46,87 @@ export class Menu extends UIElement {
     this.onDismiss = opts.onDismiss ?? null
     this.onHoverItem = opts.onHoverItem ?? null
     this.setBounds(this.rect)
+
+    this.on("pointerenter", () => {
+      this.hover = true
+    })
+
+    this.on("pointerleave", () => {
+      this.hover = false
+      this.hoveredIndex = -1
+      if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "leave" })
+    })
+
+    this.on("pointerdown", (e: PointerUIEvent) => {
+      if (e.button !== 0) return
+      this.press.send({ type: "PRESS", point: { x: e.x, y: e.y } })
+      e.capture()
+    })
+
+    this.on("pointermove", (e: PointerUIEvent) => {
+      if (!this.hover) return
+      const idx = this.rawIndexFromPoint({ x: e.x, y: e.y })
+      if (idx !== this.hoveredIndex) {
+        this.hoveredIndex = idx
+        if (idx >= 0) {
+          const menu = this.bounds()
+          const items = this.items()
+          let y = menu.y
+          for (let i = 0; i < items.length; i++) {
+            const it = items[i]!
+            const h = it.kind === "separator" ? MENU_SEPARATOR_HEIGHT : MENU_ROW_HEIGHT
+            if (i === idx) {
+              if (it.kind !== "separator") {
+                const row = { x: menu.x + 1, y, w: Math.max(0, menu.w - 2), h }
+                this.onHoverItem?.({ index: i, rect: row, item: it })
+              }
+              break
+            }
+            y += h
+          }
+        } else {
+          this.onHoverItem?.(null)
+        }
+        this.invalidateSelf({ pad: 8 })
+      }
+    })
+
+    this.on("pointerup", (e: PointerUIEvent) => {
+      if (!this.press.matches("pressed")) return
+      this.press.send({ type: "RELEASE", point: { x: e.x, y: e.y } })
+      if (!this.hover) return
+      const idx = this.selectableIndexFromPoint({ x: e.x, y: e.y })
+      const item = this.items()[idx]
+      if (item && item.kind !== "separator" && !item.disabled) {
+        if (item.submenu) {
+          const menu = this.bounds()
+          const items = this.items()
+          let y = menu.y
+          for (let i = 0; i < items.length; i++) {
+            const it = items[i]!
+            const h = it.kind === "separator" ? MENU_SEPARATOR_HEIGHT : MENU_ROW_HEIGHT
+            if (i === idx) {
+              const row = { x: menu.x + 1, y, w: Math.max(0, menu.w - 2), h }
+              this.onHoverItem?.({ index: i, rect: row, item })
+              return
+            }
+            y += h
+          }
+          return
+        }
+        item.onSelect?.()
+        this.onSelect?.(item.key)
+        return
+      }
+      this.onDismiss?.()
+    })
+
+    this.on("pointercancel", (payload: { event: PointerUIEvent | null; reason: InteractionCancelReason }) => {
+      this.hover = false
+      this.hoveredIndex = -1
+      if (!this.press.matches("pressed")) return
+      this.press.send({ type: "CANCEL", reason: payload.reason })
+    })
   }
 
   private selectableIndexFromPoint(p: Vec2) {
@@ -81,87 +162,6 @@ export class Menu extends UIElement {
       y += h
     }
     return -1
-  }
-
-  onPointerEnter() {
-    this.hover = true
-  }
-
-  onPointerLeave() {
-    this.hover = false
-    this.hoveredIndex = -1
-    if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "leave" })
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (e.button !== 0) return
-    this.press.send({ type: "PRESS", point: { x: e.x, y: e.y } })
-    e.capture()
-  }
-
-  onPointerMove(e: PointerUIEvent) {
-    if (!this.hover) return
-    const idx = this.rawIndexFromPoint({ x: e.x, y: e.y })
-    if (idx !== this.hoveredIndex) {
-      this.hoveredIndex = idx
-      if (idx >= 0) {
-        const menu = this.bounds()
-        const items = this.items()
-        let y = menu.y
-        for (let i = 0; i < items.length; i++) {
-          const it = items[i]!
-          const h = it.kind === "separator" ? MENU_SEPARATOR_HEIGHT : MENU_ROW_HEIGHT
-          if (i === idx) {
-            if (it.kind !== "separator") {
-              const row = { x: menu.x + 1, y, w: Math.max(0, menu.w - 2), h }
-              this.onHoverItem?.({ index: i, rect: row, item: it })
-            }
-            break
-          }
-          y += h
-        }
-      } else {
-        this.onHoverItem?.(null)
-      }
-      this.invalidateSelf({ pad: 8 })
-    }
-  }
-
-  onPointerUp(e: PointerUIEvent) {
-    if (!this.press.matches("pressed")) return
-    this.press.send({ type: "RELEASE", point: { x: e.x, y: e.y } })
-    if (!this.hover) return
-    const idx = this.selectableIndexFromPoint({ x: e.x, y: e.y })
-    const item = this.items()[idx]
-    if (item && item.kind !== "separator" && !item.disabled) {
-      if (item.submenu) {
-        const menu = this.bounds()
-        const items = this.items()
-        let y = menu.y
-        for (let i = 0; i < items.length; i++) {
-          const it = items[i]!
-          const h = it.kind === "separator" ? MENU_SEPARATOR_HEIGHT : MENU_ROW_HEIGHT
-          if (i === idx) {
-            const row = { x: menu.x + 1, y, w: Math.max(0, menu.w - 2), h }
-            this.onHoverItem?.({ index: i, rect: row, item })
-            return
-          }
-          y += h
-        }
-        return
-      }
-      item.onSelect?.()
-      this.onSelect?.(item.key)
-      return
-    }
-    this.onDismiss?.()
-  }
-
-  onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
-    this.hover = false
-    this.hoveredIndex = -1
-    if (!this.press.matches("pressed")) return
-    this.press.send({ type: "CANCEL", reason })
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {

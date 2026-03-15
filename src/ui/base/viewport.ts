@@ -1,7 +1,7 @@
 import type { InteractionCancelReason } from "@/core/event_stream"
 import { ZERO_RECT } from "@/core/rect"
 import { Compositor } from "./compositor"
-import { PointerUIEvent, UIElement, WheelUIEvent, dispatchPointerCancelEvent, dispatchPointerEvent, dispatchWheelEvent, pointInRect, type DebugTreeNodeSnapshot, type Rect as BoundsRect, type UIEventTargetNode, type Vec2 } from "./ui"
+import { PointerUIEvent, UIElement, WheelUIEvent, dispatchPointerCancelEvent, dispatchPointerEvent, dispatchWheelEvent, pointInRect, type DebugTreeNodeSnapshot, type Rect as BoundsRect, type UIElementEventMap, type UIEventTargetNode, type Vec2 } from "./ui"
 
 export class SurfaceRoot extends UIElement {
   bounds(): BoundsRect {
@@ -118,6 +118,106 @@ export class ViewportElement extends UIElement {
     this.active = opts.options?.active ?? (() => true)
     this.surfaceBridge = new SurfaceEventBridge(this)
     this.setBounds(this.rect, this.active)
+
+    this.on("pointerleave", () => {
+      if (this.hover) this.hover.emit("pointerleave")
+      this.hover = null
+    })
+
+    this.on("pointerdown", (e: PointerUIEvent) => {
+      if (!this.active()) return
+      const s = this.target
+      if (!s) return
+      const { viewport: vp, local } = this.localPointFromPointer(e)
+      ;(s as any).lightDismiss?.(local)
+      const hit = s.hitTest?.(local, vp) ?? null
+      if (hit && hit !== this.hover) {
+        this.hover?.emit("pointerleave")
+        hit.emit("pointerenter")
+        this.hover = hit
+      } else if (!hit && this.hover) {
+        this.hover.emit("pointerleave")
+        this.hover = null
+      }
+
+      const target = hit ?? this.surfaceBridge
+      const le = toLocalEvent(e, local)
+      const dispatch = dispatchPointerEvent(target, le, "down", this.surfacePointForTarget(local))
+      le.requestFocus(hit ?? null)
+      if (dispatch.captureTarget === dispatch.target) {
+        this.capture = target
+        e.capturePointer()
+      }
+      e.adoptOutcome(le)
+    })
+
+    this.on("pointermove", (e: PointerUIEvent) => {
+      if (!this.active()) return
+      const s = this.target
+      if (!s) return
+      const { viewport: vp, local } = this.localPointFromPointer(e)
+      const hit = s.hitTest?.(local, vp) ?? null
+      const hoverTarget = hit instanceof UIElement ? hit : null
+      if (hoverTarget && hoverTarget !== this.hover) {
+        this.hover?.emit("pointerleave")
+        hoverTarget.emit("pointerenter")
+        this.hover = hoverTarget
+      } else if (!hoverTarget && this.hover) {
+        this.hover.emit("pointerleave")
+        this.hover = null
+      }
+
+      const target = this.surfacePathTarget(local, vp)
+      if (!target) return
+      const le = toLocalEvent(e, local)
+      dispatchPointerEvent(target, le, "move", this.surfacePointForTarget(local))
+      e.adoptOutcome(le)
+    })
+
+    this.on("pointerup", (e: PointerUIEvent) => {
+      if (!this.active()) return
+      const s = this.target
+      if (!s) return
+      const { viewport: vp, local } = this.localPointFromPointer(e)
+      const target = this.surfacePathTarget(local, vp)
+      if (target) {
+        const le = toLocalEvent(e, local)
+        dispatchPointerEvent(target, le, "up", this.surfacePointForTarget(local))
+        e.adoptOutcome(le)
+      }
+      this.capture = null
+    })
+
+    this.on("pointercancel", (payload: { event: PointerUIEvent | null; reason: InteractionCancelReason }) => {
+      if (!this.active()) return
+      const s = this.target
+      if (!s) return
+      const target = this.capture ?? this.surfaceBridge
+      if (payload.event) {
+        const { viewport: _vp, local } = this.localPointFromPointer(payload.event)
+        const le = toLocalEvent(payload.event, local)
+        dispatchPointerCancelEvent(target, le, payload.reason, this.surfacePointForTarget(local))
+        payload.event.adoptOutcome(le)
+      } else {
+        dispatchPointerCancelEvent(target, null, payload.reason)
+      }
+      this.capture = null
+      if (this.hover) this.hover.emit("pointerleave")
+      this.hover = null
+    })
+
+    this.on("wheel", (e: WheelUIEvent) => {
+      if (!this.active()) return
+      const s = this.target
+      if (!s) return
+      if (!pointInRect({ x: e.x, y: e.y }, this.rect())) return
+      const { viewport: vp, local } = this.localPointFromWheel(e)
+      const le = toLocalWheelEvent(e, local)
+      const target = s.hitTest?.(local, vp) ?? this.surfaceBridge
+      dispatchWheelEvent(target, le, this.surfacePointForTarget(local))
+      if (!le.didHandle && target !== this.surfaceBridge) this.surfaceBridge.emit("wheel", le)
+      e.adoptOutcome(le)
+    })
   }
 
   setTarget(s: Surface | null) {
@@ -224,11 +324,6 @@ export class ViewportElement extends UIElement {
     return this
   }
 
-  onPointerLeave() {
-    if (this.hover) this.hover.onPointerLeave()
-    this.hover = null
-  }
-
   private localPointFromPointer(e: PointerUIEvent) {
     const vp = this.viewportCtx()
     return { viewport: vp, local: vp.toSurface({ x: e.x, y: e.y }) }
@@ -248,101 +343,6 @@ export class ViewportElement extends UIElement {
   private surfacePointForTarget(local: Vec2) {
     return () => local
   }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (!this.active()) return
-    const s = this.target
-    if (!s) return
-    const { viewport: vp, local } = this.localPointFromPointer(e)
-    ;(s as any).lightDismiss?.(local)
-    const hit = s.hitTest?.(local, vp) ?? null
-    if (hit && hit !== this.hover) {
-      this.hover?.onPointerLeave()
-      hit.onPointerEnter()
-      this.hover = hit
-    } else if (!hit && this.hover) {
-      this.hover.onPointerLeave()
-      this.hover = null
-    }
-
-    const target = hit ?? this.surfaceBridge
-    const le = toLocalEvent(e, local)
-    const dispatch = dispatchPointerEvent(target, le, "down", this.surfacePointForTarget(local))
-    le.requestFocus(hit ?? null)
-    if (dispatch.captureTarget === dispatch.target) {
-      this.capture = target
-      e.capturePointer()
-    }
-    e.adoptOutcome(le)
-  }
-
-  onPointerMove(e: PointerUIEvent) {
-    if (!this.active()) return
-    const s = this.target
-    if (!s) return
-    const { viewport: vp, local } = this.localPointFromPointer(e)
-    const hit = s.hitTest?.(local, vp) ?? null
-    const hoverTarget = hit instanceof UIElement ? hit : null
-    if (hoverTarget && hoverTarget !== this.hover) {
-      this.hover?.onPointerLeave()
-      hoverTarget.onPointerEnter()
-      this.hover = hoverTarget
-    } else if (!hoverTarget && this.hover) {
-      this.hover.onPointerLeave()
-      this.hover = null
-    }
-
-    const target = this.surfacePathTarget(local, vp)
-    if (!target) return
-    const le = toLocalEvent(e, local)
-    dispatchPointerEvent(target, le, "move", this.surfacePointForTarget(local))
-    e.adoptOutcome(le)
-  }
-
-  onPointerUp(e: PointerUIEvent) {
-    if (!this.active()) return
-    const s = this.target
-    if (!s) return
-    const { viewport: vp, local } = this.localPointFromPointer(e)
-    const target = this.surfacePathTarget(local, vp)
-    if (target) {
-      const le = toLocalEvent(e, local)
-      dispatchPointerEvent(target, le, "up", this.surfacePointForTarget(local))
-      e.adoptOutcome(le)
-    }
-    this.capture = null
-  }
-
-  onPointerCancel(e: PointerUIEvent | null, reason: InteractionCancelReason) {
-    if (!this.active()) return
-    const s = this.target
-    if (!s) return
-    const target = this.capture ?? this.surfaceBridge
-    if (e) {
-      const { viewport: _vp, local } = this.localPointFromPointer(e)
-      const le = toLocalEvent(e, local)
-      dispatchPointerCancelEvent(target, le, reason, this.surfacePointForTarget(local))
-      e.adoptOutcome(le)
-    } else {
-      dispatchPointerCancelEvent(target, null, reason)
-    }
-    this.capture = null
-    if (this.hover) this.hover.onPointerLeave()
-    this.hover = null
-  }
-
-  onWheel(e: WheelUIEvent) {
-    if (!this.active()) return
-    const s = this.target
-    if (!s) return
-    if (!pointInRect({ x: e.x, y: e.y }, this.rect())) return
-    const { viewport: vp, local } = this.localPointFromWheel(e)
-    const le = toLocalWheelEvent(e, local)
-    const target = s.hitTest?.(local, vp) ?? this.surfaceBridge
-    dispatchWheelEvent(target, le, this.surfacePointForTarget(local))
-    if (!le.didHandle && target !== this.surfaceBridge) this.surfaceBridge.onWheel(le)
-    e.adoptOutcome(le)
-  }
 }
 
 class SurfaceEventBridge implements UIEventTargetNode {
@@ -360,27 +360,40 @@ class SurfaceEventBridge implements UIEventTargetNode {
     return this.viewport.eventViewportContext()
   }
 
-  onPointerDown(e: PointerUIEvent) {
-    if (e.target !== this) return
-    this.targetSurface()?.onPointerDown?.(e, this.viewportCtx())
-  }
-
-  onPointerMove(e: PointerUIEvent) {
-    if (e.target !== this) return
-    this.targetSurface()?.onPointerMove?.(e, this.viewportCtx())
-  }
-
-  onPointerUp(e: PointerUIEvent) {
-    if (e.target !== this) return
-    this.targetSurface()?.onPointerUp?.(e, this.viewportCtx())
-  }
-
-  onPointerCancel(e: PointerUIEvent | null, reason: InteractionCancelReason) {
-    this.targetSurface()?.onPointerCancel?.(e, reason, this.viewportCtx())
-  }
-
-  onWheel(e: WheelUIEvent) {
-    if (e.target !== this && e.didHandle) return
-    this.targetSurface()?.onWheel?.(e, this.viewportCtx())
+  emit<K extends keyof UIElementEventMap>(type: K, ...args: UIElementEventMap[K] extends void ? [] : [UIElementEventMap[K]]): void {
+    const surface = this.targetSurface()
+    if (!surface) return
+    const vp = this.viewportCtx()
+    switch (type) {
+      case "pointerdown": {
+        const e = args[0] as PointerUIEvent
+        if (e.target !== this) return
+        surface.onPointerDown?.(e, vp)
+        break
+      }
+      case "pointermove": {
+        const e = args[0] as PointerUIEvent
+        if (e.target !== this) return
+        surface.onPointerMove?.(e, vp)
+        break
+      }
+      case "pointerup": {
+        const e = args[0] as PointerUIEvent
+        if (e.target !== this) return
+        surface.onPointerUp?.(e, vp)
+        break
+      }
+      case "pointercancel": {
+        const payload = args[0] as { event: PointerUIEvent | null; reason: InteractionCancelReason }
+        surface.onPointerCancel?.(payload.event, payload.reason, vp)
+        break
+      }
+      case "wheel": {
+        const e = args[0] as WheelUIEvent
+        if (e.target !== this && e.didHandle) return
+        surface.onWheel?.(e, vp)
+        break
+      }
+    }
   }
 }

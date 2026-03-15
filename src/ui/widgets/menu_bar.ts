@@ -1,9 +1,8 @@
 import { font, theme, neutral } from "@/config/theme"
 import { draw, LineOp, RectOp, TextOp } from "@/core/draw"
 import { measureTextWidth } from "@/core/draw.text"
-import type { InteractionCancelReason } from "@/core/event_stream"
 import { createPressMachine } from "@/core/fsm"
-import { PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "@/ui/base/ui"
+import { UIElement, pointInRect, type Rect, type Vec2 } from "@/ui/base/ui"
 import type { TopLayerController } from "@/ui/base/top_layer"
 import type { MenuItem } from "./menu"
 import { MenuStack } from "./menu_stack"
@@ -43,6 +42,45 @@ export class MenuBar extends UIElement {
     this.menuId = `menubar:${opts.id}`
     this.stack = new MenuStack({ id: this.menuId, topLayer: this.topLayer, viewport: () => this.topLayer.host.bounds() })
     this.setBounds(this.rect)
+
+    this.on("pointerenter", () => {
+      this.hover = true
+    })
+    this.on("pointerleave", () => {
+      this.hover = false
+      this.hoveredIndex = -1
+      if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "leave" })
+    })
+    this.on("pointerdown", (e) => {
+      this.syncOpen()
+      if (e.button !== 0) return
+      this.press.send({ type: "PRESS", point: { x: e.x, y: e.y } })
+      e.capture()
+    })
+    this.on("pointermove", (e) => {
+      this.syncOpen()
+      if (!this.hover) return
+      const idx = this.indexFromPoint({ x: e.x, y: e.y })
+      if (idx !== this.hoveredIndex) this.hoveredIndex = idx
+      if (this.openKey && idx >= 0 && this.topLayer.isOpen(this.menuId)) {
+        const m = this.menus()[idx]
+        if (m && m.key !== this.openKey) this.openMenu(idx)
+      }
+    })
+    this.on("pointerup", (e) => {
+      this.syncOpen()
+      if (!this.press.matches("pressed")) return
+      this.press.send({ type: "RELEASE", point: { x: e.x, y: e.y } })
+      if (!this.hover) return
+      const idx = this.indexFromPoint({ x: e.x, y: e.y })
+      if (idx >= 0) this.openMenu(idx)
+    })
+    this.on("pointercancel", ({ reason }) => {
+      this.hover = false
+      this.hoveredIndex = -1
+      if (!this.press.matches("pressed")) return
+      this.press.send({ type: "CANCEL", reason })
+    })
   }
 
   private syncOpen() {
@@ -87,50 +125,6 @@ export class MenuBar extends UIElement {
     const anchor = this.menuLabelRects[idx] ?? this.bounds()
     this.openKey = m.key
     this.stack.openRoot(anchor, m.items, { placement: "bottom-start" })
-  }
-
-  onPointerEnter() {
-    this.hover = true
-  }
-
-  onPointerLeave() {
-    this.hover = false
-    this.hoveredIndex = -1
-    if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "leave" })
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    this.syncOpen()
-    if (e.button !== 0) return
-    this.press.send({ type: "PRESS", point: { x: e.x, y: e.y } })
-    e.capture()
-  }
-
-  onPointerMove(e: PointerUIEvent) {
-    this.syncOpen()
-    if (!this.hover) return
-    const idx = this.indexFromPoint({ x: e.x, y: e.y })
-    if (idx !== this.hoveredIndex) this.hoveredIndex = idx
-    if (this.openKey && idx >= 0 && this.topLayer.isOpen(this.menuId)) {
-      const m = this.menus()[idx]
-      if (m && m.key !== this.openKey) this.openMenu(idx)
-    }
-  }
-
-  onPointerUp(e: PointerUIEvent) {
-    this.syncOpen()
-    if (!this.press.matches("pressed")) return
-    this.press.send({ type: "RELEASE", point: { x: e.x, y: e.y } })
-    if (!this.hover) return
-    const idx = this.indexFromPoint({ x: e.x, y: e.y })
-    if (idx >= 0) this.openMenu(idx)
-  }
-
-  onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
-    this.hover = false
-    this.hoveredIndex = -1
-    if (!this.press.matches("pressed")) return
-    this.press.send({ type: "CANCEL", reason })
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {

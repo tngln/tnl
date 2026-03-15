@@ -70,11 +70,11 @@ describe("divider surface", () => {
     const handle = surface.hitTest({ x: 225, y: 100 })
     expect(handle).not.toBeNull()
 
-    handle?.onPointerEnter()
-    handle?.onPointerDown(pointer(225, 100))
-    handle?.onPointerLeave()
-    handle?.onPointerMove(pointer(260, 100))
-    handle?.onPointerUp(pointer(260, 100, 0))
+    handle?.emit("pointerenter")
+    handle?.emit("pointerdown", pointer(225, 100))
+    handle?.emit("pointerleave")
+    handle?.emit("pointermove", pointer(260, 100))
+    handle?.emit("pointerup", pointer(260, 100, 0))
 
     expect(surface.hitTest({ x: 225, y: 100 })).not.toBe(handle)
     expect(surface.hitTest({ x: 260, y: 100 })).toBe(handle)
@@ -103,10 +103,10 @@ describe("divider surface", () => {
     const handle = surface.hitTest({ x: 225, y: 100 })
     expect(handle).not.toBeNull()
 
-    handle?.onPointerEnter()
-    handle?.onPointerDown(pointer(225, 100))
-    handle?.onPointerCancel(null, "blur")
-    handle?.onPointerMove(pointer(260, 100))
+    handle?.emit("pointerenter")
+    handle?.emit("pointerdown", pointer(225, 100))
+    handle?.emit("pointercancel", { event: null, reason: "blur" })
+    handle?.emit("pointermove", pointer(260, 100))
 
     expect(surface.hitTest({ x: 225, y: 100 })).toBe(handle)
     expect(surface.hitTest({ x: 260, y: 100 })).not.toBe(handle)

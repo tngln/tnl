@@ -53,19 +53,25 @@ export type PointerDispatchResult = {
 
 export type UIEventPhase = "target" | "bubble"
 
+export type UIElementEventMap = {
+  pointerdown: PointerUIEvent
+  pointermove: PointerUIEvent
+  pointerup: PointerUIEvent
+  pointercancel: { event: PointerUIEvent | null; reason: InteractionCancelReason }
+  doubleclick: PointerUIEvent
+  wheel: WheelUIEvent
+  keydown: KeyUIEvent
+  keyup: KeyUIEvent
+  pointerenter: void
+  pointerleave: void
+  focus: void
+  blur: void
+}
+
 export interface UIEventTargetNode {
   eventParentTarget(): UIEventTargetNode | null
   canFocus?(): boolean
-  onFocus?(): void
-  onBlur?(): void
-  onPointerDown?(e: PointerUIEvent): void
-  onPointerMove?(e: PointerUIEvent): void
-  onPointerUp?(e: PointerUIEvent): void
-  onDoubleClick?(e: PointerUIEvent): void
-  onPointerCancel?(e: PointerUIEvent | null, reason: InteractionCancelReason): void
-  onWheel?(e: WheelUIEvent): void
-  onKeyDown?(e: KeyUIEvent): void
-  onKeyUp?(e: KeyUIEvent): void
+  emit<K extends keyof UIElementEventMap>(type: K, ...args: UIElementEventMap[K] extends void ? [] : [UIElementEventMap[K]]): void
 }
 
 class UIEventBase {

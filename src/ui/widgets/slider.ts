@@ -1,7 +1,7 @@
 import { theme, neutral } from "@/config/theme"
 import { draw, LineOp, RectOp } from "@/core/draw"
 import { clamp, type Rect, ZERO_RECT } from "@/core/rect"
-import { PointerUIEvent, UIElement, type Vec2 } from "@/ui/base/ui"
+import { UIElement, type Vec2 } from "@/ui/base/ui"
 import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 
 type Axis = "x" | "y"
@@ -37,6 +37,41 @@ export class Slider extends UIElement {
     this.update(opts)
     this.setBounds(() => this.rectValue, () => this.activeValue)
     this.z = 20
+
+    this.on("pointerenter", () => {
+      if (!this.activeValue) return
+      this.hover = true
+      this.invalidateSelf({ pad: 12 })
+    })
+    this.on("pointerleave", () => {
+      this.hover = false
+      if (!this.dragging) this.invalidateSelf({ pad: 12 })
+    })
+    this.on("pointerdown", (e) => {
+      if (!this.interactive()) return
+      if (e.button !== 0) return
+      this.dragging = true
+      this.setByPointer({ x: e.x, y: e.y })
+      e.capture()
+      e.handle()
+    })
+    this.on("pointermove", (e) => {
+      if (!this.dragging) return
+      this.setByPointer({ x: e.x, y: e.y })
+      e.handle()
+    })
+    this.on("pointerup", (e) => {
+      if (!this.dragging) return
+      this.dragging = false
+      if (this.interactive()) this.setByPointer({ x: e.x, y: e.y })
+      this.invalidateSelf({ pad: 12 })
+      e.handle()
+    })
+    this.on("pointercancel", () => {
+      if (!this.dragging) return
+      this.dragging = false
+      this.invalidateSelf({ pad: 12 })
+    })
   }
 
   update(opts: {
@@ -151,45 +186,6 @@ export class Slider extends UIElement {
     )
   }
 
-  onPointerEnter() {
-    if (!this.activeValue) return
-    this.hover = true
-    this.invalidateSelf({ pad: 12 })
-  }
-
-  onPointerLeave() {
-    this.hover = false
-    if (!this.dragging) this.invalidateSelf({ pad: 12 })
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (!this.interactive()) return
-    if (e.button !== 0) return
-    this.dragging = true
-    this.setByPointer({ x: e.x, y: e.y })
-    e.capture()
-    e.handle()
-  }
-
-  onPointerMove(e: PointerUIEvent) {
-    if (!this.dragging) return
-    this.setByPointer({ x: e.x, y: e.y })
-    e.handle()
-  }
-
-  onPointerUp(e: PointerUIEvent) {
-    if (!this.dragging) return
-    this.dragging = false
-    if (this.interactive()) this.setByPointer({ x: e.x, y: e.y })
-    this.invalidateSelf({ pad: 12 })
-    e.handle()
-  }
-
-  onPointerCancel() {
-    if (!this.dragging) return
-    this.dragging = false
-    this.invalidateSelf({ pad: 12 })
-  }
 }
 
 type SliderState = {

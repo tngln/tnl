@@ -34,9 +34,9 @@ describe("dropdown", () => {
       disabled: () => true,
     })
 
-    dd.onPointerEnter()
-    dd.onPointerDown(pointer(10, 10))
-    dd.onPointerUp(pointer(10, 10))
+    dd.emit("pointerenter")
+    dd.emit("pointerdown", pointer(10, 10))
+    dd.emit("pointerup", pointer(10, 10))
 
     expect(selected.peek()).toBe("A")
     expect(topLayer.hasAny()).toBe(false)
@@ -57,9 +57,9 @@ describe("dropdown", () => {
       topLayer,
     })
 
-    dd.onPointerEnter()
-    dd.onPointerDown(pointer(10, 10))
-    dd.onPointerUp(pointer(10, 10))
+    dd.emit("pointerenter")
+    dd.emit("pointerdown", pointer(10, 10))
+    dd.emit("pointerup", pointer(10, 10))
     expect(topLayer.hasAny()).toBe(true)
 
     const menuY = 28 + 2
@@ -68,10 +68,10 @@ describe("dropdown", () => {
 
     const hit = topLayer.host.hitTest({ x: 10, y: yInB }) as any
     expect(hit).toBeTruthy()
-    hit.onPointerEnter()
-    hit.onPointerMove(pointer(10, yInB, 0))
-    hit.onPointerDown(pointer(10, yInB))
-    hit.onPointerUp(pointer(10, yInB))
+    hit.emit("pointerenter")
+    hit.emit("pointermove", pointer(10, yInB, 0))
+    hit.emit("pointerdown", pointer(10, yInB))
+    hit.emit("pointerup", pointer(10, yInB))
 
     expect(selected.peek()).toBe("B")
     expect(topLayer.hasAny()).toBe(false)
@@ -91,12 +91,12 @@ describe("dropdown", () => {
       topLayer,
     })
 
-    dd.onPointerEnter()
-    dd.onPointerDown(pointer(10, 10))
-    dd.onPointerUp(pointer(10, 10))
+    dd.emit("pointerenter")
+    dd.emit("pointerdown", pointer(10, 10))
+    dd.emit("pointerup", pointer(10, 10))
     expect(topLayer.hasAny()).toBe(true)
 
-    dd.onBlur()
+    dd.emit("blur")
     expect(topLayer.hasAny()).toBe(false)
   })
 })

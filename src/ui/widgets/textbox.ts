@@ -5,7 +5,7 @@ import { signal, type Signal } from "@/core/reactivity"
 import { toGetter, ZERO_RECT, type Rect } from "@/core/rect"
 import { getTextInputBridge, type TextInputBridge } from "@/platform/web"
 import { createMeasureContext } from "@/platform/web/canvas"
-import { CursorRegion, KeyUIEvent, PointerUIEvent, UIElement } from "@/ui/base/ui"
+import { CursorRegion, KeyUIEvent, UIElement } from "@/ui/base/ui"
 import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 
 const TEXTBOX_HEIGHT = theme.ui.controls.inputHeight
@@ -65,6 +65,122 @@ export class TextBox extends UIElement {
         active: () => this.interactive(),
       }),
     )
+
+    this.on("focus", () => {
+      if (!this.interactive()) return
+      this.focused = true
+      const caret = this.selectionEnd
+      this.selectionStart = caret
+      this.selectionEnd = caret
+      this.resetCaretBlink()
+      this.syncBridge()
+      this.invalidateSelf({ pad: 6 })
+    })
+    this.on("blur", () => {
+      const caret = this.selectionEnd
+      this.focused = false
+      this.dragAnchor = null
+      this.selectionStart = caret
+      this.selectionEnd = caret
+      this.stopCaretBlink()
+      this.inputBridge.blur(this.sessionId)
+      this.invalidateSelf({ pad: 6 })
+    })
+    this.on("pointerenter", () => {
+      if (!this.interactive()) return
+      this.hover = true
+    })
+    this.on("pointerleave", () => {
+      this.hover = false
+    })
+    this.on("pointerdown", (e) => {
+      if (!this.interactive() || e.button !== 0) return
+      e.requestFocus(this)
+      if (!this.focused) {
+        this.focused = true
+        this.resetCaretBlink()
+      }
+      const index = this.indexFromPoint(e.x)
+      this.dragAnchor = index
+      this.setSelection(index, index)
+      this.syncBridge()
+      e.capture()
+      this.invalidateSelf({ pad: 6 })
+    })
+    this.on("pointermove", (e) => {
+      if (!this.interactive() || this.dragAnchor === null || (e.buttons & 1) === 0) return
+      const index = this.indexFromPoint(e.x)
+      this.setSelection(this.dragAnchor, index)
+      this.resetCaretBlink()
+      this.syncBridge()
+      this.invalidateSelf({ pad: 6 })
+    })
+    this.on("pointerup", (e) => {
+      if (!this.interactive() || this.dragAnchor === null) return
+      const index = this.indexFromPoint(e.x)
+      this.setSelection(this.dragAnchor, index)
+      this.dragAnchor = null
+      this.resetCaretBlink()
+      this.syncBridge()
+      this.invalidateSelf({ pad: 6 })
+    })
+    this.on("pointercancel", () => {
+      this.dragAnchor = null
+    })
+    this.on("keydown", (e) => {
+      if (!this.focused || !this.interactive()) return
+
+      if (hasShortcutModifier(e) && e.code === "KeyA") {
+        const value = this.value.get()
+        this.setSelection(0, value.length)
+        this.resetCaretBlink()
+        this.syncBridge()
+        e.preventDefault()
+        return
+      }
+
+      if (e.code === "ArrowLeft") {
+        this.moveCaret(-1, e.shiftKey)
+        this.resetCaretBlink()
+        this.syncBridge()
+        e.preventDefault()
+        return
+      }
+      if (e.code === "ArrowRight") {
+        this.moveCaret(1, e.shiftKey)
+        this.resetCaretBlink()
+        this.syncBridge()
+        e.preventDefault()
+        return
+      }
+      if (e.code === "Home") {
+        this.moveCaretTo(0, e.shiftKey)
+        this.resetCaretBlink()
+        this.syncBridge()
+        e.preventDefault()
+        return
+      }
+      if (e.code === "End") {
+        this.moveCaretTo(this.value.get().length, e.shiftKey)
+        this.resetCaretBlink()
+        this.syncBridge()
+        e.preventDefault()
+        return
+      }
+      if (e.code === "Enter") {
+        e.consume()
+        return
+      }
+
+      const mod = hasShortcutModifier(e)
+      const shouldConsume =
+        this.isPrintableKey(e) ||
+        e.code === "Backspace" ||
+        e.code === "Delete" ||
+        (mod && (e.code === "KeyC" || e.code === "KeyX" || e.code === "KeyV"))
+
+      if (shouldConsume) e.consume()
+    })
   }
 
   update(opts: {
@@ -88,130 +204,6 @@ export class TextBox extends UIElement {
   }
 
   // ... (keep rest of methods but replace rect(), active(), disabled() calls with property access)
-
-  onFocus() {
-    if (!this.interactive()) return
-    this.focused = true
-    const caret = this.selectionEnd
-    this.selectionStart = caret
-    this.selectionEnd = caret
-    this.resetCaretBlink()
-    this.syncBridge()
-    this.invalidateSelf({ pad: 6 })
-  }
-
-  onBlur() {
-    const caret = this.selectionEnd
-    this.focused = false
-    this.dragAnchor = null
-    this.selectionStart = caret
-    this.selectionEnd = caret
-    this.stopCaretBlink()
-    this.inputBridge.blur(this.sessionId)
-    this.invalidateSelf({ pad: 6 })
-  }
-
-  onPointerEnter() {
-    if (!this.interactive()) return
-    this.hover = true
-  }
-
-  onPointerLeave() {
-    this.hover = false
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (!this.interactive() || e.button !== 0) return
-    e.requestFocus(this)
-    if (!this.focused) {
-      this.focused = true
-      this.resetCaretBlink()
-    }
-    const index = this.indexFromPoint(e.x)
-    this.dragAnchor = index
-    this.setSelection(index, index)
-    this.syncBridge()
-    e.capture()
-    this.invalidateSelf({ pad: 6 })
-  }
-
-  onPointerMove(e: PointerUIEvent) {
-    if (!this.interactive() || this.dragAnchor === null || (e.buttons & 1) === 0) return
-    const index = this.indexFromPoint(e.x)
-    this.setSelection(this.dragAnchor, index)
-    this.resetCaretBlink()
-    this.syncBridge()
-    this.invalidateSelf({ pad: 6 })
-  }
-
-  onPointerUp(e: PointerUIEvent) {
-    if (!this.interactive() || this.dragAnchor === null) return
-    const index = this.indexFromPoint(e.x)
-    this.setSelection(this.dragAnchor, index)
-    this.dragAnchor = null
-    this.resetCaretBlink()
-    this.syncBridge()
-    this.invalidateSelf({ pad: 6 })
-  }
-
-  onPointerCancel() {
-    this.dragAnchor = null
-  }
-
-  onKeyDown(e: KeyUIEvent) {
-    if (!this.focused || !this.interactive()) return
-
-    if (hasShortcutModifier(e) && e.code === "KeyA") {
-      const value = this.value.get()
-      this.setSelection(0, value.length)
-      this.resetCaretBlink()
-      this.syncBridge()
-      e.preventDefault()
-      return
-    }
-
-    if (e.code === "ArrowLeft") {
-      this.moveCaret(-1, e.shiftKey)
-      this.resetCaretBlink()
-      this.syncBridge()
-      e.preventDefault()
-      return
-    }
-    if (e.code === "ArrowRight") {
-      this.moveCaret(1, e.shiftKey)
-      this.resetCaretBlink()
-      this.syncBridge()
-      e.preventDefault()
-      return
-    }
-    if (e.code === "Home") {
-      this.moveCaretTo(0, e.shiftKey)
-      this.resetCaretBlink()
-      this.syncBridge()
-      e.preventDefault()
-      return
-    }
-    if (e.code === "End") {
-      this.moveCaretTo(this.value.get().length, e.shiftKey)
-      this.resetCaretBlink()
-      this.syncBridge()
-      e.preventDefault()
-      return
-    }
-    if (e.code === "Enter") {
-      e.consume()
-      return
-    }
-
-    const mod = hasShortcutModifier(e)
-    const shouldConsume =
-      this.isPrintableKey(e) ||
-      e.code === "Backspace" ||
-      e.code === "Delete" ||
-      (mod && (e.code === "KeyC" || e.code === "KeyX" || e.code === "KeyV"))
-
-    if (shouldConsume) e.consume()
-  }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
     if (!this.activeValue) return

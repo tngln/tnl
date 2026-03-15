@@ -21,44 +21,47 @@ export class InteractiveElement extends UIElement {
     this._active = opts.active ?? (() => true)
     this._disabled = opts.disabled ?? (() => false)
     this.setBounds(this._rect, this._active)
+    this.setupInteractiveHandlers()
   }
 
   protected interactive() {
     return this._active() && !this._disabled()
   }
 
-  onPointerEnter() {
-    if (!this.interactive()) return
-    this.hover = true
-  }
+  protected setupInteractiveHandlers() {
+    this.on("pointerenter", () => {
+      if (!this.interactive()) return
+      this.hover = true
+    })
 
-  onPointerLeave() {
-    this.hover = false
-    if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "leave" })
-  }
+    this.on("pointerleave", () => {
+      this.hover = false
+      if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "leave" })
+    })
 
-  onPointerDown(e: PointerUIEvent) {
-    if (!this.interactive()) return
-    if (e.button !== 0) return
-    this.press.send({ type: "PRESS", point: { x: e.x, y: e.y } })
-    e.capture()
-  }
+    this.on("pointerdown", (e: PointerUIEvent) => {
+      if (!this.interactive()) return
+      if (e.button !== 0) return
+      this.press.send({ type: "PRESS", point: { x: e.x, y: e.y } })
+      e.capture()
+    })
 
-  onPointerUp(e: PointerUIEvent) {
-    if (!this.interactive()) {
-      if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "inactive" })
-      return
-    }
-    if (!this.press.matches("pressed")) return
-    this.press.send({ type: "RELEASE", point: { x: e.x, y: e.y } })
-    if (!this.hover) return
-    this.onActivate()
-  }
+    this.on("pointerup", (e: PointerUIEvent) => {
+      if (!this.interactive()) {
+        if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "inactive" })
+        return
+      }
+      if (!this.press.matches("pressed")) return
+      this.press.send({ type: "RELEASE", point: { x: e.x, y: e.y } })
+      if (!this.hover) return
+      this.onActivate()
+    })
 
-  onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
-    this.hover = false
-    if (!this.press.matches("pressed")) return
-    this.press.send({ type: "CANCEL", reason })
+    this.on("pointercancel", (payload: { event: PointerUIEvent | null; reason: InteractionCancelReason }) => {
+      this.hover = false
+      if (!this.press.matches("pressed")) return
+      this.press.send({ type: "CANCEL", reason: payload.reason })
+    })
   }
 
   protected pressed() {

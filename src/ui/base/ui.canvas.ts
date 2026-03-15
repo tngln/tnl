@@ -406,7 +406,7 @@ export class CanvasUI {
     const before = topBefore?.bounds() ?? null
 
     if (this.hover) {
-      this.hover.onPointerLeave()
+      this.hover.emit("pointerleave")
       this.hover = null
     }
 
@@ -474,8 +474,8 @@ export class CanvasUI {
             return this.topLevelTargetOf(over as UIElement)
           })()
         : null
-      this.hover?.onPointerLeave()
-      over?.onPointerEnter()
+      this.hover?.emit("pointerleave")
+      over?.emit("pointerenter")
       this.hover = over
       if (oldTop && newTop) this.invalidateRect(unionRect(oldTop.bounds(), newTop.bounds()), { pad: 8 })
       else if (oldTop) this.invalidateRect(oldTop.bounds(), { pad: 8 })
@@ -553,8 +553,8 @@ export class CanvasUI {
     if (this.focus === target) return
     const previous = this.focus
     this.focus = target
-    previous?.onBlur()
-    target?.onFocus()
+    previous?.emit("blur")
+    target?.emit("focus")
   }
 
   clearFocus() {

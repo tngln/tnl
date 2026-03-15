@@ -5,7 +5,7 @@ import { ZERO_RECT, type Rect } from "@/core/rect"
 import { get1pxTextareaBridge } from "@/platform/web/1px_textarea"
 import { writeTextToClipboard } from "@/platform/web/clipboard"
 import { createMeasureContext } from "@/platform/web/canvas"
-import { KeyUIEvent, PointerUIEvent, UIElement, type Vec2 } from "@/ui/base/ui"
+import { UIElement, type Vec2 } from "@/ui/base/ui"
 import type { TopLayerController } from "@/ui/base/top_layer"
 import { clamp } from "@/ui/builder/utils"
 import type { MenuItem } from "./menu"
@@ -129,6 +129,112 @@ export class RichTextSelectable extends UIElement {
     }
     this.update({ rect: opts.rect, active: opts.active, block: opts.block, topLayer: opts.topLayer })
     this.setBounds(() => this.rect, () => this.active)
+
+    this.on("focus", () => {
+      if (!this.active) return
+      this.focused = true
+      const b = get1pxTextareaBridge()
+      const selection = normalizeSelection(this.selectionStart, this.selectionEnd)
+      b.focus(
+        {
+          id: this.sessionId,
+          onStateChange: (next) => {
+            if (next.value !== this.text) return
+            this.selectionStart = next.selectionStart
+            this.selectionEnd = next.selectionEnd
+            this.invalidateSelf({ pad: 8 })
+          },
+          onBlur: () => {
+            if (!this.focused) return
+            this.focused = false
+            this.dragAnchor = null
+            this.invalidateSelf({ pad: 8 })
+          },
+        },
+        { value: this.text, selectionStart: selection.start, selectionEnd: selection.end },
+      )
+      this.invalidateSelf({ pad: 8 })
+    })
+    this.on("blur", () => {
+      this.focused = false
+      this.dragAnchor = null
+      const collapsed = Math.max(0, Math.min(this.text.length, Math.max(this.selectionStart, this.selectionEnd)))
+      this.selectionStart = collapsed
+      this.selectionEnd = collapsed
+      get1pxTextareaBridge().blur(this.sessionId)
+      this.invalidateSelf({ pad: 8 })
+    })
+    this.on("pointerdown", (e) => {
+      if (!this.active) return
+      if (e.button === 2) {
+        if (this.selectionStart !== this.selectionEnd) {
+          this.openContextMenu({ x: e.x, y: e.y })
+          e.handle()
+          e.stopPropagation()
+        }
+        return
+      }
+      if (e.button !== 0) return
+      e.requestFocus(this)
+      if (!this.measureCtx) return
+      const block = this.block()
+      block.measure(this.measureCtx, this.rect.w)
+      const layout = block.getLayout()
+      if (!layout) return
+      this.syncTextFromLayout(layout)
+      const idx = this.indexFromPoint(this.measureCtx, { x: e.x, y: e.y }, layout)
+      this.dragAnchor = idx
+      this.setSelection(idx, idx)
+      this.syncBridge()
+      e.capture()
+      this.invalidateSelf({ pad: 8 })
+    })
+    this.on("pointermove", (e) => {
+      if (!this.active) return
+      if (this.dragAnchor === null || (e.buttons & 1) === 0) return
+      if (!this.measureCtx) return
+      const block = this.block()
+      block.measure(this.measureCtx, this.rect.w)
+      const layout = block.getLayout()
+      if (!layout) return
+      this.syncTextFromLayout(layout)
+      const idx = this.indexFromPoint(this.measureCtx, { x: e.x, y: e.y }, layout)
+      this.setSelection(this.dragAnchor, idx)
+      this.syncBridge()
+      this.invalidateSelf({ pad: 8 })
+    })
+    this.on("pointerup", (e) => {
+      if (!this.active) return
+      if (this.dragAnchor === null) return
+      if (!this.measureCtx) return
+      const block = this.block()
+      block.measure(this.measureCtx, this.rect.w)
+      const layout = block.getLayout()
+      if (layout) {
+        this.syncTextFromLayout(layout)
+        const idx = this.indexFromPoint(this.measureCtx, { x: e.x, y: e.y }, layout)
+        this.setSelection(this.dragAnchor, idx)
+      }
+      this.dragAnchor = null
+      this.syncBridge()
+      this.invalidateSelf({ pad: 8 })
+    })
+    this.on("pointercancel", () => {
+      this.dragAnchor = null
+    })
+    this.on("keydown", (e) => {
+      if (!this.focused || !this.active) return
+      if (hasShortcutModifier(e) && e.code === "KeyA") {
+        this.setSelection(0, this.text.length)
+        this.syncBridge()
+        e.consume()
+        return
+      }
+      if (hasShortcutModifier(e) && e.code === "KeyC") {
+        e.consume()
+        return
+      }
+    })
   }
 
   update(next: { rect: () => Rect; active: () => boolean; block: () => RichTextBlock; topLayer?: TopLayerController }) {
@@ -155,42 +261,6 @@ export class RichTextSelectable extends UIElement {
     const b = get1pxTextareaBridge()
     const selection = normalizeSelection(this.selectionStart, this.selectionEnd)
     b.sync(this.sessionId, { value: this.text, selectionStart: selection.start, selectionEnd: selection.end })
-  }
-
-  onFocus() {
-    if (!this.active) return
-    this.focused = true
-    const b = get1pxTextareaBridge()
-    const selection = normalizeSelection(this.selectionStart, this.selectionEnd)
-    b.focus(
-      {
-        id: this.sessionId,
-        onStateChange: (next) => {
-          if (next.value !== this.text) return
-          this.selectionStart = next.selectionStart
-          this.selectionEnd = next.selectionEnd
-          this.invalidateSelf({ pad: 8 })
-        },
-        onBlur: () => {
-          if (!this.focused) return
-          this.focused = false
-          this.dragAnchor = null
-          this.invalidateSelf({ pad: 8 })
-        },
-      },
-      { value: this.text, selectionStart: selection.start, selectionEnd: selection.end },
-    )
-    this.invalidateSelf({ pad: 8 })
-  }
-
-  onBlur() {
-    this.focused = false
-    this.dragAnchor = null
-    const collapsed = Math.max(0, Math.min(this.text.length, Math.max(this.selectionStart, this.selectionEnd)))
-    this.selectionStart = collapsed
-    this.selectionEnd = collapsed
-    get1pxTextareaBridge().blur(this.sessionId)
-    this.invalidateSelf({ pad: 8 })
   }
 
   private setSelection(a: number, b: number) {
@@ -244,82 +314,6 @@ export class RichTextSelectable extends UIElement {
       },
     ]
     this.stack.openRoot(anchor, items, { placement: "bottom-start" })
-  }
-
-  onPointerDown(e: PointerUIEvent) {
-    if (!this.active) return
-    if (e.button === 2) {
-      if (this.selectionStart !== this.selectionEnd) {
-        this.openContextMenu({ x: e.x, y: e.y })
-        e.handle()
-        e.stopPropagation()
-      }
-      return
-    }
-    if (e.button !== 0) return
-    e.requestFocus(this)
-    if (!this.measureCtx) return
-    const block = this.block()
-    block.measure(this.measureCtx, this.rect.w)
-    const layout = block.getLayout()
-    if (!layout) return
-    this.syncTextFromLayout(layout)
-    const idx = this.indexFromPoint(this.measureCtx, { x: e.x, y: e.y }, layout)
-    this.dragAnchor = idx
-    this.setSelection(idx, idx)
-    this.syncBridge()
-    e.capture()
-    this.invalidateSelf({ pad: 8 })
-  }
-
-  onPointerMove(e: PointerUIEvent) {
-    if (!this.active) return
-    if (this.dragAnchor === null || (e.buttons & 1) === 0) return
-    if (!this.measureCtx) return
-    const block = this.block()
-    block.measure(this.measureCtx, this.rect.w)
-    const layout = block.getLayout()
-    if (!layout) return
-    this.syncTextFromLayout(layout)
-    const idx = this.indexFromPoint(this.measureCtx, { x: e.x, y: e.y }, layout)
-    this.setSelection(this.dragAnchor, idx)
-    this.syncBridge()
-    this.invalidateSelf({ pad: 8 })
-  }
-
-  onPointerUp(e: PointerUIEvent) {
-    if (!this.active) return
-    if (this.dragAnchor === null) return
-    if (!this.measureCtx) return
-    const block = this.block()
-    block.measure(this.measureCtx, this.rect.w)
-    const layout = block.getLayout()
-    if (layout) {
-      this.syncTextFromLayout(layout)
-      const idx = this.indexFromPoint(this.measureCtx, { x: e.x, y: e.y }, layout)
-      this.setSelection(this.dragAnchor, idx)
-    }
-    this.dragAnchor = null
-    this.syncBridge()
-    this.invalidateSelf({ pad: 8 })
-  }
-
-  onPointerCancel() {
-    this.dragAnchor = null
-  }
-
-  onKeyDown(e: KeyUIEvent) {
-    if (!this.focused || !this.active) return
-    if (hasShortcutModifier(e) && e.code === "KeyA") {
-      this.setSelection(0, this.text.length)
-      this.syncBridge()
-      e.consume()
-      return
-    }
-    if (hasShortcutModifier(e) && e.code === "KeyC") {
-      e.consume()
-      return
-    }
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {

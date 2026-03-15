@@ -3,7 +3,7 @@ import { intersects, ZERO_RECT } from "@/core/rect"
 import type { Rect, Vec2 } from "@/core/rect"
 import type { CursorKind } from "@/platform/web"
 import { Compositor } from "./compositor"
-import { KeyUIEvent, PointerUIEvent, type UIEventTargetNode, WheelUIEvent } from "./ui.events"
+import { KeyUIEvent, PointerUIEvent, type UIElementEventMap, type UIEventTargetNode, WheelUIEvent } from "./ui.events"
 import { pointInRect } from "./ui.hit_test"
 
 export type DebugTreeNodeSnapshot = {
@@ -39,6 +39,7 @@ export abstract class UIElement {
   visible = true
   z = 0
   private rt: DrawRuntime | null = null
+  private handlers: Map<string, Set<Function>> | null = null
 
   protected boundsSpec: Rect | (() => Rect) | null = null
   protected boundsWhen: (() => boolean) | null = null
@@ -131,19 +132,19 @@ export abstract class UIElement {
   }
 
   private inferDebugListeners(): DebugEventListenerSnapshot[] | null {
+    if (!this.handlers) return null
     const out: DebugEventListenerSnapshot[] = []
     const add = (id: string, label: string) => out.push({ id, label })
-    const overridden = (fn: keyof UIElement) => (this as any)[fn] !== (UIElement.prototype as any)[fn]
-    if (overridden("onPointerDown")) add("pointer.down", "Pointer Down")
-    if (overridden("onPointerMove")) add("pointer.move", "Pointer Move")
-    if (overridden("onPointerUp")) add("pointer.up", "Pointer Up")
-    if (overridden("onPointerCancel")) add("pointer.cancel", "Pointer Cancel")
-    if (overridden("onPointerEnter")) add("pointer.enter", "Pointer Enter")
-    if (overridden("onPointerLeave")) add("pointer.leave", "Pointer Leave")
-    if (overridden("onWheel")) add("wheel", "Wheel")
-    if (overridden("onKeyDown")) add("key.down", "Key Down")
-    if (overridden("onKeyUp")) add("key.up", "Key Up")
-    if (overridden("canFocus") || this.canFocus()) add("focus", "Focus")
+    if (this.handlers.has("pointerdown")) add("pointer.down", "Pointer Down")
+    if (this.handlers.has("pointermove")) add("pointer.move", "Pointer Move")
+    if (this.handlers.has("pointerup")) add("pointer.up", "Pointer Up")
+    if (this.handlers.has("pointercancel")) add("pointer.cancel", "Pointer Cancel")
+    if (this.handlers.has("pointerenter")) add("pointer.enter", "Pointer Enter")
+    if (this.handlers.has("pointerleave")) add("pointer.leave", "Pointer Leave")
+    if (this.handlers.has("wheel")) add("wheel", "Wheel")
+    if (this.handlers.has("keydown")) add("key.down", "Key Down")
+    if (this.handlers.has("keyup")) add("key.up", "Key Up")
+    if (this.handlers.has("focus") || this.canFocus()) add("focus", "Focus")
     return out.length ? out : null
   }
 
@@ -191,22 +192,48 @@ export abstract class UIElement {
     return null
   }
 
-  onPointerDown(_e: PointerUIEvent) {}
-  onPointerMove(_e: PointerUIEvent) {}
-  onPointerUp(_e: PointerUIEvent) {}
-  onPointerCancel(_e: PointerUIEvent | null, _reason: InteractionCancelReason) {}
-  onWheel(_e: WheelUIEvent) {}
+  on<K extends keyof UIElementEventMap>(
+    type: K,
+    handler: UIElementEventMap[K] extends void ? () => void : (event: UIElementEventMap[K]) => void,
+  ): () => void {
+    if (!this.handlers) this.handlers = new Map()
+    let set = this.handlers.get(type)
+    if (!set) {
+      set = new Set()
+      this.handlers.set(type, set)
+    }
+    set.add(handler)
+    return () => {
+      set!.delete(handler)
+      if (set!.size === 0) this.handlers?.delete(type)
+    }
+  }
+
+  off<K extends keyof UIElementEventMap>(
+    type: K,
+    handler: UIElementEventMap[K] extends void ? () => void : (event: UIElementEventMap[K]) => void,
+  ) {
+    const set = this.handlers?.get(type)
+    if (!set) return
+    set.delete(handler)
+    if (set.size === 0) this.handlers?.delete(type)
+  }
+
+  emit<K extends keyof UIElementEventMap>(type: K, ...args: UIElementEventMap[K] extends void ? [] : [UIElementEventMap[K]]): void {
+    const set = this.handlers?.get(type)
+    if (!set) return
+    const event = args[0]
+    for (const handler of set) {
+      if (event !== undefined) (handler as (e: any) => void)(event)
+      else (handler as () => void)()
+    }
+  }
+
   canFocus() {
     return false
   }
-  onFocus() {}
-  onBlur() {}
   onRuntimeActivate() {}
   onRuntimeDeactivate() {}
-  onKeyDown(_e: KeyUIEvent) {}
-  onKeyUp(_e: KeyUIEvent) {}
-  onPointerEnter() {}
-  onPointerLeave() {}
 
   protected invalidateSelf(opts?: { pad?: number; force?: boolean }) {
     this.rt?.invalidateRect?.(this.bounds(), opts)

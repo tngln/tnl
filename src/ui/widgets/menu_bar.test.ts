@@ -39,17 +39,17 @@ describe("menu bar", () => {
       topLayer,
     })
 
-    bar.onPointerEnter()
-    bar.onPointerDown(pointer(10, 10))
-    bar.onPointerUp(pointer(10, 10, 0))
+    bar.emit("pointerenter")
+    bar.emit("pointerdown", pointer(10, 10))
+    bar.emit("pointerup", pointer(10, 10, 0))
     expect(topLayer.hasAny()).toBe(true)
 
     const menuHit = topLayer.host.hitTest({ x: 10, y: 28 + 2 + 10 }) as any
     expect(menuHit).toBeTruthy()
-    menuHit.onPointerEnter()
-    menuHit.onPointerMove(pointer(10, 28 + 2 + 10, 0))
-    menuHit.onPointerDown(pointer(10, 28 + 2 + 10))
-    menuHit.onPointerUp(pointer(10, 28 + 2 + 10, 0))
+    menuHit.emit("pointerenter")
+    menuHit.emit("pointermove", pointer(10, 28 + 2 + 10, 0))
+    menuHit.emit("pointerdown", pointer(10, 28 + 2 + 10))
+    menuHit.emit("pointerup", pointer(10, 28 + 2 + 10, 0))
 
     expect(logs).toEqual(["open"])
     expect(topLayer.hasAny()).toBe(false)
@@ -81,23 +81,23 @@ describe("menu bar", () => {
       topLayer,
     })
 
-    bar.onPointerEnter()
-    bar.onPointerDown(pointer(10, 10))
-    bar.onPointerUp(pointer(10, 10, 0))
+    bar.emit("pointerenter")
+    bar.emit("pointerdown", pointer(10, 10))
+    bar.emit("pointerup", pointer(10, 10, 0))
     expect(topLayer.hasAny()).toBe(true)
 
     const rootMenuHit = topLayer.host.hitTest({ x: 10, y: 28 + 2 + 10 }) as any
     expect(rootMenuHit).toBeTruthy()
-    rootMenuHit.onPointerEnter()
-    rootMenuHit.onPointerMove(pointer(10, 28 + 2 + 10, 0))
-    rootMenuHit.onPointerLeave()
+    rootMenuHit.emit("pointerenter")
+    rootMenuHit.emit("pointermove", pointer(10, 28 + 2 + 10, 0))
+    rootMenuHit.emit("pointerleave")
 
     const subMenuHit = topLayer.host.hitTest({ x: 230, y: 28 + 2 + 10 }) as any
     expect(subMenuHit).toBeTruthy()
-    subMenuHit.onPointerEnter()
-    subMenuHit.onPointerMove(pointer(230, 28 + 2 + 10, 0))
-    subMenuHit.onPointerDown(pointer(230, 28 + 2 + 10))
-    subMenuHit.onPointerUp(pointer(230, 28 + 2 + 10, 0))
+    subMenuHit.emit("pointerenter")
+    subMenuHit.emit("pointermove", pointer(230, 28 + 2 + 10, 0))
+    subMenuHit.emit("pointerdown", pointer(230, 28 + 2 + 10))
+    subMenuHit.emit("pointerup", pointer(230, 28 + 2 + 10, 0))
 
     expect(logs).toEqual(["media"])
     expect(topLayer.hasAny()).toBe(false)
