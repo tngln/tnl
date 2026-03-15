@@ -64,9 +64,10 @@ export class Menu extends UIElement {
     })
 
     this.on("pointermove", (e: PointerUIEvent) => {
-      if (!this.hover) return
+      this.hover = pointInRect({ x: e.x, y: e.y }, this.bounds())
       const idx = this.rawIndexFromPoint({ x: e.x, y: e.y })
       if (idx !== this.hoveredIndex) {
+        e.handle()
         this.hoveredIndex = idx
         if (idx >= 0) {
           const menu = this.bounds()
@@ -94,6 +95,7 @@ export class Menu extends UIElement {
     this.on("pointerup", (e: PointerUIEvent) => {
       if (!this.press.matches("pressed")) return
       this.press.send({ type: "RELEASE", point: { x: e.x, y: e.y } })
+      this.hover = pointInRect({ x: e.x, y: e.y }, this.bounds())
       if (!this.hover) return
       const idx = this.selectableIndexFromPoint({ x: e.x, y: e.y })
       const item = this.items()[idx]

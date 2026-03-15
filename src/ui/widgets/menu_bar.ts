@@ -61,7 +61,11 @@ export class MenuBar extends UIElement {
       this.syncOpen()
       if (!this.hover) return
       const idx = this.indexFromPoint({ x: e.x, y: e.y })
-      if (idx !== this.hoveredIndex) this.hoveredIndex = idx
+      if (idx !== this.hoveredIndex) {
+        this.hoveredIndex = idx
+        e.handle()
+        this.invalidateSelf({ pad: 8 })
+      }
       if (this.openKey && idx >= 0 && this.topLayer.isOpen(this.menuId)) {
         const m = this.menus()[idx]
         if (m && m.key !== this.openKey) this.openMenu(idx)
