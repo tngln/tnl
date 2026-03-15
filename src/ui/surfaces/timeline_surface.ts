@@ -1,4 +1,4 @@
-import { font, theme, neutral } from "@/config/theme"
+import { font, theme, neutral, alpha } from "@/config/theme"
 import { draw, LineOp, RectOp, TextOp } from "@/core/draw"
 import { clamp, ZERO_RECT } from "@/core/rect"
 import { PointerUIEvent, UIElement, WheelUIEvent, pointInRect, type Rect, type Vec2 } from "@/ui/base/ui"
@@ -35,9 +35,7 @@ type TimelineLayout = {
   cornerRect: Rect
 }
 
-function alpha(hex: string, opacity: string) {
-  return `${hex}${opacity}`
-}
+
 
 function fitLabel(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, text: string, maxWidth: number, textFont: string) {
   if (maxWidth <= 6 || text.length === 0) return ""
@@ -82,8 +80,8 @@ class TimelineRulerSurface implements Surface {
 
     draw(
       ctx as CanvasRenderingContext2D,
-      RectOp({ x: 0, y: 0, w: viewport.contentRect.w, h: viewport.contentRect.h }, { fill: { color: "#151d2b" } }),
-      LineOp({ x: 0, y: viewport.contentRect.h - 0.5, }, { x: viewport.contentRect.w, y: viewport.contentRect.h - 0.5 }, { color: neutral[6], hairline: true }),
+      RectOp({ x: 0, y: 0, w: viewport.contentRect.w, h: viewport.contentRect.h }, { fill: { color: neutral[875] } }),
+      LineOp({ x: 0, y: viewport.contentRect.h - 0.5, }, { x: viewport.contentRect.w, y: viewport.contentRect.h - 0.5 }, { color: neutral[400], hairline: true }),
     )
 
     for (let value = startValue; value <= visible.end + ticks.minor; value += ticks.minor) {
@@ -92,7 +90,7 @@ class TimelineRulerSurface implements Surface {
       const isMajor = Math.abs(value / ticks.major - Math.round(value / ticks.major)) < 1e-6
       const isLabel = Math.abs(value / ticks.label - Math.round(value / ticks.label)) < 1e-6
       const tickTop = isMajor ? 10 : 18
-      draw(ctx as CanvasRenderingContext2D, LineOp({ x, y: tickTop }, { x, y: viewport.contentRect.h }, { color: isMajor ? neutral[9] : neutral[7], hairline: true }))
+      draw(ctx as CanvasRenderingContext2D, LineOp({ x, y: tickTop }, { x, y: viewport.contentRect.h }, { color: isMajor ? neutral[100] : neutral[300], hairline: true }))
       if (!isLabel) continue
       draw(
         ctx as CanvasRenderingContext2D,
@@ -127,17 +125,17 @@ class TimelineContainerBackgroundSurface implements Surface {
     const visibleValues = findVisibleValueRange(viewport.scroll.x, layout.contentRect.w, view.rangeStart, scale.pxPerUnit)
     const visibleTracks = findVisibleTrackRange(viewport.scroll.y, layout.contentRect.h, metrics)
 
-    draw(ctx as CanvasRenderingContext2D, RectOp({ x: 0, y: 0, w: viewport.contentRect.w, h: viewport.contentRect.h }, { fill: { color: "#0f1521" } }))
+    draw(ctx as CanvasRenderingContext2D, RectOp({ x: 0, y: 0, w: viewport.contentRect.w, h: viewport.contentRect.h }, { fill: { color: neutral[925] } }))
 
     if (visibleTracks) {
       for (let i = visibleTracks.first; i <= visibleTracks.last; i++) {
         const track = metrics[i]
         const y = track.top
-        const fill = i % 2 === 0 ? neutral[1] : neutral[3]
+        const fill = i % 2 === 0 ? neutral[800] : neutral[700]
         draw(
           ctx as CanvasRenderingContext2D,
           RectOp({ x: 0, y, w: viewport.contentRect.w, h: track.height }, { fill: { color: fill } }),
-          LineOp({ x: 0, y: y + track.height + 0.5 }, { x: viewport.contentRect.w, y: y + track.height + 0.5 }, { color: neutral[4], hairline: true }),
+          LineOp({ x: 0, y: y + track.height + 0.5 }, { x: viewport.contentRect.w, y: y + track.height + 0.5 }, { color: neutral[600], hairline: true }),
         )
       }
     }
@@ -149,7 +147,7 @@ class TimelineContainerBackgroundSurface implements Surface {
       const isMajor = Math.abs(value / ticks.major - Math.round(value / ticks.major)) < 1e-6
       draw(
         ctx as CanvasRenderingContext2D,
-        LineOp({ x, y: 0 }, { x, y: viewport.contentRect.h }, { color: isMajor ? neutral[5] : neutral[3], hairline: true }),
+        LineOp({ x, y: 0 }, { x, y: viewport.contentRect.h }, { color: isMajor ? neutral[500] : neutral[700], hairline: true }),
       )
     }
   }
@@ -168,7 +166,7 @@ class TimelineTrackHeaderSurface implements Surface {
     const bodyFont = font(theme, theme.typography.body)
     const titleFont = font(theme, { ...theme.typography.body, weight: 600 })
 
-    draw(ctx as CanvasRenderingContext2D, RectOp({ x: 0, y: 0, w: viewport.contentRect.w, h: viewport.contentRect.h }, { fill: { color: "#131b29" } }))
+    draw(ctx as CanvasRenderingContext2D, RectOp({ x: 0, y: 0, w: viewport.contentRect.w, h: viewport.contentRect.h }, { fill: { color: neutral[875] } }))
     if (!visibleTracks) return
 
     for (let i = visibleTracks.first; i <= visibleTracks.last; i++) {
@@ -177,9 +175,9 @@ class TimelineTrackHeaderSurface implements Surface {
       const y = metric.top
       draw(
         ctx as CanvasRenderingContext2D,
-        RectOp({ x: 0, y, w: viewport.contentRect.w, h: metric.height }, { fill: { color: i % 2 === 0 ? neutral[3] : neutral[2] } }),
-        LineOp({ x: 0, y: y + metric.height + 0.5 }, { x: viewport.contentRect.w, y: y + metric.height + 0.5 }, { color: neutral[5], hairline: true }),
-        TextOp({ x: 12, y: y + 12, text: track.name, style: { color: theme.colors.textPrimary, font: titleFont, baseline: "top" } }),
+        RectOp({ x: 0, y, w: viewport.contentRect.w, h: metric.height }, { fill: { color: i % 2 === 0 ? neutral[700] : neutral[750] } }),
+        LineOp({ x: 0, y: y + metric.height + 0.5 }, { x: viewport.contentRect.w, y: y + metric.height + 0.5 }, { color: neutral[500], hairline: true }),
+        TextOp({ x: 12, y: y + 12, text: track.name, style: { color: theme.colors.text, font: titleFont, baseline: "top" } }),
         TextOp({
           x: 12,
           y: y + metric.height - 12,
@@ -219,12 +217,12 @@ class TimelineTrackContentSurface implements Surface {
         if (!itemIntersectsRange(item, visibleValues.start, visibleValues.end)) continue
         const x = valueToX(item.start, view.rangeStart, scale.pxPerUnit)
         const w = Math.max(8, item.duration * scale.pxPerUnit)
-        const fill = item.color ?? "#4f8cff"
+        const fill = item.color ?? theme.colors.accent
         const rect = { x, y, w, h }
         const label = fitLabel(ctx, item.label, w - 14, labelFont)
         draw(
           ctx as CanvasRenderingContext2D,
-          RectOp({ x: rect.x, y: rect.y, w: rect.w, h: rect.h }, { radius: Math.min(theme.radii.sm, rect.h / 2), fill: { color: fill }, stroke: { color: alpha(fill, "aa"), hairline: true } }),
+          RectOp({ x: rect.x, y: rect.y, w: rect.w, h: rect.h }, { radius: Math.min(theme.radii.sm, rect.h / 2), fill: { color: fill }, stroke: { color: alpha(fill, 0.67), hairline: true } }),
         )
         if (!label) continue
         draw(
@@ -233,7 +231,7 @@ class TimelineTrackContentSurface implements Surface {
             x: rect.x + 7,
             y: rect.y + rect.h / 2 + 0.5,
             text: label,
-            style: { color: "#ffffff", font: labelFont, baseline: "middle" },
+            style: { color: neutral[50], font: labelFont, baseline: "middle" },
             maxWidth: Math.max(0, rect.w - 14),
           }),
         )
@@ -491,10 +489,10 @@ export class TimelineCompositeSurface implements Surface {
 
     draw(
       ctx as CanvasRenderingContext2D,
-      RectOp({ x: 0, y: 0, w: this.size.x, h: this.size.y }, { fill: { color: "#0d131d" } }),
-      RectOp(this.layoutState.cornerRect, { fill: { color: "#151d2b" } }),
-      LineOp({ x: this.layoutState.cornerRect.w + 0.5, y: 0 }, { x: this.layoutState.cornerRect.w + 0.5, y: this.size.y }, { color: neutral[6], hairline: true }),
-      LineOp({ x: 0, y: this.layoutState.cornerRect.h + 0.5 }, { x: this.size.x, y: this.layoutState.cornerRect.h + 0.5 }, { color: neutral[6], hairline: true }),
+      RectOp({ x: 0, y: 0, w: this.size.x, h: this.size.y }, { fill: { color: neutral[925] } }),
+      RectOp(this.layoutState.cornerRect, { fill: { color: neutral[875] } }),
+      LineOp({ x: this.layoutState.cornerRect.w + 0.5, y: 0 }, { x: this.layoutState.cornerRect.w + 0.5, y: this.size.y }, { color: neutral[400], hairline: true }),
+      LineOp({ x: 0, y: this.layoutState.cornerRect.h + 0.5 }, { x: this.size.x, y: this.layoutState.cornerRect.h + 0.5 }, { color: neutral[400], hairline: true }),
       TextOp({
         x: 12,
         y: this.layoutState.cornerRect.h / 2 + 0.5,
@@ -509,9 +507,9 @@ export class TimelineCompositeSurface implements Surface {
     if (playheadX !== null && playheadX >= this.layoutState.headerWidth && playheadX <= this.layoutState.headerWidth + this.layoutState.contentRect.w) {
       draw(
         ctx as CanvasRenderingContext2D,
-        LineOp({ x: playheadX + 0.5, y: 0 }, { x: playheadX + 0.5, y: this.layoutState.rulerRect.h + this.layoutState.contentRect.h }, { color: theme.colors.playheadStroke, width: 2 }),
-        RectOp({ x: playheadX - 18, y: 4, w: 36, h: 16 }, { radius: 6, fill: { color: theme.colors.playheadFill } }),
-        TextOp({ x: playheadX, y: 12.5, text: "PH", style: { color: "#1b0b0b", font: `${700} 10px ${theme.typography.family}`, align: "center", baseline: "middle" } }),
+        LineOp({ x: playheadX + 0.5, y: 0 }, { x: playheadX + 0.5, y: this.layoutState.rulerRect.h + this.layoutState.contentRect.h }, { color: theme.colors.playhead, width: 2 }),
+        RectOp({ x: playheadX - 18, y: 4, w: 36, h: 16 }, { radius: 6, fill: { color: theme.colors.playhead } }),
+        TextOp({ x: playheadX, y: 12.5, text: "PH", style: { color: neutral[950], font: `${700} 10px ${theme.typography.family}`, align: "center", baseline: "middle" } }),
       )
     }
   }

@@ -139,8 +139,8 @@ export class MenuBar extends UIElement {
 
     draw(
       ctx,
-      RectOp(r, { fill: { color: neutral[2] } }),
-      LineOp({ x: r.x, y: r.y + r.h }, { x: r.x + r.w, y: r.y + r.h }, { color: neutral[6], hairline: true }),
+      RectOp(r, { fill: { color: neutral[750] } }),
+      LineOp({ x: r.x, y: r.y + r.h }, { x: r.x + r.w, y: r.y + r.h }, { color: neutral[400], hairline: true }),
     )
 
     const f = font(theme, theme.typography.body)
@@ -159,7 +159,7 @@ export class MenuBar extends UIElement {
       const hovered = i === this.hoveredIndex
       const opened = this.openKey === m.key && this.topLayer.isOpen(this.menuId)
       if (hovered || opened) {
-        draw(ctx, RectOp({ x: rect.x, y: rect.y + 2, w: rect.w, h: Math.max(0, rect.h - 4) }, { fill: { color: neutral[4] } }))
+        draw(ctx, RectOp({ x: rect.x, y: rect.y + 2, w: rect.w, h: Math.max(0, rect.h - 4) }, { fill: { color: neutral[600] } }))
       }
       draw(
         ctx,
@@ -167,7 +167,7 @@ export class MenuBar extends UIElement {
           x: rect.x + padX,
           y: rect.y + rect.h / 2 + 0.5,
           text: m.label,
-          style: { color: theme.colors.textPrimary, font: f, baseline: "middle" },
+          style: { color: theme.colors.text, font: f, baseline: "middle" },
         }),
       )
       x += w + gap

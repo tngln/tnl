@@ -45,16 +45,16 @@ export class ListRow extends UIElement {
     if (r.w <= 0 || r.h <= 0) return
     const pressed = this.press.matches("pressed")
     const bg = this.layout.selected
-      ? theme.colors.rowSelectedBg
+      ? theme.colors.rowSelected
       : this.hover
-        ? theme.colors.controlHover
+        ? theme.colors.hover
         : "transparent"
-    const resolvedBg = pressed ? theme.colors.controlPressed : bg
+    const resolvedBg = pressed ? theme.colors.pressed : bg
     if (resolvedBg !== "transparent") draw(ctx, RectOp(r, { fill: { color: resolvedBg } }))
 
     const indent = Math.max(0, this.layout.indent ?? 0)
     const isGroup = (this.layout.variant ?? "item") === "group"
-    const leftColor = isGroup ? theme.colors.textPrimary : theme.colors.textMuted
+    const leftColor = isGroup ? theme.colors.text : theme.colors.textMuted
     const leftFont = `${isGroup ? 600 : 500} ${Math.max(10, theme.typography.body.size - 1)}px ${theme.typography.family}`
     const rightFont = `${400} ${Math.max(10, theme.typography.body.size - 2)}px ${theme.typography.family}`
     const leftPad = theme.ui.controls.rowTextPadX

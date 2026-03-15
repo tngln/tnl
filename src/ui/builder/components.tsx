@@ -217,7 +217,7 @@ function inheritedTextPatch(props: { tone?: "primary" | "muted"; weight?: "norma
   const text: NonNullable<InheritedStyle["text"]> = {}
   if (props.color) text.color = props.color
   else if (props.tone === "muted") text.color = theme.colors.textMuted
-  else if (props.tone === "primary") text.color = theme.colors.textPrimary
+  else if (props.tone === "primary") text.color = theme.colors.text
   if (props.size === "headline") {
     text.fontSize = theme.typography.headline.size
     text.fontWeight = theme.typography.headline.weight
@@ -379,7 +379,7 @@ export function PanelColumn(props: PanelContainerProps) {
     provideStyle: mergeInherited(
       {
         text: {
-          color: theme.colors.textPrimary,
+          color: theme.colors.text,
           fontFamily: theme.typography.family,
           fontSize: theme.typography.body.size,
           fontWeight: theme.typography.body.weight,
@@ -436,7 +436,7 @@ export function PanelScroll(props: PanelContainerProps) {
   return ScrollArea({
     ...props,
     style: mergeLayout({ fill: true }, props.style),
-    box: mergeBox({ fill: neutral[1] }, props.box),
+    box: mergeBox({ fill: neutral[800] }, props.box),
     provideStyle: props.provideStyle,
   })
 }
@@ -446,15 +446,15 @@ export function PanelSection(props: SectionProps) {
     ...props,
     box: mergeBox(
       {
-        fill: neutral[2],
-        stroke: neutral[5],
+        fill: neutral[750],
+        stroke: neutral[500],
       },
       props.box,
     ),
     provideStyle: mergeInherited(
       {
         text: {
-          color: theme.colors.textPrimary,
+          color: theme.colors.text,
           fontFamily: theme.typography.family,
           fontSize: theme.typography.body.size,
           fontWeight: theme.typography.body.weight,

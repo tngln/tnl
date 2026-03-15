@@ -61,9 +61,9 @@ class DividerHandle extends UIElement {
 
   private chrome(): DividerHandleChrome {
     return {
-      fill: this.down ? neutral[5] : this.hover ? neutral[4] : neutral[3],
-      stroke: neutral[6],
-      grip: neutral[8],
+      fill: this.down ? neutral[500] : this.hover ? neutral[600] : neutral[700],
+      stroke: neutral[400],
+      grip: neutral[200],
     }
   }
 

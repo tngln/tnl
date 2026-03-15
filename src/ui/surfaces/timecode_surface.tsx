@@ -36,12 +36,12 @@ export const TimecodeSurfaceDefinition: SurfaceDefinition<TimecodeSurfaceProps> 
         <VStack
           key="timecode.root"
           style={{ fill: true, padding: 10 }}
-          box={{ fill: "#0d121a" }}
+          box={{ fill: neutral[925] }}
         >
           <Stack
             key="timecode.card"
             style={{ fill: true, padding: 12 }}
-            box={{ fill: neutral[3], stroke: neutral[6], radius: 12 }}
+            box={{ fill: neutral[700], stroke: neutral[400], radius: 12 }}
           >
             <VStack key="timecode.center" style={{ align: "center", gap: 12, alignSelf: "center" }}>
               <Text key="timecode.value" style={{ alignSelf: "center" }} weight="bold" size="headline">{timecode}</Text>

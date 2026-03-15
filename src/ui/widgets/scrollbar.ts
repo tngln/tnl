@@ -217,8 +217,8 @@ export class Scrollbar extends UIElement {
     const r = this.rectValue
     const t = this.thumbRect()
     const active = this.machine.matches("pressed") || this.machine.matches("dragging")
-    const track = active ? neutral[5] : this.hover ? neutral[4] : neutral[3]
-    const thumb = active ? theme.colors.scrollbarThumbActive : this.hover ? theme.colors.scrollbarThumbHover : theme.colors.scrollbarThumb
+    const track = active ? neutral[500] : this.hover ? neutral[600] : neutral[700]
+    const thumb = active ? theme.colors.scrollThumbActive : this.hover ? theme.colors.scrollThumbHover : theme.colors.scrollThumb
     draw(
       ctx,
       RectOp({ x: r.x, y: r.y, w: r.w, h: r.h }, { radius: Math.min(theme.radii.sm, Math.min(r.w, r.h) / 2), fill: { color: track } }),

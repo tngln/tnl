@@ -30,7 +30,7 @@ function ensureCanvas(w: number, h: number) {
 }
 
 function colorForQuality(q: RenderQuality) {
-  return q === "proxy" ? "#17304a" : "#141d2b"
+  return q === "proxy" ? neutral[850] : neutral[875]
 }
 
 async function renderFakeFrame(args: { frame: number; fps: number; w: number; h: number; quality: RenderQuality }) {
@@ -39,13 +39,13 @@ async function renderFakeFrame(args: { frame: number; fps: number; w: number; h:
   ctx.fillRect(0, 0, canvas.width, canvas.height)
 
   // Simple debug overlay (v1).
-  ctx.fillStyle = neutral[6]
+  ctx.fillStyle = neutral[400]
   ctx.fillRect(0, 0, canvas.width, 40)
-  ctx.fillStyle = neutral[9]
+  ctx.fillStyle = neutral[100]
   ctx.font = "600 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
   ctx.textBaseline = "middle"
   ctx.fillText(`tnl render worker`, 12, 20)
-  ctx.fillStyle = neutral[9]
+  ctx.fillStyle = neutral[100]
   ctx.font = "12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
   ctx.fillText(`frame=${args.frame} fps=${args.fps} quality=${args.quality}`, 12, 20 + 18)
 

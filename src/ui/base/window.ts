@@ -1,4 +1,4 @@
-import { font, theme, neutral } from "@/config/theme"
+import { font, theme, neutral, alpha } from "@/config/theme"
 import { draw, LineOp, RectOp, TextOp } from "@/core/draw"
 import type { InteractionCancelReason } from "@/core/event_stream"
 import { signal, type Signal } from "@/core/reactivity"
@@ -325,21 +325,21 @@ export class ModalWindow extends UIElement {
       ctx,
       RectOp(
         { x, y, w, h },
-        { fill: { color: theme.colors.windowBg, shadow: theme.shadows.window }, stroke: { color: theme.colors.windowBorder, hairline: true } },
+        { fill: { color: neutral[875], shadow: theme.shadows.window }, stroke: { color: theme.colors.border, hairline: true } },
       ),
     )
 
     if (this.chrome === "default") {
       draw(
         ctx,
-        RectOp({ x, y, w, h: this.titleBarHeight }, { fill: { color: theme.colors.windowTitleBg } }),
+        RectOp({ x, y, w, h: this.titleBarHeight }, { fill: { color: neutral[50] } }),
         TextOp({
           x: x + theme.spacing.sm,
           y: y + this.titleBarHeight / 2 + 0.5,
           text: this.title.peek(),
-          style: { color: theme.colors.windowTitleText, font: font(theme, theme.typography.title), baseline: "middle" },
+          style: { color: neutral[925], font: font(theme, theme.typography.title), baseline: "middle" },
         }),
-        LineOp({ x, y: y + this.titleBarHeight }, { x: x + w, y: y + this.titleBarHeight }, { color: theme.colors.windowDivider, hairline: true }),
+        LineOp({ x, y: y + this.titleBarHeight }, { x: x + w, y: y + this.titleBarHeight }, { color: neutral[850], hairline: true }),
       )
     } else {
       const t = this.title.peek().trim()
@@ -369,7 +369,7 @@ export class ModalWindow extends UIElement {
         y: y + theme.spacing.md,
         text: "Hello World",
         style: {
-          color: theme.colors.textOnLightMuted,
+          color: alpha(neutral[925], 0.65),
           font: font(theme, theme.typography.body),
           baseline: "top",
         },
@@ -614,19 +614,19 @@ const CLOSE_BUTTON_SPEC: TitleBarButtonSpec = {
     const bg =
       win.chrome === "tool"
         ? state.down
-          ? theme.colors.controlPressed
+          ? theme.colors.pressed
           : state.hover
-            ? theme.colors.controlHover
+            ? theme.colors.hover
             : "transparent"
         : state.down
-          ? theme.colors.closeDownBg
+          ? theme.colors.closeBgPressed
           : state.hover
-            ? theme.colors.closeHoverBg
+            ? theme.colors.closeBg
             : "transparent"
     if (bg !== "transparent") draw(ctx, RectOp(r, { fill: { color: bg } }))
     const cx = r.x + r.w / 2
     const cy = r.y + r.h / 2
-    const color = win.chrome === "tool" ? theme.colors.textPrimary : state.hover || state.down ? theme.colors.closeGlyphOnHover : theme.colors.closeGlyph
+    const color = win.chrome === "tool" ? theme.colors.text : state.hover || state.down ? neutral[50] : neutral[925]
     const d = Math.max(3.5, Math.min(5.5, r.w / 2 - 2.5))
     draw(
       ctx,
@@ -642,12 +642,12 @@ const MINIMIZE_BUTTON_SPEC: TitleBarButtonSpec = {
   visible: (win) => win.minimizable,
   slotFromRight: (win) => (win.chrome === "default" && win.resizable ? 2 : 1),
   draw: (ctx, r, win, state) => {
-    const bg = state.down ? neutral[2] : state.hover ? neutral[1] : "transparent"
+    const bg = state.down ? neutral[750] : state.hover ? neutral[800] : "transparent"
     if (bg !== "transparent") draw(ctx, RectOp(r, { fill: { color: bg } }))
     const x0 = r.x + 5
     const x1 = r.x + r.w - 5
     const y = r.y + r.h - 6
-    draw(ctx, LineOp({ x: x0, y }, { x: x1, y }, { color: win.chrome === "tool" ? theme.colors.textPrimary : theme.colors.windowTitleText, width: 1.8, lineCap: "round" }))
+    draw(ctx, LineOp({ x: x0, y }, { x: x1, y }, { color: win.chrome === "tool" ? theme.colors.text : neutral[925], width: 1.8, lineCap: "round" }))
   },
   onClick: (win) => win.minimize(),
 }
@@ -657,10 +657,10 @@ const MAXIMIZE_BUTTON_SPEC: TitleBarButtonSpec = {
   visible: (win) => win.chrome === "default" && win.resizable,
   slotFromRight: () => 1,
   draw: (ctx, r, win, state) => {
-    const bg = state.down ? neutral[2] : state.hover ? neutral[1] : "transparent"
+    const bg = state.down ? neutral[750] : state.hover ? neutral[800] : "transparent"
     if (bg !== "transparent") draw(ctx, RectOp(r, { fill: { color: bg } }))
 
-    const color = win.chrome === "tool" ? theme.colors.textPrimary : theme.colors.windowTitleText
+    const color = win.chrome === "tool" ? theme.colors.text : neutral[925]
     if (win.maximized.peek() || win.screenUsage.peek() !== "none") {
       draw(
         ctx,

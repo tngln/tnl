@@ -66,7 +66,7 @@ function pushSpan(out: RichTextSpan[], text: string, ctx: RichInlineContext) {
 
 function toneColor(tone: "primary" | "muted" | undefined) {
   if (tone === "muted") return theme.colors.textMuted
-  if (tone === "primary") return theme.colors.textPrimary
+  if (tone === "primary") return theme.colors.text
   return undefined
 }
 

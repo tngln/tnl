@@ -1,4 +1,4 @@
-import { theme } from "@/config/theme"
+import { theme, alpha, neutral } from "@/config/theme"
 import type { InteractionCancelReason } from "@/core/event_stream"
 import { clampRect, inflateRect, intersects, mergeRectInto, normalizeRect, rectArea, unionRect, ZERO_RECT } from "@/core/rect"
 import type { Rect, Vec2 } from "@/core/rect"
@@ -253,15 +253,15 @@ export class CanvasUI {
       ctx.beginPath()
       ctx.rect(r.x, r.y, r.w, r.h)
       ctx.clip()
-      ctx.fillStyle = theme.colors.appBg
+      ctx.fillStyle = neutral[925]
       ctx.fillRect(r.x, r.y, r.w, r.h)
       this.root.draw(ctx, { clip: r, compositor: this.compositor, frameId, dpr: this.dpr, invalidateRect: (rect, opts) => this.invalidateRect(rect, opts) })
       const overlay = this.debugOverlay
       if (overlay && intersects(overlay, r)) {
         ctx.save()
         ctx.globalAlpha = 1
-        ctx.fillStyle = theme.colors.accentOverlay
-        ctx.strokeStyle = theme.colors.accentOutlineStrong
+        ctx.fillStyle = alpha(theme.colors.accent, 0.12)
+        ctx.strokeStyle = alpha(theme.colors.accent, 0.6)
         ctx.lineWidth = 1
         ctx.fillRect(overlay.x, overlay.y, overlay.w, overlay.h)
         ctx.strokeRect(overlay.x + 0.5, overlay.y + 0.5, Math.max(0, overlay.w - 1), Math.max(0, overlay.h - 1))

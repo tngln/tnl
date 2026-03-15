@@ -29,14 +29,14 @@ export class Button extends InteractiveElement {
     const r = this._rect()
     const disabled = this._disabled()
     const bg = disabled
-      ? theme.colors.controlDisabled
+      ? theme.colors.disabled
       : this.pressed()
-        ? theme.colors.controlPressed
+        ? theme.colors.pressed
         : this.hover
-          ? theme.colors.controlHover
+          ? theme.colors.hover
           : "transparent"
-    const stroke = disabled ? neutral[6] : theme.colors.windowBorder
-    const textColor = disabled ? theme.colors.textMuted : theme.colors.textPrimary
+    const stroke = disabled ? neutral[400] : theme.colors.border
+    const textColor = disabled ? theme.colors.textMuted : theme.colors.text
     draw(
       ctx,
       RectOp(
@@ -72,14 +72,14 @@ export class Button extends InteractiveElement {
       ctx,
       RectOp(
         { x: tipX, y: tipY, w: tipW, h: tipH },
-        { radius: theme.radii.sm, fill: { color: neutral[0] }, stroke: { color: neutral[6], hairline: true } },
+        { radius: theme.radii.sm, fill: { color: neutral[900] }, stroke: { color: neutral[400], hairline: true } },
       ),
       TextOp({
         x: tipX + tipW / 2,
         y: tipY + tipH / 2 + 0.5,
         text: title,
         style: {
-          color: theme.colors.textPrimary,
+          color: theme.colors.text,
           font: font(theme, theme.typography.body),
           align: "center",
           baseline: "middle",

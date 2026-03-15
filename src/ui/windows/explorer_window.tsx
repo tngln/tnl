@@ -697,7 +697,7 @@ export const ExplorerSurface = defineSurface({
       const thumbStatusText = viewMode.get() === "thumbs" ? ` · thumbs ${thumbWorkerActive ? "busy" : "idle"} · q${thumbQueue.length}` : ""
       const debugThumbText = thumbLastEvent ? ` · ${thumbLastEvent}` : ""
       const statusText = busy ? "Working..." : error ? error : `${items.length} items${thumbStatusText}${debugThumbText}`
-      const statusColor = error ? theme.colors.dangerText : theme.colors.textMuted
+      const statusColor = error ? theme.colors.danger : theme.colors.textMuted
       const cwdMeta = cwdPrefix ? cwdPrefix : "opfs:/"
       const canBack = history.index > 0
       const canForward = history.index < history.stack.length - 1
@@ -791,8 +791,8 @@ export const ExplorerSurface = defineSurface({
                         key={`explorer.thumb.${e.path}`}
                         style={{ fixed: 168, padding: 6 }}
                         box={{
-                          fill: isSelected ? theme.colors.selectionFill : neutral[2],
-                          stroke: isSelected ? theme.colors.selectionStroke : neutral[5],
+                          fill: isSelected ? theme.colors.selection : neutral[750],
+                          stroke: isSelected ? theme.colors.selectionBorder : neutral[500],
                           radius: 8,
                         }}
                       >
@@ -802,7 +802,7 @@ export const ExplorerSurface = defineSurface({
                             measure={(max) => ({ w: Math.min(156, max.w), h: 88 })}
                             draw={(ctx, rect) => {
                               ctx.save()
-                              ctx.fillStyle = neutral[0]
+                              ctx.fillStyle = neutral[900]
                               ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
                               if (img) {
                                 const iw = img.naturalWidth || 1
@@ -894,7 +894,7 @@ export const ExplorerSurface = defineSurface({
               measure={(max) => ({ w: Math.min(240, max.w), h: 120 })}
               draw={(ctx, rect) => {
                 ctx.save()
-                ctx.fillStyle = neutral[0]
+                ctx.fillStyle = neutral[900]
                 ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
                 if (img) {
                   const iw = img.naturalWidth || 1
@@ -1002,7 +1002,7 @@ export const ExplorerSurface = defineSurface({
             <VStack
               key="explorer.details"
               style={{ fixed: 280 }}
-              box={{ fill: neutral[2], stroke: neutral[5], radius: 10 }}
+              box={{ fill: neutral[750], stroke: neutral[500], radius: 10 }}
             >
               {details}
             </VStack>

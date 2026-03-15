@@ -327,7 +327,7 @@ const CodecPanelSurface = defineSurface({
 
               {error ? (
                 <PanelSection key="codec.error" title="Probe Error">
-                  <Text color={theme.colors.dangerText}>{error}</Text>
+                  <Text color={theme.colors.danger}>{error}</Text>
                 </PanelSection>
               ) : null}
 

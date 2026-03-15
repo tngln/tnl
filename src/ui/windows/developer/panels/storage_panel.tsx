@@ -197,7 +197,7 @@ export const StoragePanelSurface = defineSurface({
 
       const selected = selectedPath !== null
       const statusText = busy ? "Working..." : error ? error : formatUsageText(usage)
-      const statusColor = error ? theme.colors.dangerText : theme.colors.textMuted
+      const statusColor = error ? theme.colors.danger : theme.colors.textMuted
       const selectionMeta = selectedPath ? selectedPath : prefix ? `prefix: ${prefix}` : "root"
 
       return (

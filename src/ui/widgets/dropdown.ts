@@ -103,14 +103,14 @@ export class Dropdown extends InteractiveElement {
     const disabled = this._disabled()
     const pressed = this.pressed()
     const bg = disabled
-      ? theme.colors.controlDisabled
+      ? theme.colors.disabled
       : pressed
-        ? theme.colors.controlPressed
+        ? theme.colors.pressed
         : this.hover
-          ? theme.colors.controlHover
+          ? theme.colors.hover
           : "transparent"
-    const stroke = disabled ? neutral[6] : theme.colors.windowBorder
-    const textColor = disabled ? theme.colors.textMuted : theme.colors.textPrimary
+    const stroke = disabled ? neutral[400] : theme.colors.border
+    const textColor = disabled ? theme.colors.textMuted : theme.colors.text
     const f = font(theme, theme.typography.body)
 
     const options = this.optionsValue

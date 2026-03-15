@@ -5,6 +5,7 @@ import { createLogger } from "@/core/debug"
 import { describeError, toAppError, toErrorInfo } from "@/core/errors"
 import { openOpfs, type OpfsEntryV1 } from "@/core/opfs"
 import { baseNameOr } from "@/util/util"
+import { theme } from "@/config/theme"
 import type { TimelineTrackModel, TimelineViewModel } from "@/ui/timeline/model"
 import { invalidateAll } from "@/ui/invalidate"
 
@@ -248,7 +249,7 @@ export class PlaybackSession {
       kind: "video",
       height: 56,
       items: this.selectedPath
-        ? [{ id: "clip-1", start: 0, duration: durationFrames, label: clipLabel, color: "#4f8cff", selected: true }]
+        ? [{ id: "clip-1", start: 0, duration: durationFrames, label: clipLabel, color: theme.colors.accent, selected: true }]
         : [],
     }
     this.timeline.fps = fps

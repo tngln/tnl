@@ -4,7 +4,7 @@ import { invariant, toErrorInfo } from "./core/errors"
 import { createCodecRegistry } from "./core/codecs"
 import { workerRegistry } from "./core/workers"
 import { ShortcutManager, type ShortcutContextResolver, type ShortcutExecutionContext } from "./core/shortcuts"
-import { theme } from "./config/theme"
+import { theme, neutral } from "./config/theme"
 import { ModalWindow, Root } from "./ui/base/window"
 import { WindowManager } from "./ui/base/window_manager"
 import { CanvasUI } from "./ui/base/ui"
@@ -32,7 +32,7 @@ invariant(canvas, {
 const appLog = createLogger("app")
 appLog.info("Initializing application")
 
-applyDocumentTheme(theme.colors.appBg, theme.colors.appBg)
+applyDocumentTheme(neutral[925], neutral[925])
 
 const root = new Root()
 const windows = new WindowManager(root)

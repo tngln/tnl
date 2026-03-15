@@ -1,53 +1,30 @@
 export type Theme = {
   colors: {
-    appBg: string
-    windowBg: string
-    windowTitleBg: string
-    windowTitleText: string
-    windowBorder: string
-    windowDivider: string
-    textPrimary: string
-    textSecondary: string
+    text: string
     textMuted: string
-    textOnLightMuted: string
-    closeHoverBg: string
-    closeDownBg: string
-    closeGlyph: string
-    closeGlyphOnHover: string
-    inputBg: string
-    inputBorder: string
-    inputBorderFocus: string
-    inputText: string
-    inputPlaceholder: string
-    inputSelectionBg: string
-    inputDisabledBg: string
-    controlHover: string
-    controlPressed: string
-    controlActive: string
-    controlDisabled: string
-    accent: string
-    accentHover: string
-    accentPressed: string
-    accentText: string
-    dangerText: string
-    warningText: string
-    playheadStroke: string
-    playheadFill: string
-    accentOverlay: string
-    accentOutline: string
-    accentOutlineStrong: string
-    selectionFill: string
-    selectionStroke: string
-    scrollbarThumb: string
-    scrollbarThumbHover: string
-    scrollbarThumbActive: string
-    rowSelectedBg: string
-    paneBg92: string
-    textDisabled: string
-    textFaint: string
     textDim: string
-    sliderFill: string
-    sliderFillDisabled: string
+    hover: string
+    pressed: string
+    active: string
+    disabled: string
+    accent: string
+    danger: string
+    warning: string
+    playhead: string
+    closeBg: string
+    closeBgPressed: string
+    border: string
+    borderFocus: string
+    selection: string
+    selectionBorder: string
+    inputBg: string
+    inputSelection: string
+    slider: string
+    sliderDim: string
+    scrollThumb: string
+    scrollThumbHover: string
+    scrollThumbActive: string
+    rowSelected: string
   }
   spacing: {
     xs: number
@@ -111,69 +88,62 @@ export function alpha(color: string, opacity: number) {
   return color
 }
 
+/** Tailwind-inspired neutral (slate) scale. Lower = lighter. */
 export const neutral = {
-  0: "#0f172a",
-  1: "#1e293b",
-  2: "#263245",
-  3: "#334155",
-  4: "#475569",
-  5: "#64748b",
-  6: "#7b8ca3",
-  7: "#94a3b8",
-  8: "#cbd5e1",
-  9: "#e2e8f0",
+  950: "#06090f",
+  925: "#0b0f17",
+  900: "#0f172a",
+  875: "#121825",
+  850: "#1a2233",
+  800: "#1e293b",
+  750: "#263245",
+  700: "#334155",
+  600: "#475569",
+  500: "#64748b",
+  400: "#7b8ca3",
+  300: "#94a3b8",
+  200: "#cbd5e1",
+  100: "#e2e8f0",
+  50: "#e9edf3",
 } as const
+
+/** Decorative palette for timeline clips and track items. */
+export const clipPalette = [
+  "#4f8cff", "#61b8ff", "#3f78ff", "#568dff",
+  "#f0a23b", "#ffb74f", "#d9922d", "#e8a13e",
+  "#3dc28a", "#46d198", "#34a877", "#6d8f5b",
+  "#b876d9", "#c98af0", "#aa68cb",
+  "#d65b7a", "#ef6d8f", "#c84f6c", "#e36b89",
+  "#78839b", "#6d768c",
+] as const
 
 export const theme: Theme = {
   colors: {
-    appBg: "#0b0f17",
-    windowBg: "#121825",
-    windowTitleBg: "#e9edf3",
-    windowTitleText: "#0b0f17",
-    windowBorder: "rgba(255,255,255,0.18)",
-    windowDivider: "#1a2233",
-    textPrimary: "#e9edf3",
-    textSecondary: "rgba(233,237,243,0.65)",
+    text: "#e9edf3",
     textMuted: "rgba(233,237,243,0.40)",
-    textOnLightMuted: "rgba(11,15,23,0.65)",
-    closeHoverBg: "#e81123",
-    closeDownBg: "#b32020",
-    closeGlyph: "#0b0f17",
-    closeGlyphOnHover: "#ffffff",
-    inputBg: "rgba(255,255,255,0.04)",
-    inputBorder: "rgba(255,255,255,0.16)",
-    inputBorderFocus: "rgba(140,190,255,0.88)",
-    inputText: "#e9edf3",
-    inputPlaceholder: "rgba(233,237,243,0.40)",
-    inputSelectionBg: "rgba(120,170,255,0.34)",
-    inputDisabledBg: "rgba(255,255,255,0.025)",
-    controlHover: "rgba(233,237,243,0.08)",
-    controlPressed: "rgba(233,237,243,0.12)",
-    controlActive: "rgba(233,237,243,0.16)",
-    controlDisabled: "rgba(233,237,243,0.03)",
-    accent: "#3b82f6",
-    accentHover: "#2563eb",
-    accentPressed: "#1d4ed8",
-    accentText: "#ffffff",
-    dangerText: "rgba(255,120,120,0.95)",
-    warningText: "rgba(255,196,92,0.95)",
-    playheadStroke: "rgba(255,116,116,0.95)",
-    playheadFill: "rgba(255,116,116,0.92)",
-    accentOverlay: "rgba(100,160,255,0.12)",
-    accentOutline: "rgba(120,180,255,0.48)",
-    accentOutlineStrong: "rgba(120,180,255,0.90)",
-    selectionFill: "rgba(120,180,255,0.10)",
-    selectionStroke: "rgba(120,180,255,0.35)",
-    scrollbarThumb: "rgba(233,237,243,0.30)",
-    scrollbarThumbHover: "rgba(233,237,243,0.38)",
-    scrollbarThumbActive: "rgba(233,237,243,0.46)",
-    rowSelectedBg: "rgba(255,255,255,0.055)",
-    paneBg92: "rgba(20,26,36,0.92)",
-    textDisabled: "rgba(233,237,243,0.38)",
-    textFaint: "rgba(233,237,243,0.28)",
     textDim: "rgba(233,237,243,0.35)",
-    sliderFill: "rgba(124,183,255,0.72)",
-    sliderFillDisabled: "rgba(145,170,210,0.22)",
+    hover: "rgba(233,237,243,0.08)",
+    pressed: "rgba(233,237,243,0.12)",
+    active: "rgba(233,237,243,0.16)",
+    disabled: "rgba(233,237,243,0.03)",
+    accent: "#3b82f6",
+    danger: "rgba(255,120,120,0.95)",
+    warning: "rgba(255,196,92,0.95)",
+    playhead: "rgba(255,116,116,0.95)",
+    closeBg: "#e81123",
+    closeBgPressed: "#b32020",
+    border: "rgba(255,255,255,0.16)",
+    borderFocus: "rgba(140,190,255,0.88)",
+    selection: "rgba(120,180,255,0.10)",
+    selectionBorder: "rgba(120,180,255,0.35)",
+    inputBg: "rgba(255,255,255,0.04)",
+    inputSelection: "rgba(120,170,255,0.34)",
+    slider: "rgba(124,183,255,0.72)",
+    sliderDim: "rgba(145,170,210,0.22)",
+    scrollThumb: "rgba(233,237,243,0.30)",
+    scrollThumbHover: "rgba(233,237,243,0.38)",
+    scrollThumbActive: "rgba(233,237,243,0.46)",
+    rowSelected: "rgba(255,255,255,0.055)",
   },
   spacing: {
     xs: 6,

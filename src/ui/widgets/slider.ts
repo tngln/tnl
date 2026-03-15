@@ -116,21 +116,21 @@ export class Slider extends UIElement {
     const cy = r.y + r.h / 2
     const cx = r.x + r.w / 2
     const trackColor = this.disabledValue
-      ? neutral[5]
+      ? neutral[500]
       : this.dragging
-        ? neutral[8]
+        ? neutral[200]
         : this.hover
-          ? neutral[7]
-          : neutral[6]
-    const fillColor = this.disabledValue ? theme.colors.sliderFillDisabled : theme.colors.sliderFill
+          ? neutral[300]
+          : neutral[400]
+    const fillColor = this.disabledValue ? theme.colors.sliderDim : theme.colors.slider
     const thumbColor = this.disabledValue
-      ? theme.colors.controlDisabled
+      ? theme.colors.disabled
       : this.dragging
-        ? theme.colors.controlPressed
+        ? theme.colors.pressed
         : this.hover
-          ? theme.colors.controlHover
-          : theme.colors.controlActive
-    const thumbStroke = this.disabledValue ? neutral[6] : neutral[3]
+          ? theme.colors.hover
+          : theme.colors.active
+    const thumbStroke = this.disabledValue ? neutral[400] : neutral[700]
 
     if (this.axis === "y") {
       const x = cx

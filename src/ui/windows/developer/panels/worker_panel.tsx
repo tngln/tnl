@@ -119,7 +119,7 @@ const WorkerPanelSurface = defineSurface({
                       <ListRow key="worker.sel.last" leftText="Last Message" rightText={formatTime(selected.lastMessageAt)} />
                     </VStack>
                     {selected.metrics?.lastError ? (
-                      <Text color={theme.colors.dangerText} size="meta" style={{ margin: { t: 8, r: 0, b: 0, l: 0 } }}>
+                      <Text color={theme.colors.danger} size="meta" style={{ margin: { t: 8, r: 0, b: 0, l: 0 } }}>
                         {selected.metrics.lastError}
                       </Text>
                     ) : null}

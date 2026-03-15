@@ -1,4 +1,4 @@
-import { theme } from "@/config/theme"
+import { theme, alpha } from "@/config/theme"
 import { draw, RectOp } from "@/core/draw"
 import { invariant } from "@/core/errors"
 import { ZERO_RECT } from "@/core/rect"
@@ -59,8 +59,8 @@ class SnapPreviewOverlay extends UIElement {
         { x: this.rect.x, y: this.rect.y, w: this.rect.w, h: this.rect.h },
         {
           radius: theme.radii.sm,
-          fill: { color: theme.colors.accentOverlay },
-          stroke: { color: theme.colors.accentOutline, width: 2 },
+          fill: { color: alpha(theme.colors.accent, 0.12) },
+          stroke: { color: alpha(theme.colors.accent, 0.48), width: 2 },
         },
       ),
     )

@@ -77,7 +77,7 @@ describe("jsx runtime", () => {
     expect(node.spans).toEqual([
       { text: "a" },
       { text: "b", emphasis: { bold: true } },
-      { text: "c", color: theme.colors.textPrimary },
+      { text: "c", color: theme.colors.text },
     ])
   })
 })

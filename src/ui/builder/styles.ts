@@ -8,14 +8,14 @@ export function defaultBodyStyle(): RichTextStyle {
     fontSize: theme.typography.body.size,
     fontWeight: theme.typography.body.weight,
     lineHeight: theme.spacing.lg,
-    color: theme.colors.textPrimary,
+    color: theme.colors.text,
   }
 }
 
 export function defaultInheritedStyle(): InheritedStyle {
   return {
     text: {
-      color: theme.colors.textPrimary,
+      color: theme.colors.text,
       fontFamily: theme.typography.family,
       fontSize: theme.typography.body.size,
       fontWeight: theme.typography.body.weight,
@@ -49,7 +49,7 @@ export function inheritedTextToRichTextStyle(text: InheritedTextStyle | undefine
     fontSize: text?.fontSize ?? theme.typography.body.size,
     fontWeight: text?.fontWeight ?? theme.typography.body.weight,
     lineHeight: text?.lineHeight ?? theme.spacing.lg,
-    color: text?.color ?? theme.colors.textPrimary,
+    color: text?.color ?? theme.colors.text,
   }
 }
 
@@ -64,7 +64,7 @@ export function resolveTextStyle(inherited: InheritedStyle, node: TextNode): Ric
 }
 
 export function resolveTextColor(inherited: InheritedStyle, node: TextNode) {
-  return node.color ?? inherited.text?.color ?? theme.colors.textPrimary
+  return node.color ?? inherited.text?.color ?? theme.colors.text
 }
 
 export function resolveTextEmphasis(inherited: InheritedStyle, node: TextNode): TextEmphasis | undefined {

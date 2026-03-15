@@ -33,17 +33,17 @@ export class Radio extends InteractiveElement {
     const cy = r.y + 10
     const disabled = this._disabled()
     const stroke = disabled
-      ? theme.colors.controlDisabled
+      ? theme.colors.disabled
       : this.pressed()
-        ? theme.colors.controlPressed
+        ? theme.colors.pressed
         : this.hover
-          ? theme.colors.controlHover
-          : theme.colors.controlActive
+          ? theme.colors.hover
+          : theme.colors.active
 
     draw(ctx, CircleOp({ x: cx, y: cy, r: 8 }, { stroke: { color: stroke, hairline: true } }))
 
     if (this.selected.peek() === this.value) {
-      draw(ctx, CircleOp({ x: cx, y: cy, r: 4 }, { fill: { color: disabled ? theme.colors.textMuted : theme.colors.textPrimary } }))
+      draw(ctx, CircleOp({ x: cx, y: cy, r: 4 }, { fill: { color: disabled ? theme.colors.textMuted : theme.colors.text } }))
     }
 
     draw(
@@ -52,7 +52,7 @@ export class Radio extends InteractiveElement {
         x: r.x + 24,
         y: r.y,
         text: this.labelValue,
-        style: { color: disabled ? theme.colors.textMuted : theme.colors.textPrimary, font: font(theme, theme.typography.body), baseline: "top" },
+        style: { color: disabled ? theme.colors.textMuted : theme.colors.text, font: font(theme, theme.typography.body), baseline: "top" },
       }),
     )
   }

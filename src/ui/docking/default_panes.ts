@@ -21,8 +21,8 @@ export function createDefaultDockablePanes(ctx: DeveloperContext): DockablePaneI
     g.clearRect(0, 0, wCss, hCss)
 
     const r = 8
-    g.fillStyle = theme.colors.paneBg92
-    g.strokeStyle = neutral[7]
+    g.fillStyle = neutral[850]
+    g.strokeStyle = neutral[300]
     g.lineWidth = 1
     g.beginPath()
     g.moveTo(r, 0)
@@ -38,7 +38,7 @@ export function createDefaultDockablePanes(ctx: DeveloperContext): DockablePaneI
     g.fill()
     g.stroke()
 
-    g.fillStyle = theme.colors.textPrimary
+    g.fillStyle = theme.colors.text
     g.font = `${600} 12px ${theme.typography.family}`
     g.textAlign = "left"
     g.textBaseline = "middle"

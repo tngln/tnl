@@ -218,8 +218,8 @@ export class TextBox extends UIElement {
     const rect = this.rectValue
     const disabled = this.disabledValue
     const focused = this.focused && !disabled
-    const bg = disabled ? theme.colors.inputDisabledBg : theme.colors.inputBg
-    const stroke = focused ? theme.colors.inputBorderFocus : theme.colors.inputBorder
+    const bg = disabled ? theme.colors.disabled : theme.colors.inputBg
+    const stroke = focused ? theme.colors.borderFocus : theme.colors.border
     const textValue = this.value.get()
     const placeholder = this.placeholderValue
     const display = textValue || placeholder
@@ -248,7 +248,7 @@ export class TextBox extends UIElement {
     if (focused && selection.selectionStart !== selection.selectionEnd && textValue) {
       const selectionX = innerX + this.measurePrefix(ctx, selection.selectionStart) - this.scrollX
       const selectionW = this.measurePrefix(ctx, selection.selectionEnd) - this.measurePrefix(ctx, selection.selectionStart)
-      ctx.fillStyle = theme.colors.inputSelectionBg
+      ctx.fillStyle = theme.colors.inputSelection
       ctx.fillRect(selectionX, rect.y + 4, selectionW, rect.h - 8)
     }
 
@@ -259,7 +259,7 @@ export class TextBox extends UIElement {
         y: innerY,
         text: display,
         style: {
-          color: isPlaceholder ? theme.colors.inputPlaceholder : theme.colors.inputText,
+          color: isPlaceholder ? theme.colors.textMuted : theme.colors.text,
           font: fontSpec,
           baseline: "middle",
         },
@@ -268,7 +268,7 @@ export class TextBox extends UIElement {
 
     if (focused && this.caretVisible && selection.selectionStart === selection.selectionEnd) {
       const caretX = innerX + this.measurePrefix(ctx, this.selectionEnd) - this.scrollX
-      ctx.fillStyle = theme.colors.inputText
+      ctx.fillStyle = theme.colors.text
       ctx.fillRect(caretX, rect.y + 5, 1, rect.h - 10)
     }
 

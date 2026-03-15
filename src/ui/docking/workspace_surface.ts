@@ -1,4 +1,4 @@
-import { font, theme, neutral } from "@/config/theme"
+import { font, theme, neutral, alpha } from "@/config/theme"
 import { draw, LineOp, RectOp, TextOp } from "@/core/draw"
 import { measureTextWidth } from "@/core/draw.text"
 import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "@/core/event_stream"
@@ -191,7 +191,7 @@ class DockTabHandle extends UIElement {
     // to start (especially when dragging out of a window). Visual "pressed"
     // feedback should only remain while hovering; dragging stays active.
     const active = this.machine.matches("dragging") || (this.hover && this.machine.matches("pressed"))
-    const bg = selected ? neutral[5] : active ? neutral[4] : this.hover ? neutral[3] : neutral[2]
+    const bg = selected ? neutral[500] : active ? neutral[600] : this.hover ? neutral[700] : neutral[750]
     draw(
       ctx,
       RectOp(
@@ -199,7 +199,7 @@ class DockTabHandle extends UIElement {
         {
           radius: 6,
           fill: { color: bg },
-          stroke: { color: selected ? neutral[7] : neutral[5], hairline: true },
+          stroke: { color: selected ? neutral[300] : neutral[500], hairline: true },
         },
       ),
       TextOp({
@@ -207,7 +207,7 @@ class DockTabHandle extends UIElement {
         y: r.y + r.h / 2 + 0.5,
         text: this.title(),
         style: {
-          color: selected ? theme.colors.textPrimary : theme.colors.textMuted,
+          color: selected ? theme.colors.text : theme.colors.textMuted,
           font: `${600} ${Math.max(10, theme.typography.body.size - 1)}px ${theme.typography.family}`,
           align: "center",
           baseline: "middle",
@@ -370,7 +370,7 @@ class DockSplitHandle extends UIElement {
   protected onDraw(ctx: CanvasRenderingContext2D) {
     const r = this.rect()
     const active = this.machine.matches("pressed") || this.machine.matches("dragging")
-    const bg = active ? neutral[5] : this.hover ? neutral[4] : neutral[3]
+    const bg = active ? neutral[500] : this.hover ? neutral[600] : neutral[700]
     const grip =
       this.axis() === "x"
         ? { x: r.x + Math.max(0, (r.w - 4) / 2), y: r.y + 8, w: 4, h: Math.max(0, r.h - 16), r: 2 }
@@ -381,9 +381,9 @@ class DockSplitHandle extends UIElement {
       RectOp({ x: r.x + 1, y: r.y + 1, w: Math.max(0, r.w - 2), h: Math.max(0, r.h - 2) }, {
         radius: 6,
         fill: { color: bg },
-        stroke: { color: neutral[5], hairline: true },
+        stroke: { color: neutral[500], hairline: true },
       }),
-      RectOp({ x: grip.x, y: grip.y, w: grip.w, h: grip.h }, { radius: grip.r, fill: { color: neutral[8] } }),
+      RectOp({ x: grip.x, y: grip.y, w: grip.w, h: grip.h }, { radius: grip.r, fill: { color: neutral[200] } }),
     )
   }
 
@@ -764,8 +764,8 @@ export class DockWorkspaceSurface implements Surface {
       ctx as CanvasRenderingContext2D,
       RectOp({ x: 0, y: 0, w: this.size.x, h: this.size.y }, {
         radius: theme.radii.sm,
-        fill: { color: neutral[1] },
-        stroke: { color: neutral[5], hairline: true },
+        fill: { color: neutral[800] },
+        stroke: { color: neutral[500], hairline: true },
       }),
     )
 
@@ -774,14 +774,14 @@ export class DockWorkspaceSurface implements Surface {
         ctx as CanvasRenderingContext2D,
         RectOp({ x: layout.rect.x, y: layout.rect.y, w: layout.rect.w, h: layout.rect.h }, {
           radius: theme.radii.sm,
-          fill: { color: neutral[2] },
-          stroke: { color: neutral[5], hairline: true },
+          fill: { color: neutral[750] },
+          stroke: { color: neutral[500], hairline: true },
         }),
-        RectOp(layout.headerRect, { fill: { color: neutral[1] } }),
+        RectOp(layout.headerRect, { fill: { color: neutral[800] } }),
         LineOp(
           { x: layout.headerRect.x, y: layout.headerRect.y + layout.headerRect.h },
           { x: layout.headerRect.x + layout.headerRect.w, y: layout.headerRect.y + layout.headerRect.h },
-          { color: neutral[6], hairline: true },
+          { color: neutral[400], hairline: true },
         ),
       )
     }
@@ -792,8 +792,8 @@ export class DockWorkspaceSurface implements Surface {
         ctx as CanvasRenderingContext2D,
         RectOp({ x: preview.rect.x, y: preview.rect.y, w: preview.rect.w, h: preview.rect.h }, {
           radius: theme.radii.sm,
-          fill: { color: theme.colors.accentOverlay },
-          stroke: { color: theme.colors.accentOutline, width: 2 },
+          fill: { color: alpha(theme.colors.accent, 0.12) },
+          stroke: { color: alpha(theme.colors.accent, 0.48), width: 2 },
         }),
       )
     }
