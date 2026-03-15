@@ -1,5 +1,6 @@
 import type { Rect } from "../../core/rect"
 import type { TopLayerController } from "../base/top_layer"
+import { useClickOutsideHandler } from "../base/top_layer"
 import { UIElement, type Vec2 } from "../base/ui"
 import { Menu, measureMenuHeight, type MenuItem } from "./menu"
 import { placeFloatingRect } from "./floating"
@@ -19,6 +20,7 @@ export class MenuStack extends UIElement {
   private panels: Panel[] = []
   private selectedPath: string[] = []
   private open = false
+  private dismissCleanup: (() => void) | null = null
 
   constructor(opts: { id: string; topLayer: TopLayerController; viewport: () => Rect }) {
     super()
@@ -42,7 +44,8 @@ export class MenuStack extends UIElement {
     this.selectedPath = []
     this.panels = []
     this.children = []
-    this.topLayer.close(this.id)
+    this.dismissCleanup?.()
+    this.dismissCleanup = null
   }
 
   openRoot(anchor: Rect, items: MenuItem[], opts: { placement?: "bottom-start" | "top-start" } = {}) {
@@ -62,7 +65,12 @@ export class MenuStack extends UIElement {
     this.panels = [{ keyPath: "root", rect, items, menu, anchor }]
     this.children = [menu]
     this.open = true
-    this.topLayer.open(this.id, this)
+    this.dismissCleanup = useClickOutsideHandler({
+      id: this.id,
+      element: this,
+      topLayer: this.topLayer,
+      onDismiss: () => this.closeAll(),
+    })
   }
 
   private onHoverAtLevel(level: number, info: { index: number; rect: Rect; item: Exclude<MenuItem, { kind: "separator" }> } | null) {

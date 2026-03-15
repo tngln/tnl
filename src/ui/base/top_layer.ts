@@ -1,5 +1,9 @@
 import { UIElement, pointInRect, type Rect, type Vec2 } from "./ui"
 
+type EntryOptions = {
+  onDismiss?: () => void
+}
+
 class TopLayerHost extends UIElement {
   constructor(private readonly rect: () => Rect) {
     super()
@@ -23,6 +27,7 @@ class TopLayerHost extends UIElement {
 export class TopLayerController {
   readonly host: UIElement
   private readonly entries = new Map<string, UIElement>()
+  private readonly entryOptions = new Map<string, EntryOptions>()
   private readonly invalidate: () => void
 
   constructor(opts: { rect: () => Rect; invalidate: () => void; z?: number }) {
@@ -40,11 +45,13 @@ export class TopLayerController {
     return this.entries.size > 0
   }
 
-  open(id: string, el: UIElement) {
+  open(id: string, el: UIElement, opts?: EntryOptions) {
     const prev = this.entries.get(id)
-    if (prev === el) return
+    if (prev === el && !opts) return
     if (prev) (this.host as UIElement).remove(prev)
     this.entries.set(id, el)
+    if (opts) this.entryOptions.set(id, opts)
+    else this.entryOptions.delete(id)
     el.z = 1
     ;(this.host as UIElement).add(el)
     this.invalidate()
@@ -55,6 +62,7 @@ export class TopLayerController {
     if (!prev) return
     ;(this.host as UIElement).remove(prev)
     this.entries.delete(id)
+    this.entryOptions.delete(id)
     this.invalidate()
   }
 
@@ -62,6 +70,7 @@ export class TopLayerController {
     if (this.entries.size === 0) return
     for (const el of this.entries.values()) (this.host as UIElement).remove(el)
     this.entries.clear()
+    this.entryOptions.clear()
     this.invalidate()
   }
 
@@ -75,6 +84,29 @@ export class TopLayerController {
   lightDismiss(p: Vec2, ctx?: CanvasRenderingContext2D) {
     if (this.entries.size === 0) return
     if (this.containsPoint(p, ctx)) return
-    this.closeAll()
+    const callbacks: (() => void)[] = []
+    for (const opts of this.entryOptions.values()) {
+      if (opts.onDismiss) callbacks.push(opts.onDismiss)
+    }
+    if (callbacks.length > 0) {
+      for (const cb of callbacks) cb()
+    } else {
+      this.closeAll()
+    }
   }
+}
+
+/**
+ * Registers an element as a click-outside-dismissable overlay.
+ * When a pointer down lands outside the element, `onDismiss` is called.
+ * Returns a cleanup function that removes the overlay.
+ */
+export function useClickOutsideHandler(opts: {
+  id: string
+  element: UIElement
+  topLayer: TopLayerController
+  onDismiss: () => void
+}): () => void {
+  opts.topLayer.open(opts.id, opts.element, { onDismiss: opts.onDismiss })
+  return () => opts.topLayer.close(opts.id)
 }

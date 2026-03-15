@@ -5,6 +5,7 @@ import { signal, type Signal } from "@/core/reactivity"
 import { toGetter, type Rect, ZERO_RECT } from "@/core/rect"
 import { PointerUIEvent } from "@/ui/base/ui"
 import type { TopLayerController } from "@/ui/base/top_layer"
+import { useClickOutsideHandler } from "@/ui/base/top_layer"
 import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 import { caretDownIcon, iconToShape } from "@/ui/icons"
 import { DropdownMenu, DROPDOWN_MENU_ROW_HEIGHT } from "./dropdown_menu"
@@ -20,6 +21,7 @@ export class Dropdown extends InteractiveElement {
 
   private menu: DropdownMenu | null = null
   private menuRectCache: Rect = ZERO_RECT
+  private dismissCleanup: (() => void) | null = null
 
   constructor(opts: {
     id: string
@@ -50,8 +52,13 @@ export class Dropdown extends InteractiveElement {
     return this.interactive()
   }
 
+  private closeMenu() {
+    this.dismissCleanup?.()
+    this.dismissCleanup = null
+  }
+
   onBlur() {
-    this.topLayer?.close(this.menuId())
+    this.closeMenu()
   }
 
   onPointerDown(e: PointerUIEvent) {
@@ -74,7 +81,7 @@ export class Dropdown extends InteractiveElement {
   protected onActivate() {
     if (!this.topLayer) return
     if (this.topLayer.isOpen(this.menuId())) {
-      this.topLayer.close(this.menuId())
+      this.closeMenu()
       return
     }
     this.menuRectCache = this.computeMenuRect()
@@ -85,16 +92,21 @@ export class Dropdown extends InteractiveElement {
         selected: this.selected,
         onSelect: (value) => {
           this.selected.set(value)
-          this.topLayer?.close(this.menuId())
+          this.closeMenu()
         },
-        onDismiss: () => this.topLayer?.close(this.menuId()),
+        onDismiss: () => this.closeMenu(),
       })
     }
-    this.topLayer.open(this.menuId(), this.menu)
+    this.dismissCleanup = useClickOutsideHandler({
+      id: this.menuId(),
+      element: this.menu,
+      topLayer: this.topLayer,
+      onDismiss: () => this.closeMenu(),
+    })
   }
 
   onRuntimeDeactivate() {
-    this.topLayer?.close(this.menuId())
+    this.closeMenu()
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {

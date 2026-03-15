@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { TopLayerController } from "../base/top_layer"
+import { TopLayerController, useClickOutsideHandler } from "../base/top_layer"
 import { PointerUIEvent } from "../base/ui"
 import { Menu, MENU_ROW_HEIGHT, MENU_SEPARATOR_HEIGHT, type MenuItem } from "./menu"
 
@@ -71,6 +71,52 @@ describe("menu", () => {
     expect(topLayer.hasAny()).toBe(true)
 
     topLayer.lightDismiss({ x: 500, y: 500 })
+    expect(topLayer.hasAny()).toBe(false)
+  })
+
+  it("useClickOutsideHandler calls onDismiss instead of closeAll", () => {
+    const topLayer = new TopLayerController({ rect: () => ({ x: -1e9, y: -1e9, w: 2e9, h: 2e9 }), invalidate: () => {}, z: 0 })
+    const events: string[] = []
+    const menu = new Menu({
+      rect: () => ({ x: 0, y: 0, w: 200, h: 44 }),
+      items: [{ key: "a", text: "A" }],
+    })
+    const cleanup = useClickOutsideHandler({
+      id: "dropdown:test",
+      element: menu,
+      topLayer,
+      onDismiss: () => {
+        events.push("dismissed")
+        cleanup()
+      },
+    })
+    expect(topLayer.hasAny()).toBe(true)
+
+    // Click inside → no dismiss
+    topLayer.lightDismiss({ x: 100, y: 22 })
+    expect(events).toEqual([])
+    expect(topLayer.hasAny()).toBe(true)
+
+    // Click outside → onDismiss called, overlay removed by cleanup
+    topLayer.lightDismiss({ x: 500, y: 500 })
+    expect(events).toEqual(["dismissed"])
+    expect(topLayer.hasAny()).toBe(false)
+  })
+
+  it("useClickOutsideHandler cleanup removes overlay", () => {
+    const topLayer = new TopLayerController({ rect: () => ({ x: -1e9, y: -1e9, w: 2e9, h: 2e9 }), invalidate: () => {}, z: 0 })
+    const menu = new Menu({
+      rect: () => ({ x: 0, y: 0, w: 200, h: 44 }),
+      items: [{ key: "a", text: "A" }],
+    })
+    const cleanup = useClickOutsideHandler({
+      id: "test:cleanup",
+      element: menu,
+      topLayer,
+      onDismiss: () => {},
+    })
+    expect(topLayer.hasAny()).toBe(true)
+    cleanup()
     expect(topLayer.hasAny()).toBe(false)
   })
 })
