@@ -750,6 +750,10 @@ export const ExplorerSurface = defineSurface({
                       selected = item
                       invalidateAll()
                     }}
+                    onDoubleClick={() => {
+                      selected = item
+                      void enterSelectedDir()
+                    }}
                   />
                 )
               }
@@ -762,6 +766,10 @@ export const ExplorerSurface = defineSurface({
                   variant="item"
                   selected={selected?.kind === "file" && selected.path === e.path}
                   onClick={() => {
+                    selected = item
+                    invalidateAll()
+                  }}
+                  onDoubleClick={() => {
                     selected = item
                     invalidateAll()
                   }}

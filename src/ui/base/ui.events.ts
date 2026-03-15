@@ -58,6 +58,7 @@ export interface UIEventTargetNode {
   onPointerDown?(e: PointerUIEvent): void
   onPointerMove?(e: PointerUIEvent): void
   onPointerUp?(e: PointerUIEvent): void
+  onDoubleClick?(e: PointerUIEvent): void
   onPointerCancel?(e: PointerUIEvent | null, reason: InteractionCancelReason): void
   onWheel?(e: WheelUIEvent): void
   onKeyDown?(e: KeyUIEvent): void

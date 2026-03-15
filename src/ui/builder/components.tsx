@@ -100,6 +100,7 @@ type RowItemProps = JSXNodeProps & {
   variant?: RowVariant
   selected?: boolean
   onClick?: () => void
+  onDoubleClick?: () => void
 }
 
 type ScrollAreaProps = JSXNodeProps
@@ -316,7 +317,16 @@ export function TextBox(props: TextBoxProps) {
 }
 
 export function RowItem(props: RowItemProps) {
-  return rowItemNode({ ...common(props), leftText: props.leftText, rightText: props.rightText, indent: props.indent, variant: props.variant, selected: props.selected, onClick: props.onClick })
+  return rowItemNode({
+    ...common(props),
+    leftText: props.leftText,
+    rightText: props.rightText,
+    indent: props.indent,
+    variant: props.variant,
+    selected: props.selected,
+    onClick: props.onClick,
+    onDoubleClick: props.onDoubleClick,
+  })
 }
 
 export function ListRow(props: RowItemProps) {

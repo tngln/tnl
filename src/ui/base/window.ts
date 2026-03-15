@@ -45,8 +45,6 @@ type TitleContext = {
 
 const TITLE_BUTTON_GAP = 2
 const TITLE_DRAG_THRESHOLD_SQ = 16
-const TITLE_DOUBLE_CLICK_WINDOW_MS = 320
-const TITLE_DOUBLE_CLICK_DIST_SQ = 36
 
 function titleButtonRect(win: ModalWindow, slotFromRight: number): BoundsRect {
   const pad = win.chrome === "tool" ? 6 : theme.ui.closeButtonPad
@@ -112,15 +110,11 @@ export class ModalWindow extends UIElement {
     dragging: boolean
     context: TitleContext
     lastPointer: Vec2
-    lastClickAt: number
-    lastClickPos: Vec2 | null
   } = {
     pressed: false,
     dragging: false,
     context: { originPointer: { x: 0, y: 0 }, dragOffset: { x: 0, y: 0 } },
     lastPointer: { x: 0, y: 0 },
-    lastClickAt: 0,
-    lastClickPos: null,
   }
 
   readonly titleBarHeight: number
@@ -294,24 +288,6 @@ export class ModalWindow extends UIElement {
     void reason
   }
 
-  private handleTitleClick(point: Vec2) {
-    if (!this.resizable) return
-    const s = this.titleInteraction
-    const now = Date.now()
-    if (s.lastClickAt > 0 && now - s.lastClickAt <= TITLE_DOUBLE_CLICK_WINDOW_MS && s.lastClickPos) {
-      const dx = point.x - s.lastClickPos.x
-      const dy = point.y - s.lastClickPos.y
-      if (dx * dx + dy * dy <= TITLE_DOUBLE_CLICK_DIST_SQ) {
-        s.lastClickAt = 0
-        s.lastClickPos = null
-        this.toggleMaximize()
-        return
-      }
-    }
-    s.lastClickAt = now
-    s.lastClickPos = point
-  }
-
   protected onDraw(ctx: CanvasRenderingContext2D) {
     if (!this.open.peek()) return
     const b = this.bounds()
@@ -446,12 +422,17 @@ export class ModalWindow extends UIElement {
     if (s.dragging) {
       this.hooks?.onTitleDragEnd?.(this, pointer)
       this.dragHooks?.onTitleDragEnd?.(this, pointer)
-    } else if (s.pressed) {
-      this.handleTitleClick(pointer)
     }
 
     s.pressed = false
     s.dragging = false
+  }
+
+  onDoubleClick(e: PointerUIEvent) {
+    if (!this.resizable) return
+    const p = { x: e.x, y: e.y }
+    if (!this.isInTitleBar(p)) return
+    this.toggleMaximize()
   }
 
   onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {

@@ -21,6 +21,7 @@ export type ListRowLayout = {
 export class ListRow extends UIElement {
   private layout: ListRowLayout = { rect: ZERO_RECT, leftText: "" }
   private onClick: (() => void) | undefined
+  private onDoubleClickHandler: (() => void) | undefined
   private hover = false
   private readonly press = createPressMachine()
 
@@ -35,9 +36,10 @@ export class ListRow extends UIElement {
     )
   }
 
-  set(layout: ListRowLayout, onClick?: () => void) {
+  set(layout: ListRowLayout, handlers?: { onClick?: () => void; onDoubleClick?: () => void }) {
     this.layout = layout
-    this.onClick = onClick
+    this.onClick = handlers?.onClick
+    this.onDoubleClickHandler = handlers?.onDoubleClick
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
@@ -129,6 +131,12 @@ export class ListRow extends UIElement {
     this.onClick?.()
   }
 
+  onDoubleClick(e: PointerUIEvent) {
+    if (!this.hover) return
+    if (e.button !== 0) return
+    this.onDoubleClickHandler?.()
+  }
+
   onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
     this.hover = false
     if (!this.press.matches("pressed")) return
@@ -142,6 +150,7 @@ type ListRowState = {
   active: boolean
   layout: ListRowLayout
   onClick?: () => void
+  onDoubleClick?: () => void
 }
 
 export const listRowDescriptor: WidgetDescriptor<ListRowState, {
@@ -151,6 +160,7 @@ export const listRowDescriptor: WidgetDescriptor<ListRowState, {
   variant?: "group" | "item"
   selected?: boolean
   onClick?: () => void
+  onDoubleClick?: () => void
 }> = {
   id: "listRow",
   initialZIndex: 10,
@@ -168,6 +178,7 @@ export const listRowDescriptor: WidgetDescriptor<ListRowState, {
     state.rect = rect
     state.active = active
     state.onClick = props.onClick
+    state.onDoubleClick = props.onDoubleClick
     state.layout = {
       rect: active ? rect : ZERO_RECT,
       leftText: active ? props.leftText : "",
@@ -176,6 +187,6 @@ export const listRowDescriptor: WidgetDescriptor<ListRowState, {
       variant: active ? props.variant : undefined,
       selected: active ? props.selected : undefined,
     }
-    state.widget.set(state.layout, state.active ? state.onClick : undefined)
+    state.widget.set(state.layout, state.active ? { onClick: state.onClick, onDoubleClick: state.onDoubleClick } : undefined)
   },
 }

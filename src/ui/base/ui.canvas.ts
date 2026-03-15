@@ -1,5 +1,5 @@
 import { theme, alpha, neutral } from "@/config/theme"
-import type { InteractionCancelReason } from "@/core/event_stream"
+import { classifyClicks, createEventStream, type InteractionCancelReason } from "@/core/event_stream"
 import { clampRect, inflateRect, intersects, mergeRectInto, normalizeRect, rectArea, unionRect, ZERO_RECT } from "@/core/rect"
 import type { Rect, Vec2 } from "@/core/rect"
 import {
@@ -15,7 +15,7 @@ import {
   type CursorKind,
 } from "@/platform/web"
 import { Compositor } from "./compositor"
-import { dispatchKeyEvent, dispatchPointerCancelEvent, dispatchPointerEvent, dispatchWheelEvent } from "./ui.dispatch"
+import { dispatchDoubleClickEvent, dispatchKeyEvent, dispatchPointerCancelEvent, dispatchPointerEvent, dispatchWheelEvent } from "./ui.dispatch"
 import { KeyUIEvent, type KeyLike, PointerUIEvent, WheelUIEvent } from "./ui.events"
 import { UIElement } from "./ui.element"
 import { pointInRect } from "./ui.hit_test"
@@ -46,6 +46,21 @@ export class CanvasUI {
   private readonly removeLostPointerCaptureListener: () => void
   private readonly removeBrowserInteractionCancelListener: () => void
   private cursor: CursorKind = "default"
+  private readonly doubleClickWindowMs = 320
+  private readonly doubleClickDistSq = 36
+  private readonly clickUpEvents = createEventStream<{
+    target: UIElement
+    pointerId: number
+    x: number
+    y: number
+    button: number
+    buttons: number
+    altKey: boolean
+    ctrlKey: boolean
+    shiftKey: boolean
+    metaKey: boolean
+  }>()
+  private doubleClickSub: { unsubscribe(): void } | null = null
 
   get sizeCss(): Vec2 {
     return { x: this.cssW, y: this.cssH }
@@ -87,6 +102,7 @@ export class CanvasUI {
     this.root = root
     this.onTopLevelPointerDown = opts.onTopLevelPointerDown
 
+    this.startDoubleClickClassifier()
     this.resize()
     this.removeResizeListener = addWindowResizeListener(this.resize)
     this.removeLostPointerCaptureListener = addLostPointerCaptureListener(canvas, (pointerId) => {
@@ -107,6 +123,8 @@ export class CanvasUI {
   }
 
   destroy() {
+    this.doubleClickSub?.unsubscribe()
+    this.doubleClickSub = null
     this.removeResizeListener()
     this.removeLostPointerCaptureListener()
     this.removeBrowserInteractionCancelListener()
@@ -313,6 +331,41 @@ export class CanvasUI {
     this.activePointerId = null
   }
 
+  private startDoubleClickClassifier() {
+    this.doubleClickSub?.unsubscribe()
+    this.doubleClickSub = classifyClicks({
+      clicks: this.clickUpEvents.stream,
+      windowMs: this.doubleClickWindowMs,
+      canPair: (first, second) => {
+        if (first.target !== second.target) return false
+        if (first.button !== 0 || second.button !== 0) return false
+        if (first.pointerId !== second.pointerId) return false
+        const dx = second.x - first.x
+        const dy = second.y - first.y
+        return dx * dx + dy * dy <= this.doubleClickDistSq
+      },
+    }).subscribe((event) => {
+      if (event.kind !== "double") return
+      const second = event.second
+      const pointerEvent = new PointerUIEvent({
+        pointerId: second.pointerId,
+        x: second.x,
+        y: second.y,
+        button: second.button,
+        buttons: second.buttons,
+        altKey: second.altKey,
+        ctrlKey: second.ctrlKey,
+        shiftKey: second.shiftKey,
+        metaKey: second.metaKey,
+      })
+      dispatchDoubleClickEvent(second.target, pointerEvent)
+    })
+  }
+
+  private resetDoubleClickClassifier() {
+    this.startDoubleClickClassifier()
+  }
+
   private pointerUiEventFromNative(e: PointerEvent): PointerUIEvent {
     const p = this.toCanvasPoint(e)
     return new PointerUIEvent({
@@ -329,6 +382,7 @@ export class CanvasUI {
   }
 
   private cancelPointerSession(reason: InteractionCancelReason, nativeEvent?: PointerEvent | null) {
+    this.resetDoubleClickClassifier()
     const target = this.capture
     const oldHover = this.hover
     const topBefore = target ? this.topLevelTargetOf(target) : oldHover ? this.topLevelTargetOf(oldHover) : null
@@ -448,6 +502,20 @@ export class CanvasUI {
     if (top) top = this.topLevelTargetOf(top)
     const before = top ? top.bounds() : ZERO_RECT
     dispatchPointerEvent(target, ev, "up")
+    if (e.button === 0 && pointInRect(p, target.bounds())) {
+      this.clickUpEvents.emit({
+        target,
+        pointerId: e.pointerId,
+        x: p.x,
+        y: p.y,
+        button: e.button,
+        buttons: e.buttons,
+        altKey: e.altKey,
+        ctrlKey: e.ctrlKey,
+        shiftKey: e.shiftKey,
+        metaKey: e.metaKey,
+      })
+    }
     this.capture = null
     this.releasePointerCapture()
     this.applyResolvedCursor(p)

@@ -111,6 +111,7 @@ export type RowNode = NodeBase & {
   variant?: RowVariant
   selected?: boolean
   onClick?: () => void
+  onDoubleClick?: () => void
 }
 
 export type TreeItem = {

@@ -46,6 +46,18 @@ export function dispatchPointerEvent(
   } satisfies PointerDispatchResult
 }
 
+export function dispatchDoubleClickEvent(target: UIEventTargetNode | null, event: PointerUIEvent, pointForTarget?: (node: UIEventTargetNode) => Vec2 | undefined) {
+  if (!target) return
+  const path = buildEventPath(target)
+  const originalTarget = path[0]
+  for (let i = 0; i < path.length; i++) {
+    const current = path[i]
+    event.withDispatch(originalTarget, current, i === 0 ? "target" : "bubble", pointForTarget?.(current))
+    current.onDoubleClick?.(event)
+    if (event.propagationStopped) break
+  }
+}
+
 export function dispatchWheelEvent(target: UIEventTargetNode | null, event: WheelUIEvent, pointForTarget?: (node: UIEventTargetNode) => Vec2 | undefined) {
   if (!target) return
   const path = buildEventPath(target)

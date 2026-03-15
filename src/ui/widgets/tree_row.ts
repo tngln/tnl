@@ -42,6 +42,7 @@ export class TreeRow extends UIElement {
   }
   private onSelect: (() => void) | undefined
   private onToggle: (() => void) | undefined
+  private onDoubleClickHandler: (() => void) | undefined
   private hover = false
   private readonly press = createPressMachine()
 
@@ -56,10 +57,11 @@ export class TreeRow extends UIElement {
     )
   }
 
-  set(layout: TreeRowLayout, handlers?: { onSelect?: () => void; onToggle?: () => void }, active?: boolean) {
+  set(layout: TreeRowLayout, handlers?: { onSelect?: () => void; onToggle?: () => void; onDoubleClick?: () => void }, active?: boolean) {
     this.layout = layout
     this.onSelect = handlers?.onSelect
     this.onToggle = handlers?.onToggle
+    this.onDoubleClickHandler = handlers?.onDoubleClick
     if (active !== undefined) this.activeValue = active
   }
 
@@ -102,7 +104,7 @@ export class TreeRow extends UIElement {
             w: Math.max(0, disclosureRect.w - pad * 2),
             h: Math.max(0, disclosureRect.h - pad * 2),
           },
-                  { paint: theme.colors.textMuted },
+          { paint: theme.colors.textMuted },
         ),
       )
     }
@@ -180,6 +182,13 @@ export class TreeRow extends UIElement {
     this.onSelect?.()
   }
 
+  onDoubleClick(e: PointerUIEvent) {
+    if (!this.hover) return
+    if (e.button !== 0) return
+    if (this.layout.expandable && pointInRect({ x: e.x, y: e.y }, this.disclosureRect())) return
+    this.onDoubleClickHandler?.()
+  }
+
   onPointerCancel(_e: PointerUIEvent | null, reason: InteractionCancelReason) {
     this.hover = false
     if (!this.press.matches("pressed")) return
@@ -194,6 +203,7 @@ type TreeRowState = {
   layout: TreeRowLayout
   onSelect?: () => void
   onToggle?: () => void
+  onDoubleClick?: () => void
 }
 
 export const treeRowDescriptor: WidgetDescriptor<TreeRowState, {
@@ -206,6 +216,7 @@ export const treeRowDescriptor: WidgetDescriptor<TreeRowState, {
   selected?: boolean
   onSelect?: () => void
   onToggle?: () => void
+  onDoubleClick?: () => void
 }> = {
   id: "treeRow",
   initialZIndex: 10,
@@ -230,6 +241,7 @@ export const treeRowDescriptor: WidgetDescriptor<TreeRowState, {
     state.active = active
     state.onSelect = props.onSelect
     state.onToggle = props.onToggle
+    state.onDoubleClick = props.onDoubleClick
     state.layout = {
       rect: active ? rect : ZERO_RECT,
       depth: active ? props.depth : 0,
@@ -240,7 +252,7 @@ export const treeRowDescriptor: WidgetDescriptor<TreeRowState, {
       variant: active ? props.variant : undefined,
       selected: active ? props.selected : undefined,
     }
-    state.widget.set(state.layout, active ? { onSelect: state.onSelect, onToggle: state.onToggle } : undefined, active)
+    state.widget.set(state.layout, active ? { onSelect: state.onSelect, onToggle: state.onToggle, onDoubleClick: state.onDoubleClick } : undefined, active)
   },
   unmount: (state) => {
     state.active = false
