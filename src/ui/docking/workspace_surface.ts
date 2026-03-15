@@ -1,7 +1,7 @@
 import { font, theme, neutral, alpha } from "@/config/theme"
 import { draw, LineOp, RectOp, TextOp } from "@/core/draw"
 import { measureTextWidth } from "@/core/draw.text"
-import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "@/core/event_stream"
+import { createEventStream, map, pointerDragSession, type InteractionCancelReason } from "@/core/event_stream"
 import { createMachine, type Machine } from "@/core/fsm"
 import { columnLayout, rowLayout } from "@/core/layout"
 import { clamp, inflateRect, ZERO_RECT } from "@/core/rect"
@@ -96,6 +96,7 @@ class DockTabHandle extends UIElement {
   private readonly upEvents = createEventStream<PointerUIEvent>()
   private readonly cancelEvents = createEventStream<void>()
   private readonly machine: Machine<HandleState, TabHandleEvent, HandleContext>
+  private gestureSub: { unsubscribe(): void } | null = null
 
   constructor(opts: {
     rect: () => Rect
@@ -217,19 +218,12 @@ class DockTabHandle extends UIElement {
   }
 
   private setupGestures() {
-    const dragMoves = this.moveEvents.stream.filter((event) => (event.buttons & 1) !== 0)
-    const cancel = interactionCancelStream({
-      cancel: this.cancelEvents.stream.map(() => "inactive" as InteractionCancelReason),
-      move: this.moveEvents.stream,
-      buttons: (event) => event.buttons,
-    })
-
-    dragSession({
+    this.gestureSub?.unsubscribe()
+    this.gestureSub = pointerDragSession({
       down: this.downEvents.stream,
-      move: dragMoves,
+      move: this.moveEvents.stream,
       up: this.upEvents.stream,
-      cancel,
-      point: (event) => ({ x: event.x, y: event.y }),
+      cancel: this.cancelEvents.stream.pipe(map(() => "inactive" as InteractionCancelReason)),
       thresholdSq: 36,
     }).subscribe((event) => {
       if (event.kind === "start") {
@@ -293,6 +287,7 @@ class DockSplitHandle extends UIElement {
   private readonly upEvents = createEventStream<PointerUIEvent>()
   private readonly cancelEvents = createEventStream<void>()
   private readonly machine: Machine<HandleState, SplitHandleEvent, HandleContext>
+  private gestureSub: { unsubscribe(): void } | null = null
 
   constructor(opts: { rect: () => Rect; axis: () => "x" | "y"; onDrag: (point: Vec2) => void }) {
     super()
@@ -392,19 +387,12 @@ class DockSplitHandle extends UIElement {
   }
 
   private setupGestures() {
-    const dragMoves = this.moveEvents.stream.filter((event) => (event.buttons & 1) !== 0)
-    const cancel = interactionCancelStream({
-      cancel: this.cancelEvents.stream.map(() => "inactive" as InteractionCancelReason),
-      move: this.moveEvents.stream,
-      buttons: (event) => event.buttons,
-    })
-
-    dragSession({
+    this.gestureSub?.unsubscribe()
+    this.gestureSub = pointerDragSession({
       down: this.downEvents.stream,
-      move: dragMoves,
+      move: this.moveEvents.stream,
       up: this.upEvents.stream,
-      cancel,
-      point: (event) => ({ x: event.x, y: event.y }),
+      cancel: this.cancelEvents.stream.pipe(map(() => "inactive" as InteractionCancelReason)),
       thresholdSq: 0,
     }).subscribe((event) => {
       if (event.kind === "start") {

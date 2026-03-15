@@ -111,6 +111,28 @@ class FocusHostElement extends HostElement {
   }
 }
 
+class CancelProbeElement extends UIElement {
+  pointerDownSeen = false
+  cancelReasonFromArg: string | null = null
+  cancelReasonFromEvent: string | null = null
+  cancelEventTimestamp: number | null = null
+
+  bounds(): Rect {
+    return { x: 20, y: 20, w: 40, h: 40 }
+  }
+
+  onPointerDown(e: PointerUIEvent) {
+    this.pointerDownSeen = true
+    e.capturePointer()
+  }
+
+  onPointerCancel(e: PointerUIEvent | null, reason: string) {
+    this.cancelReasonFromArg = reason
+    this.cancelReasonFromEvent = e?.cancelReason ?? null
+    this.cancelEventTimestamp = e?.timeStamp ?? null
+  }
+}
+
 describe("ui event bubbling", () => {
   it("bubbles pointer events from child to parent", () => {
     withFakeDom({}, ({ canvas }) => {
@@ -159,6 +181,31 @@ describe("ui event bubbling", () => {
 
       expect(child.events).toEqual(["down:target:25,25", "move:target:150,150", "cancel:blur"])
       expect(host.events).toEqual(["down:bubble:child:25,25", "move:bubble:child:150,150", "cancel:blur:none:child"])
+
+      ui.destroy()
+    })
+  })
+
+  it("attaches cancel reason and timestamp to pointer cancel events", () => {
+    withFakeDom({}, ({ canvas }) => {
+      const host = new HostElement()
+      const probe = new CancelProbeElement()
+      host.add(probe)
+      const ui = new CanvasUI(canvas, host)
+
+      ;(canvas as any).dispatch("pointerdown", {
+        ...pointerEvent(25, 25, 1),
+        timeStamp: 100,
+      } as PointerEvent)
+      ;(canvas as any).dispatch("pointercancel", {
+        ...pointerEvent(25, 25, 1),
+        timeStamp: 123,
+      } as PointerEvent)
+
+      expect(probe.pointerDownSeen).toBe(true)
+      expect(probe.cancelReasonFromArg).toBe("pointercancel")
+      expect(probe.cancelReasonFromEvent).toBe("pointercancel")
+      expect(probe.cancelEventTimestamp).toBe(123)
 
       ui.destroy()
     })

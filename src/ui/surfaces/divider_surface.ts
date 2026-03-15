@@ -1,6 +1,6 @@
 import { theme, neutral } from "@/config/theme"
 import { draw, RectOp } from "@/core/draw"
-import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "@/core/event_stream"
+import { createEventStream, pointerDragSession, type InteractionCancelReason } from "@/core/event_stream"
 import { signal, type Signal } from "@/core/reactivity"
 import { clamp } from "@/core/rect"
 import { CursorRegion, UIElement, type Rect, type Vec2, PointerUIEvent, pointInRect } from "@/ui/base/ui"
@@ -32,6 +32,7 @@ class DividerHandle extends UIElement {
   private readonly moveEvents = createEventStream<PointerUIEvent>()
   private readonly upEvents = createEventStream<PointerUIEvent>()
   private readonly cancelEvents = createEventStream<string>()
+  private gestureSub: { unsubscribe(): void } | null = null
 
   constructor(opts: { rect: () => Rect; axis: Axis; position: Signal<number>; minA: () => number; minB: () => number; total: () => number }) {
     super()
@@ -114,19 +115,12 @@ class DividerHandle extends UIElement {
   }
 
   private setupGestures() {
-    const dragMoves = this.moveEvents.stream.filter((event) => (event.buttons & 1) !== 0)
-    const cancel = interactionCancelStream({
-      cancel: this.cancelEvents.stream,
-      move: this.moveEvents.stream,
-      buttons: (event) => event.buttons,
-    })
-
-    dragSession({
+    this.gestureSub?.unsubscribe()
+    this.gestureSub = pointerDragSession({
       down: this.downEvents.stream,
-      move: dragMoves,
+      move: this.moveEvents.stream,
       up: this.upEvents.stream,
-      cancel,
-      point: (event) => ({ x: event.x, y: event.y }),
+      cancel: this.cancelEvents.stream,
       thresholdSq: 0,
     }).subscribe((event) => {
       if (event.kind === "start") {

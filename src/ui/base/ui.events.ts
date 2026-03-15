@@ -11,6 +11,7 @@ export type PointerLike = {
   ctrlKey: boolean
   shiftKey: boolean
   metaKey: boolean
+  timeStamp?: number
 }
 
 export type WheelLike = {
@@ -23,6 +24,7 @@ export type WheelLike = {
   ctrlKey: boolean
   shiftKey: boolean
   metaKey: boolean
+  timeStamp?: number
 }
 
 export type KeyLike = {
@@ -33,6 +35,7 @@ export type KeyLike = {
   ctrlKey: boolean
   shiftKey: boolean
   metaKey: boolean
+  timeStamp?: number
 }
 
 export type KeyDispatchResult = {
@@ -66,10 +69,15 @@ export interface UIEventTargetNode {
 }
 
 class UIEventBase {
+  readonly timeStamp: number
   target: UIEventTargetNode | null = null
   currentTarget: UIEventTargetNode | null = null
   phase: UIEventPhase = "target"
   protected stopped = false
+
+  constructor(timeStamp?: number) {
+    this.timeStamp = timeStamp ?? Date.now()
+  }
 
   stopPropagation() {
     this.stopped = true
@@ -99,9 +107,10 @@ export class PointerUIEvent extends UIEventBase {
   private captured = false
   private handled = false
   private requestedFocusTarget: UIEventTargetNode | null = null
+  private pointerCancelReason: InteractionCancelReason | null = null
 
   constructor(e: PointerLike) {
-    super()
+    super(e.timeStamp)
     this.pointerId = e.pointerId
     this.x = e.x
     this.y = e.y
@@ -145,6 +154,14 @@ export class PointerUIEvent extends UIEventBase {
     return this.requestedFocusTarget
   }
 
+  markCancelReason(reason: InteractionCancelReason) {
+    this.pointerCancelReason = reason
+  }
+
+  get cancelReason() {
+    return this.pointerCancelReason
+  }
+
   withDispatch(target: UIEventTargetNode, currentTarget: UIEventTargetNode, phase: UIEventPhase, point?: Vec2) {
     super.withDispatch(target, currentTarget, phase)
     if (point) {
@@ -175,7 +192,7 @@ export class WheelUIEvent extends UIEventBase {
   private handled = false
 
   constructor(e: WheelLike) {
-    super()
+    super(e.timeStamp)
     this.x = e.x
     this.y = e.y
     this.deltaX = e.deltaX
@@ -226,7 +243,7 @@ export class KeyUIEvent extends UIEventBase {
   private prevented = false
 
   constructor(e: KeyLike) {
-    super()
+    super(e.timeStamp)
     this.code = e.code
     this.key = e.key
     this.repeat = e.repeat

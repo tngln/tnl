@@ -14,6 +14,7 @@ import { EXPLORER_WINDOW_ID } from "./ui/windows/explorer_window"
 import { PLAYBACK_TOOL_WINDOW_ID } from "./ui/windows/playback_tool_window"
 import { TIMECODE_TOOL_WINDOW_ID } from "./ui/windows/timecode_tool_window"
 import { unionRect, type Rect } from "./core/rect"
+import { createEventStream } from "./core/event_stream"
 import { TOOLS_DIALOG_ID } from "./ui/windows/tools_dialog"
 import { TIMELINE_TOOL_WINDOW_ID } from "./ui/windows/timeline_tool_window"
 import { addBrowserInteractionCancelListener, addWindowErrorListener, addWindowKeyDownListener, addWindowKeyUpListener, addWindowLoadListener, addWindowResizeListener, addWindowUnhandledRejectionListener, applyDocumentTheme, getRootCanvas, registerServiceWorker, scheduleAnimationFrame } from "./platform/web"
@@ -39,6 +40,12 @@ const windows = new WindowManager(root)
 const codecs = createCodecRegistry()
 const docking = new DockingManager({ windows })
 
+const keyDownEvents = createEventStream<KeyboardEvent>()
+const keyUpEvents = createEventStream<KeyboardEvent>()
+const pointerDownEvents = createEventStream<PointerEvent>()
+const pointerUpEvents = createEventStream<PointerEvent>()
+const wheelEvents = createEventStream<WheelEvent>()
+
 const about = createAboutDialog()
 windows.register(about)
 
@@ -46,6 +53,15 @@ const ui = new CanvasUI(canvas, root, {
   onTopLevelPointerDown(top) {
     if (top instanceof ModalWindow) windows.onWindowPointerDown(top)
     else top.bringToFront()
+  },
+  onNativePointerDown(event) {
+    pointerDownEvents.emit(event)
+  },
+  onNativePointerUp(event) {
+    pointerUpEvents.emit(event)
+  },
+  onNativeWheel(event) {
+    wheelEvents.emit(event)
   },
 })
 docking.setInvalidate(() => ui.invalidate())
@@ -227,7 +243,7 @@ addWindowResizeListener(() => {
   })
 })
 
-const removeKeyDownListener = addWindowKeyDownListener((event) => {
+const keyDownSubscription = keyDownEvents.stream.subscribe((event) => {
   const result = ui.handleKeyDown({
     code: event.code,
     key: event.key,
@@ -236,6 +252,7 @@ const removeKeyDownListener = addWindowKeyDownListener((event) => {
     ctrlKey: event.ctrlKey,
     shiftKey: event.shiftKey,
     metaKey: event.metaKey,
+    timeStamp: event.timeStamp,
   })
   if (result.consumed) {
     shortcuts.syncKeyDown(event)
@@ -245,7 +262,7 @@ const removeKeyDownListener = addWindowKeyDownListener((event) => {
   shortcuts.handleKeyDown(event)
 })
 
-const removeKeyUpListener = addWindowKeyUpListener((event) => {
+const keyUpSubscription = keyUpEvents.stream.subscribe((event) => {
   const result = ui.handleKeyUp({
     code: event.code,
     key: event.key,
@@ -254,10 +271,54 @@ const removeKeyUpListener = addWindowKeyUpListener((event) => {
     ctrlKey: event.ctrlKey,
     shiftKey: event.shiftKey,
     metaKey: event.metaKey,
+    timeStamp: event.timeStamp,
   })
   if (result.preventDefault) event.preventDefault()
   shortcuts.handleKeyUp(event)
 })
+
+const pointerDownSubscription = pointerDownEvents.stream.subscribe((event) => {
+  shortcuts.handlePointerDown({
+    button: event.button,
+    buttons: event.buttons,
+    x: event.clientX,
+    y: event.clientY,
+    altKey: event.altKey,
+    ctrlKey: event.ctrlKey,
+    shiftKey: event.shiftKey,
+    metaKey: event.metaKey,
+  })
+})
+
+const pointerUpSubscription = pointerUpEvents.stream.subscribe((event) => {
+  shortcuts.handlePointerUp({
+    button: event.button,
+    buttons: event.buttons,
+    x: event.clientX,
+    y: event.clientY,
+    altKey: event.altKey,
+    ctrlKey: event.ctrlKey,
+    shiftKey: event.shiftKey,
+    metaKey: event.metaKey,
+  })
+})
+
+const wheelSubscription = wheelEvents.stream.subscribe((event) => {
+  shortcuts.handleWheel({
+    deltaX: event.deltaX,
+    deltaY: event.deltaY,
+    x: event.clientX,
+    y: event.clientY,
+    altKey: event.altKey,
+    ctrlKey: event.ctrlKey,
+    shiftKey: event.shiftKey,
+    metaKey: event.metaKey,
+    preventDefault: () => event.preventDefault(),
+  })
+})
+
+const removeKeyDownListener = addWindowKeyDownListener((event) => keyDownEvents.emit(event))
+const removeKeyUpListener = addWindowKeyUpListener((event) => keyUpEvents.emit(event))
 
 const removeShortcutCancelListener = addBrowserInteractionCancelListener(() => {
   ui.clearFocus()
@@ -278,56 +339,17 @@ const removeUnhandledRejectionListener = addWindowUnhandledRejectionListener((ev
   })
 })
 ;(globalThis as any).__TNL_DEVTOOLS__.disposeShortcuts = () => {
+  keyDownSubscription.unsubscribe()
+  keyUpSubscription.unsubscribe()
+  pointerDownSubscription.unsubscribe()
+  pointerUpSubscription.unsubscribe()
+  wheelSubscription.unsubscribe()
   removeKeyDownListener()
   removeKeyUpListener()
   removeShortcutCancelListener()
   removeWindowErrorListener()
   removeUnhandledRejectionListener()
 }
-
-canvas.addEventListener("pointerdown", (event) => {
-  shortcuts.handlePointerDown({
-    button: event.button,
-    buttons: event.buttons,
-    x: event.clientX,
-    y: event.clientY,
-    altKey: event.altKey,
-    ctrlKey: event.ctrlKey,
-    shiftKey: event.shiftKey,
-    metaKey: event.metaKey,
-  })
-})
-
-canvas.addEventListener("pointerup", (event) => {
-  shortcuts.handlePointerUp({
-    button: event.button,
-    buttons: event.buttons,
-    x: event.clientX,
-    y: event.clientY,
-    altKey: event.altKey,
-    ctrlKey: event.ctrlKey,
-    shiftKey: event.shiftKey,
-    metaKey: event.metaKey,
-  })
-})
-
-canvas.addEventListener(
-  "wheel",
-  (event) => {
-    shortcuts.handleWheel({
-      deltaX: event.deltaX,
-      deltaY: event.deltaY,
-      x: event.clientX,
-      y: event.clientY,
-      altKey: event.altKey,
-      ctrlKey: event.ctrlKey,
-      shiftKey: event.shiftKey,
-      metaKey: event.metaKey,
-      preventDefault: () => event.preventDefault(),
-    })
-  },
-  { passive: false },
-)
 
 addWindowLoadListener(() => {
   void registerServiceWorker("./sw.js", "./").catch(() => {})

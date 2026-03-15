@@ -158,15 +158,17 @@ describe("fsm", () => {
     classifyClicks({
       clicks: clicks.stream,
       windowMs: 250,
-      now: (() => {
-        let current = 0
-        return () => current++
-      })(),
-      setTimer: (fn) => {
-        fn()
-        return 0
+      scheduler: {
+        now: (() => {
+          let current = 0
+          return () => current++
+        })(),
+        setTimer: (fn: () => void) => {
+          fn()
+          return 0 as unknown as ReturnType<typeof setTimeout>
+        },
+        clearTimer: () => {},
       },
-      clearTimer: () => {},
     }).subscribe((event) => {
       if (event.kind === "double") machine.send({ type: "DOUBLE_CLICK" })
     })

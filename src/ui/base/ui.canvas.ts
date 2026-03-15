@@ -1,5 +1,5 @@
 import { theme, alpha, neutral } from "@/config/theme"
-import { classifyClicks, createEventStream, type InteractionCancelReason } from "@/core/event_stream"
+import { classifySpatialClicks, createEventStream, type InteractionCancelReason } from "@/core/event_stream"
 import { clampRect, inflateRect, intersects, mergeRectInto, normalizeRect, rectArea, unionRect, ZERO_RECT } from "@/core/rect"
 import type { Rect, Vec2 } from "@/core/rect"
 import {
@@ -42,6 +42,9 @@ export class CanvasUI {
   private debugFlashHue = 0
   private readonly FLASH_DURATION_MS = 600
   private readonly onTopLevelPointerDown?: (top: UIElement, target: UIElement) => void
+  private readonly onNativePointerDown?: (event: PointerEvent) => void
+  private readonly onNativePointerUp?: (event: PointerEvent) => void
+  private readonly onNativeWheel?: (event: WheelEvent) => void
   private readonly removeResizeListener: () => void
   private readonly removeLostPointerCaptureListener: () => void
   private readonly removeBrowserInteractionCancelListener: () => void
@@ -59,6 +62,7 @@ export class CanvasUI {
     ctrlKey: boolean
     shiftKey: boolean
     metaKey: boolean
+    timeStamp: number
   }>()
   private doubleClickSub: { unsubscribe(): void } | null = null
 
@@ -94,13 +98,25 @@ export class CanvasUI {
     return this.focus ? this.topLevelTargetOf(this.focus) : null
   }
 
-  constructor(canvas: HTMLCanvasElement, root: UIElement, opts: { onTopLevelPointerDown?: (top: UIElement, target: UIElement) => void } = {}) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    root: UIElement,
+    opts: {
+      onTopLevelPointerDown?: (top: UIElement, target: UIElement) => void
+      onNativePointerDown?: (event: PointerEvent) => void
+      onNativePointerUp?: (event: PointerEvent) => void
+      onNativeWheel?: (event: WheelEvent) => void
+    } = {},
+  ) {
     this.canvas = canvas
     const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true })
     if (!ctx) throw new Error("2D context not available")
     this.ctx = ctx
     this.root = root
     this.onTopLevelPointerDown = opts.onTopLevelPointerDown
+    this.onNativePointerDown = opts.onNativePointerDown
+    this.onNativePointerUp = opts.onNativePointerUp
+    this.onNativeWheel = opts.onNativeWheel
 
     this.startDoubleClickClassifier()
     this.resize()
@@ -333,16 +349,15 @@ export class CanvasUI {
 
   private startDoubleClickClassifier() {
     this.doubleClickSub?.unsubscribe()
-    this.doubleClickSub = classifyClicks({
+    this.doubleClickSub = classifySpatialClicks({
       clicks: this.clickUpEvents.stream,
       windowMs: this.doubleClickWindowMs,
+      distanceSq: this.doubleClickDistSq,
       canPair: (first, second) => {
         if (first.target !== second.target) return false
         if (first.button !== 0 || second.button !== 0) return false
         if (first.pointerId !== second.pointerId) return false
-        const dx = second.x - first.x
-        const dy = second.y - first.y
-        return dx * dx + dy * dy <= this.doubleClickDistSq
+        return true
       },
     }).subscribe((event) => {
       if (event.kind !== "double") return
@@ -357,6 +372,7 @@ export class CanvasUI {
         ctrlKey: second.ctrlKey,
         shiftKey: second.shiftKey,
         metaKey: second.metaKey,
+        timeStamp: second.timeStamp,
       })
       dispatchDoubleClickEvent(second.target, pointerEvent)
     })
@@ -378,6 +394,7 @@ export class CanvasUI {
       ctrlKey: e.ctrlKey,
       shiftKey: e.shiftKey,
       metaKey: e.metaKey,
+      timeStamp: e.timeStamp,
     })
   }
 
@@ -407,6 +424,7 @@ export class CanvasUI {
   }
 
   private onPointerDown = (e: PointerEvent) => {
+    this.onNativePointerDown?.(e)
     const p = this.toCanvasPoint(e)
     const target = this.root.hitTest(p, this.ctx)
     if (!target) return
@@ -426,6 +444,7 @@ export class CanvasUI {
       ctrlKey: e.ctrlKey,
       shiftKey: e.shiftKey,
       metaKey: e.metaKey,
+      timeStamp: e.timeStamp,
     })
     const before = top.bounds()
     const dispatch = dispatchPointerEvent(target, ev, "down")
@@ -475,6 +494,7 @@ export class CanvasUI {
       ctrlKey: e.ctrlKey,
       shiftKey: e.shiftKey,
       metaKey: e.metaKey,
+      timeStamp: e.timeStamp,
     })
     let topBefore: UIElement | null = target
     if (topBefore) topBefore = this.topLevelTargetOf(topBefore)
@@ -490,6 +510,7 @@ export class CanvasUI {
   }
 
   private onPointerUp = (e: PointerEvent) => {
+    this.onNativePointerUp?.(e)
     const p = this.toCanvasPoint(e)
     const target = this.capture ?? this.root.hitTest(p, this.ctx)
     if (!target) {
@@ -514,6 +535,7 @@ export class CanvasUI {
         ctrlKey: e.ctrlKey,
         shiftKey: e.shiftKey,
         metaKey: e.metaKey,
+        timeStamp: e.timeStamp,
       })
     }
     this.capture = null
@@ -601,6 +623,7 @@ export class CanvasUI {
   }
 
   private onWheel = (e: WheelEvent) => {
+    this.onNativeWheel?.(e)
     if (e.ctrlKey || e.metaKey) e.preventDefault()
     const p = this.toCanvasPoint(e)
     const target = this.root.hitTest(p, this.ctx)
@@ -616,6 +639,7 @@ export class CanvasUI {
       ctrlKey: e.ctrlKey,
       shiftKey: e.shiftKey,
       metaKey: e.metaKey,
+      timeStamp: e.timeStamp,
     })
     dispatchWheelEvent(target, ev)
     if (!ev.didHandle) return

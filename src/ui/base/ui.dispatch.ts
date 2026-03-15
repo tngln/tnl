@@ -92,6 +92,7 @@ export function dispatchPointerCancelEvent(
   if (!target) return
   const path = buildEventPath(target)
   const originalTarget = path[0]
+  if (event) event.markCancelReason(reason)
   for (let i = 0; i < path.length; i++) {
     const current = path[i]
     if (event) event.withDispatch(originalTarget, current, i === 0 ? "target" : "bubble", pointForTarget?.(current))

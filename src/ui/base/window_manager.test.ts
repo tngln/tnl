@@ -146,32 +146,15 @@ describe("window manager", () => {
     coordinator.register(a)
     coordinator.setCanvasSize({ x: 640, y: 480 })
 
-    const originalNow = Date.now
-    let now = 1_000
-    Date.now = () => now
-    try {
-      const down = () => a.onPointerDown(pointer(40, 24, 1))
-      const up = () => a.onPointerUp(pointer(40, 24, 0))
+    // Double-click detection is now done by CanvasUI and dispatched via onDoubleClick.
+    // The window's responsibility is solely to toggleMaximize when onDoubleClick lands on the title bar.
+    a.onDoubleClick(pointer(40, 24, 0))
+    expect(a.maximized.peek()).toBe(true)
+    expect(a.bounds()).toEqual({ x: 0, y: 0, w: 640, h: 480 })
 
-      down()
-      up()
-      now += 100
-      down()
-      up()
-      expect(a.maximized.peek()).toBe(true)
-      expect(a.bounds()).toEqual({ x: 0, y: 0, w: 640, h: 480 })
-
-      now += 100
-      down()
-      up()
-      now += 100
-      down()
-      up()
-      expect(a.maximized.peek()).toBe(false)
-      expect(a.bounds()).toEqual({ x: 10, y: 20, w: 200, h: 120 })
-    } finally {
-      Date.now = originalNow
-    }
+    a.onDoubleClick(pointer(40, 24, 0))
+    expect(a.maximized.peek()).toBe(false)
+    expect(a.bounds()).toEqual({ x: 10, y: 20, w: 200, h: 120 })
   })
 
   it("toggles maximize from the title-bar button", () => {
@@ -241,6 +224,43 @@ describe("window manager", () => {
     a.onPointerMove(pointer(140, 90, 1))
 
     expect(a.bounds()).toEqual(moved)
+  })
+
+  it("does not start dragging when the pointer stays within the drag threshold", () => {
+    const root = new Root()
+    const coordinator = new WindowManager(root)
+    const a = makeWindow("A")
+    coordinator.register(a)
+    const original = { x: a.x.peek(), y: a.y.peek() }
+
+    // Move only 2px horizontally and 1px vertically: dist² = 5 < threshold 16
+    a.onPointerDown(pointer(40, 24, 1))
+    a.onPointerMove(pointer(42, 25, 1))
+    a.onPointerUp(pointer(42, 25, 0))
+
+    expect(a.x.peek()).toBe(original.x)
+    expect(a.y.peek()).toBe(original.y)
+  })
+
+  it("cancels drag when the primary button is released mid-move", () => {
+    const root = new Root()
+    const coordinator = new WindowManager(root)
+    const a = makeWindow("A")
+    coordinator.register(a)
+
+    // Drag past threshold so drag starts
+    a.onPointerDown(pointer(40, 24, 1))
+    a.onPointerMove(pointer(90, 54, 1))
+    const draggingBounds = { x: a.x.peek(), y: a.y.peek() }
+
+    // Button mask drops to 0 — interactionCancelStream fires "buttons-released"
+    a.onPointerMove(pointer(100, 64, 0))
+
+    // Subsequent moves with button held again must not affect position
+    a.onPointerMove(pointer(140, 90, 1))
+
+    expect(a.x.peek()).toBe(draggingBounds.x)
+    expect(a.y.peek()).toBe(draggingBounds.y)
   })
 
   it("snaps to the left half when released near the left screen edge", () => {

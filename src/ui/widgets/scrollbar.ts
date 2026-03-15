@@ -1,6 +1,6 @@
 import { theme, neutral } from "@/config/theme"
 import { draw, RectOp } from "@/core/draw"
-import { createEventStream, dragSession, interactionCancelStream, type InteractionCancelReason } from "@/core/event_stream"
+import { createEventStream, pointerDragSession, type InteractionCancelReason } from "@/core/event_stream"
 import { createMachine, type Machine } from "@/core/fsm"
 import { clamp, ZERO_RECT } from "@/core/rect"
 import { PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2 } from "@/ui/base/ui"
@@ -45,6 +45,7 @@ export class Scrollbar extends UIElement {
   private readonly upEvents = createEventStream<PointerUIEvent>()
   private readonly cancelEvents = createEventStream<string>()
   private readonly machine: Machine<ScrollbarState, ScrollbarEvent, ScrollbarContext>
+  private gestureSub: { unsubscribe(): void } | null = null
 
   constructor(opts: {
     rect: () => Rect
@@ -181,19 +182,12 @@ export class Scrollbar extends UIElement {
   }
 
   private setupGestures() {
-    const dragMoves = this.moveEvents.stream.filter((event) => (event.buttons & 1) !== 0)
-    const cancel = interactionCancelStream({
-      cancel: this.cancelEvents.stream,
-      move: this.moveEvents.stream,
-      buttons: (event) => event.buttons,
-    })
-
-    dragSession({
+    this.gestureSub?.unsubscribe()
+    this.gestureSub = pointerDragSession({
       down: this.downEvents.stream,
-      move: dragMoves,
+      move: this.moveEvents.stream,
       up: this.upEvents.stream,
-      cancel,
-      point: (event) => ({ x: event.x, y: event.y }),
+      cancel: this.cancelEvents.stream,
       thresholdSq: 0,
     }).subscribe((event) => {
       if (event.kind === "start") {
@@ -210,6 +204,16 @@ export class Scrollbar extends UIElement {
       }
       this.machine.send({ type: "CANCEL", reason: event.reason })
     })
+  }
+
+  onRuntimeActivate() {
+    if (this.gestureSub) return
+    this.setupGestures()
+  }
+
+  onRuntimeDeactivate() {
+    this.gestureSub?.unsubscribe()
+    this.gestureSub = null
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
