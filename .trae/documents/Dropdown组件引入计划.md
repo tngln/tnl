@@ -1,10 +1,22 @@
-## 目标
+## 现状更新
+- 本文档是 Dropdown 组件的初始计划。
+- **当前状态：✅ 已实现**
+- `src/ui/widgets/dropdown.ts` 已实现：
+  - `Dropdown` 类（继承 InteractiveElement）
+  - 打开/关闭菜单交互
+  - 选项选择
+  - TopLayer 集成
+- `src/ui/widgets/dropdown_menu.ts` 已实现菜单 UI
+- `src/ui/builder/components.tsx` 已导出 `Dropdown` JSX 组件
+- `src/ui/surfaces/controls_surface.tsx` 已包含 Dropdown 示例
+
+## 目标（已完成）
 在现有 Canvas UI / builder 体系中引入 `Dropdown` 组件，使用户能在一组固定选项中选择一项；并在 `Developer.Control` 面板（ControlsSurface）里新增一个示例实例。
 
 ## 设计约束与假设
 - 复用现有 widget/BuilderRuntime 的挂载模型（Button/Radio/Checkbox 的模式），避免引入 DOM 原生 `<select>`。
 - 交互以鼠标/触控选择为主；键盘导航可留作后续增强（本次至少保证可打开、可选择、可关闭）。
-- “几个确定的选项”预期数量不大（例如 3–10 个），初版不做滚动菜单；如超出上限则菜单高度截断（可后续补 scroll）。
+- "几个确定的选项"预期数量不大（例如 3–10 个），初版不做滚动菜单；如超出上限则菜单高度截断（可后续补 scroll）。
 
 ## 对外 API（在 builder/components 层）
 - 新增组件：`<Dropdown selected={Signal<string>} options={[{ value, label }]} disabled? />`
@@ -13,9 +25,9 @@
   - `options`：固定候选列表；`label` 用于显示，`value` 为存储值。
   - `disabled`：禁用交互。
 
-## 实现步骤
+## 实施步骤（已完成）
 ### 1) 新增 Dropdown widget（Canvas 绘制 + 交互）
-- 新建文件：`src/ui/widgets/dropdown.ts`
+- 新建文件：`src/ui/widgets/dropdown.ts` ✅
 - 行为：
   - 关闭态：绘制一个类似 TextBox/Button 的框，显示当前 label + 下拉箭头。
   - 点击（pointer up over control）：
@@ -32,7 +44,7 @@
 
 ### 2) 连接到 BuilderRuntime（生命周期复用）
 - 修改：
-  - `src/ui/widgets/index.ts`：导出 `Dropdown`
+  - `src/ui/widgets/index.ts`：导出 `Dropdown` ✅
   - `src/ui/builder/runtime.ts`：
     - 增加 `DropdownCell`、`private readonly dropdowns = new Map<string, DropdownCell>()`
     - beginFrame/endFrame 复用现有 markAllUnused/deactivateUnusedWidgetCells
@@ -50,7 +62,7 @@
   - `src/ui/builder/components.tsx`：新增 `export function Dropdown(...)`，把 JSX props 映射到 dropdownNode
 
 ### 4) 在 Developer.Control 面板提供示例
-- 修改：`src/ui/surfaces/controls_surface.tsx`
+- 修改：`src/ui/surfaces/controls_surface.tsx` ✅
   - 新增 `const dropdown = signal("A")`（或已有 radio 信号复用也可，但建议独立）
   - 在 `PanelSection title="Controls"` 内新增一个 `FormRow label="Dropdown"`：
     - `field={<Dropdown selected={dropdown} options={[...]} />}`
@@ -60,11 +72,10 @@
 - 新增单测：`src/ui/widgets/dropdown.test.ts`
   - 覆盖：disabled 不改变；打开后点击菜单项会改变 selected；blur 会关闭（若可通过调用 onBlur 验证状态）。
 - 运行：
-  - `bun run check`
-  - `bun test`
+  - `bun run check` ✅
+  - `bun test` ✅
 
 ## 交付验收标准
 - Developer.Control 面板出现 Dropdown 示例，可展开并选择不同选项，选择后 status 文本更新。
 - 点击控件外部会关闭下拉菜单。
 - 不影响现有控件行为与测试；类型检查与测试全绿。
-

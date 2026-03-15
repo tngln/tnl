@@ -1,16 +1,16 @@
 ## 现状更新
 - 本文是 dirty rect 机制的初始设计稿。
-- 当前 `CanvasUI` 已实现：
+- **当前状态：✅ 已实现**
+- `CanvasUI` 已实现：
   - `invalidateRect()`
   - 脏矩形合并
   - 脏矩形数量与面积阈值退化为全屏重绘
   - 基于 clip 的局部重绘
   - `UIElement.draw(ctx, rt)` 与 clip 协作
 - 当前高频交互路径（hover、pointer、window 拖拽/缩放、wheel）都已经接入局部 invalidation。
-- 当前继续开发时，请优先参考：`UI系统现状与调用约定.md`
 
-## 目标
-- 引入 `invalidateRect()` 与“脏矩形（dirty rect）”机制，减少帧与帧之间不必要的全量重画。
+## 目标（已完成）
+- 引入 `invalidateRect()` 与"脏矩形（dirty rect）"机制，减少帧与帧之间不必要的全量重画。
 - 在不引入复杂渲染树/保留缓存（retained rendering）的前提下，优先做到：
   - **只清屏/重绘需要更新的区域**
   - **尽量减少遍历与绘制开销**（通过 bounds 与裁切做粗粒度 culling）
@@ -21,7 +21,7 @@
   - `ctx.setTransform(dpr, ...)`
   - `fillRect(0,0,cssW,cssH)` 全量背景
   - `root.draw(ctx)` 全量绘制
-- UIElement 没有“渲染脏标记”或“布局缓存”的概念；靠外部 effect/事件来触发 `invalidate()`。
+- UIElement 没有"渲染脏标记"或"布局缓存"的概念；靠外部 effect/事件来触发 `invalidate()`。
 - 目前 `ViewportElement` 已引入 clip/坐标变换；脏矩形需要与 clip 友好共存。
 
 ## 设计概览
@@ -30,7 +30,7 @@
   - 将 CSS 坐标系下的矩形加入 dirty 列表
   - `pad`：对矩形做扩张（用于阴影/抗锯齿溢出）
   - `force`：等同 `invalidate()`（直接全量重绘）
-- `CanvasUI.invalidate()` 保留：等同“全屏脏”
+- `CanvasUI.invalidate()` 保留：等同"全屏脏"
 -（可选）`CanvasUI.invalidateElement(el: UIElement, pad?: number)`：基于 `el.bounds()` 计算 dirty
 
 ### DirtyRect 策略
@@ -69,7 +69,7 @@
 在 `UIElement.draw` 增加可选参数 `clip?: Rect`：
 - 若提供 clip，且 `!rectIntersects(this.bounds(), clip)` → 直接 return（跳过自身及 children）
 - 注意：
-  - Root bounds 是“无限大”，不会被剔除
+  - Root bounds 是"无限大"，不会被剔除
   - 对 `ViewportElement`、窗口等具有明确 bounds 的元素，会显著减少遍历开销
 - 不改变现有 draw 调用方式：`root.draw(ctx)` 仍可用；dirty render 里调用 `root.draw(ctx, dirtyRect)`
 

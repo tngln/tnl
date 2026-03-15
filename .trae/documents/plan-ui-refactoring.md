@@ -1,7 +1,13 @@
 # UI 系统底层重构建议与计划
 
-## 1. 现状诊断与问题分析
+## 现状更新
+- 本文档是 UI 系统底层重构的初始计划。
+- **当前状态：⚠️ 部分实现**
+- `BuilderRuntime` 已引入 `WidgetRegistry` 机制
+- `InteractiveElement` 仍被大量 widgets 继承
+- Signal 驱动的自动 invalidation 尚未完全实现
 
+## 1. 现状诊断与问题分析
 经过对 `src/ui/base`, `src/ui/builder`, `src/ui/widgets` 等核心模块的分析，目前的 UI 架构是一个 **混合了保留模式 (Retained Mode) 与声明式 (Declarative) 的 Canvas UI 系统**。
 
 ### 核心优势
@@ -9,32 +15,30 @@
 - **开发效率**：提供了类似 JSX 的声明式 Builder 语法，开发体验较好。
 - **能力完备**：已具备布局引擎、事件冒泡、命中测试、Z-Index 管理等基础能力。
 
-### 存在的问题 (痛点)
-1.  **Runtime 耦合度过高 (God Class 问题)**
-    - `BuilderRuntime` ([runtime.ts](file:///src/ui/builder/runtime.ts)) 是一个“上帝类”，它硬编码了所有 Widget 的管理逻辑（如 `buttons`, `checkboxes`, `textboxes` 等 Map）。
+### 存在的问题 (部分已解决)
+1.  **Runtime 耦合度过高 (部分解决)**
+    - `BuilderRuntime` 已引入 `WidgetRegistry` 机制，但仍有部分硬编码逻辑
     - **后果**：每增加一个新 Widget（如 VideoPlayer），都必须修改 Runtime 核心代码。这违反了开闭原则，导致系统难以扩展和维护。
 
-2.  **继承链僵化 (Inheritance over Composition)**
-    - 大量 Widget 深度继承自 `InteractiveElement` ([interactive.ts](file:///src/ui/widgets/interactive.ts))。
-    - **后果**：如果一个组件只需要“点击”而不需要“拖拽”，它依然继承了所有逻辑。且难以复用跨组件的交互逻辑（例如：将“可拖拽”能力赋予一个非 InteractiveElement 的对象）。
+2.  **继承链僵化 (未解决)**
+    - 大量 Widget 深度继承自 `InteractiveElement`。
+    - **后果**：如果一个组件只需要"点击"而不需要"拖拽"，它依然继承了所有逻辑。且难以复用跨组件的交互逻辑（例如：将"可拖拽"能力赋予一个非 InteractiveElement 的对象）。
 
-3.  **状态管理分散**
+3.  **状态管理分散 (部分解决)**
     - 混合了手动 `invalidate()` 和声明式 `Signal`。
     - **后果**：开发者容易忘记调用 `invalidate()` 导致 UI 不刷新，或过度刷新导致性能浪费。
 
-## 2. 重构目标
+## 2. 重构目标（部分完成）
 
 本次重构的核心目标是 **解耦** 与 **可扩展性**，为后续操作（如增加复杂媒体组件、插件化 UI）打下基础。
 
-1.  **模块化 Widget 系统**：Runtime 不再感知具体 Widget，通过 **注册表 (Registry)** 动态加载。
-2.  **组合式交互能力**：从“继承庞大基类”转向“组合交互行为 (Behaviors)”。
-3.  **统一响应式**：全面拥抱 Signal，减少手动 invalidation。
+1.  **模块化 Widget 系统 (部分完成)**：Runtime 不再感知具体 Widget，通过 **注册表 (Registry)** 动态加载。
+2.  **组合式交互能力 (未完成)**：从"继承庞大基类"转向"组合交互行为 (Behaviors)"。
+3.  **统一响应式 (未完成)**：全面拥抱 Signal，减少手动 invalidation。
 
-## 3. 详细实施计划
+## 3. 详细实施计划（部分完成）
 
-### Phase 1: 核心解耦 - 引入 Widget Registry (优先级最高)
-
-这是解决“方便后续操作”最关键的一步。
+### Phase 1: 核心解耦 - 引入 Widget Registry (部分完成)
 
 **目标**：消灭 `BuilderRuntime` 中的硬编码 Widget Map，改为通用处理。
 
@@ -63,7 +67,7 @@
 4.  **迁移基础 Widget**：
     将 `Button`, `TextBox`, `Checkbox` 等现有组件重构为符合新接口的独立模块，并在应用启动时注册。
 
-### Phase 2: 交互能力组合化 (Composition API)
+### Phase 2: 交互能力组合化 (Composition API) (未完成)
 
 **目标**：解构 `InteractiveElement`，提供更灵活的交互复用。
 
@@ -88,7 +92,7 @@
     }
     ```
 
-### Phase 3: 性能与响应式优化 (长期演进)
+### Phase 3: 性能与响应式优化 (长期演进) (未完成)
 
 **目标**：提升大型界面的渲染性能与开发体验。
 
@@ -101,8 +105,8 @@
 
 ## 4. 建议的下一步 Action
 
-建议立即启动 **Phase 1 (Widget Registry)** 的重构。
+建议继续推进 **Phase 2 (交互能力组合化)** 的重构。
 
-1.  创建 `src/ui/builder/widget_registry.ts`。
-2.  选取一个简单的组件（如 `Button`）作为 Pilot (试点) 进行迁移验证。
-3.  验证成功后，逐步替换 Runtime 中的硬编码逻辑。
+1.  创建 `src/ui/behaviors/` 目录与基础 Behaviors。
+2.  选取一个简单的组件（如 `Button`）作为 Pilot 进行迁移验证。
+3.  验证成功后，逐步替换 `InteractiveElement` 的继承链。
