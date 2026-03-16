@@ -3,9 +3,9 @@ import { draw, RectOp, TextOp } from "@/core/draw"
 import { truncateToWidth } from "@/core/draw.text"
 import { createPressMachine } from "@/core/fsm"
 import { ZERO_RECT } from "@/core/rect"
+import type { RowVariant } from "@/ui/builder/types"
 import { UIElement, pointInRect, type Rect } from "@/ui/base/ui"
 import { chevronDownIcon, chevronRightIcon, iconToShape, type IconDef } from "@/ui/icons"
-import type { RowVariant } from "./row"
 import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 
 export const TREE_ROW_HEIGHT = theme.ui.controls.treeRowHeight

@@ -53,6 +53,7 @@ export class ControlElement extends UIElement {
 
   constructor() {
     super()
+    this.setBounds(() => this._rect, () => this._active)
     this._setupHandlers()
   }
 
@@ -95,7 +96,6 @@ export class ControlElement extends UIElement {
     this._onClick = opts.onClick
     this._onDoubleClick = opts.onDoubleClick
     this._cursor = opts.cursor ?? null
-    this.setBounds(this._rect, () => this._active)
     if (!opts.active && this.press.matches("pressed")) {
       this.press.send({ type: "CANCEL", reason: "inactive" })
     }

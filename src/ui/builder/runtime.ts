@@ -137,16 +137,8 @@ export class BuilderRuntime {
     this.mountWidget("richTextSelectable", key, rect, { block, topLayer: this.topLayer }, active)
   }
 
-  mountRadio(key: string, rect: Rect, node: { label: string; value: string; selected: any; disabled?: boolean }, active: boolean) {
-    this.mountWidget("radio", key, rect, node, active)
-  }
-
   mountSlider(key: string, rect: Rect, node: { min: number; max: number; value: number; onChange?: (next: number) => void; disabled?: boolean }, active: boolean) {
     this.mountWidget("slider", key, rect, node, active)
-  }
-
-  mountRow(key: string, rect: Rect, node: { leftText: string; rightText?: string; indent?: number; variant?: "group" | "item"; selected?: boolean; onClick?: () => void }, active: boolean) {
-    this.mountWidget("listRow", key, rect, node, active)
   }
 
   mountTreeView(key: string, rect: Rect, node: TreeViewNode, active: boolean) {

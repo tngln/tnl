@@ -528,3 +528,79 @@ createCanvasApp({
 - `plan.md`
 - `documents/canvas-interface.md`
 - `documents/UI系统现状与调用约定.md`
+
+---
+
+## 15. 执行记录
+
+### Phase 1 — 已完成（2026-03-15）
+
+**完成内容：**
+
+- 建立 `packages/canvas-interface` 与 `packages/tnl-app` monorepo 结构（Bun workspaces）
+- 建立公共导出入口：`/reactivity`、`/layout`、`/draw`、`/ui`、`/builder`、`/util`、`/platform`、`/render`
+- 迁移约 30 个应用层文件，将 `@/` 内部路径替换为 `@tnl/canvas-interface/*` 和 `@tnl/app/*` 公开入口
+- tsconfig 路径别名修正（含子包中的 `@tnl/*` 映射，解决了跨包传递引用问题）
+- 验收：`tsc --noEmit` 干净，215/215 测试通过
+
+**Phase 1 验收标准达成：**
+1. ✅ `tnl-app` 只通过公开入口依赖 `canvas-interface`
+2. ✅ `canvas-interface` 内部不存在对 `tnl-app` 的反向依赖
+3. ✅ `tsc --noEmit` 通过
+4. ✅ 现有测试在分包后仍通过
+5. ⚠️ `canvas-interface` 独立 demo 尚未建立（功能性完成，样例未建）
+
+---
+
+### Phase 2 — 核心工作已完成（2026-03-16）
+
+**完成内容：**
+
+**新文件 `src/ui/builder/control.ts`：**
+- `ControlElement`：通用交互元素，取代简单控件的 retained class
+- `ControlDrawFn`、`ControlState`：draw 函数接收 rect + `{hover, pressed, disabled}`，完全无状态
+- `update()` 每帧由 runtime 调用，刷新 rect / active / disabled / draw fn / onClick / cursor
+- 使用 `createPressMachine()` 管理按压状态，hover 来自 UIElement 基类
+
+**修改 `src/ui/builder/runtime.ts`：**
+- 新增 `controls: Map<key, {el: ControlElement, active, used}>` 对象池
+- 新增 `mountControl()` 方法：按 key 查找或创建 `ControlElement`，每帧刷新属性
+- `beginFrame() / endFrame()` 扩展：controls 池参与 used 标记与回收
+- `debugCounts()` 更新：返回 `widgets.size + controls.size` 合并计数
+
+**新文件 `src/ui/builder/draw_controls.ts`：**
+- `drawButton(ctx, rect, props, state)` — 提取自 `Button.onDraw()`
+- `drawCheckbox(ctx, rect, props, state)` — 提取自 `Checkbox.onDraw()`
+- `drawRadio(ctx, rect, props, state)` — 提取自 `Radio.onDraw()`
+- `drawListRow(ctx, rect, props, state)` — 提取自 `ListRow.onDraw()`
+- 四个函数共享统一的 hover/pressed/disabled 颜色逻辑
+
+**修改 `src/ui/builder/registry.ts`：**
+- `buttonHandler`、`checkboxHandler`、`radioHandler`、`rowItemHandler` 的 `mount` 改为调用 `mountControl()`
+- 不再调用 `mountWidget()` 进入 descriptor 链路
+
+**测试修正 `src/ui/builder/surface_builder.test.ts`：**
+- 快照类型检查从 `"ListRow"` 改为 `"ControlElement"`
+- 215/215 测试通过
+
+**Phase 2 验收标准达成：**
+1. ✅ button、checkbox、radio、listRow 均不再经过 widget descriptor + retained instance 链路
+2. ✅ 四种控件的 hover/pressed/disabled 视觉逻辑统一在 `draw_controls.ts`，不再各自重复
+3. ✅ 点击、hover 正常工作；局部 invalidation 沿用现有 frame 模型
+4. ✅ 现有实际面板通过新模型正常工作
+
+**遗留/待处理：**
+- 旧 `Button`、`Checkbox`、`Radio`、`ListRow` 类及其 descriptor 仍存在于代码库，已不被 builder 使用，待删除
+- `clickArea` 仍走旧 `mountWidget` 路径，可迁移至 `mountControl`
+- 局部 invalidation scope 未改：BuilderSurface 仍依赖全局 `invalidateAll()`
+- 原计划的 `DrawNode / HitNode / RenderNode` 数据结构契约被更实用的 `ControlElement + ControlDrawFn` 方式替代，未建立独立 render contract 层
+
+---
+
+### 下一步（Phase 3 优先任务，2026-03-16 起）
+
+1. **清理旧 retained widget 类**：删除 `Button`、`Checkbox`、`Radio`、`ListRow` 的 class 定义及 descriptor，从 widgetRegistry 注册表和 widgets/index.ts 导出中移除
+2. **迁移 `clickArea` 至 `mountControl`**：clickArea 无 draw 内容，适合用 `mountControl` + 空 draw fn
+3. **建立 composable 层 `src/ui/use/`**：`usePress`、`useHover`、`useDragSession` 等，将各控件中的重复交互逻辑提取为独立 hook
+4. **收敛样式 recipe**：将 `draw_controls.ts` 中的 hover/pressed/disabled 颜色逻辑抽成共享工具函数，减少各控件条件分支
+5. **Phase 4 预备**：评估普通窗口定义方式简化的切入点（window frame 分离、overlay 声明模型）

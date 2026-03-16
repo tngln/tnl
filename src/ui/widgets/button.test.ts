@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
+import { ControlElement } from "../builder/control"
 import { PointerUIEvent } from "../base/ui"
-import { Button } from "./button"
 
 function pointer() {
   return new PointerUIEvent({
@@ -19,10 +19,12 @@ function pointer() {
 describe("button", () => {
   it("does not invoke onClick when disabled", () => {
     let clicks = 0
-    const button = new Button({
-      rect: () => ({ x: 0, y: 0, w: 80, h: 24 }),
-      text: "Disabled",
-      disabled: () => true,
+    const button = new ControlElement()
+    button.update({
+      rect: { x: 0, y: 0, w: 80, h: 24 },
+      active: true,
+      disabled: true,
+      draw: () => {},
       onClick: () => {
         clicks += 1
       },
@@ -37,9 +39,12 @@ describe("button", () => {
 
   it("invokes onClick when enabled", () => {
     let clicks = 0
-    const button = new Button({
-      rect: () => ({ x: 0, y: 0, w: 80, h: 24 }),
-      text: "Enabled",
+    const button = new ControlElement()
+    button.update({
+      rect: { x: 0, y: 0, w: 80, h: 24 },
+      active: true,
+      disabled: false,
+      draw: () => {},
       onClick: () => {
         clicks += 1
       },

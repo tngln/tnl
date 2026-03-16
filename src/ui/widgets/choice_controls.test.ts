@@ -1,8 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import { signal } from "../../core/reactivity"
+import { ControlElement } from "../builder/control"
 import { PointerUIEvent } from "../base/ui"
-import { Checkbox } from "./checkbox"
-import { Radio } from "./radio"
 
 function pointer() {
   return new PointerUIEvent({
@@ -21,11 +20,13 @@ function pointer() {
 describe("choice controls", () => {
   it("does not toggle checkbox when disabled", () => {
     const checked = signal(false, { debugLabel: "test.choice.checked" })
-    const checkbox = new Checkbox({
-      rect: () => ({ x: 0, y: 0, w: 120, h: 24 }),
-      label: "Disabled",
-      checked,
-      disabled: () => true,
+    const checkbox = new ControlElement()
+    checkbox.update({
+      rect: { x: 0, y: 0, w: 120, h: 24 },
+      active: true,
+      disabled: true,
+      draw: () => {},
+      onClick: () => checked.set((value) => !value),
     })
 
     checkbox.emit("pointerenter")
@@ -37,12 +38,13 @@ describe("choice controls", () => {
 
   it("does not select radio when disabled", () => {
     const selected = signal("A", { debugLabel: "test.choice.selected" })
-    const radio = new Radio({
-      rect: () => ({ x: 0, y: 0, w: 120, h: 24 }),
-      label: "Disabled",
-      value: "B",
-      selected,
-      disabled: () => true,
+    const radio = new ControlElement()
+    radio.update({
+      rect: { x: 0, y: 0, w: 120, h: 24 },
+      active: true,
+      disabled: true,
+      draw: () => {},
+      onClick: () => selected.set("B"),
     })
 
     radio.emit("pointerenter")

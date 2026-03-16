@@ -4,7 +4,7 @@ import { measureTextWidth } from "@/core/draw.text"
 import { AppError } from "@/core/errors"
 import { measureLayout, type LayoutStyle } from "@/core/layout"
 import { ZERO_RECT } from "@/core/rect"
-import { TREE_ROW_HEIGHT, buttonDescriptor, checkboxDescriptor, clickAreaDescriptor, dropdownDescriptor, listRowDescriptor, radioDescriptor, richTextSelectableDescriptor, scrollAreaDescriptor, scrollbarDescriptor, sliderDescriptor, textBoxDescriptor, treeRowDescriptor } from "@/ui/widgets"
+import { TREE_ROW_HEIGHT, dropdownDescriptor, richTextSelectableDescriptor, scrollAreaDescriptor, scrollbarDescriptor, sliderDescriptor, textBoxDescriptor, treeRowDescriptor } from "@/ui/widgets"
 import { textFont } from "./text"
 import { drawButton, drawCheckbox, drawListRow, drawRadio } from "./draw_controls"
 import { inheritedTextToRichTextStyle, resolveTextColor, resolveTextEmphasis, resolveTextStyle } from "./styles"
@@ -13,12 +13,7 @@ import type { AstNode, BuilderNode, ButtonNode, CheckboxNode, ClickAreaNode, Con
 import { flattenTreeItems } from "./runtime"
 import { widgetRegistry } from "./widget_registry"
 
-widgetRegistry.register(buttonDescriptor)
-widgetRegistry.register(clickAreaDescriptor)
-widgetRegistry.register(checkboxDescriptor)
 widgetRegistry.register(dropdownDescriptor)
-widgetRegistry.register(listRowDescriptor)
-widgetRegistry.register(radioDescriptor)
 widgetRegistry.register(richTextSelectableDescriptor)
 widgetRegistry.register(scrollAreaDescriptor)
 widgetRegistry.register(scrollbarDescriptor)
@@ -144,7 +139,11 @@ const clickAreaHandler: BuilderNodeHandler<ClickAreaNode> = {
   kind: "clickArea",
   measure: () => ({ w: 0, h: 0 }),
   mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountWidget("clickArea", path, ast.rect ?? ZERO_RECT, node, active)
+    engine.runtime.mountControl(path, ast.rect ?? ZERO_RECT, active, {
+      disabled: node.disabled ?? false,
+      draw: () => {},
+      onClick: node.onClick,
+    })
   },
 }
 
