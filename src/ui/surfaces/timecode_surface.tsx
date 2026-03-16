@@ -1,8 +1,7 @@
-import { font, theme, neutral } from "@/config/theme"
-import { draw, TextOp as DrawTextOp } from "@/core/draw"
-import { Paint, Stack, Text, VStack } from "@/ui/builder/components"
-import { defineSurface, mountSurface, type SurfaceDefinition } from "@/ui/builder/surface_builder"
-import { createElement } from "@/ui/jsx"
+import { font, theme, neutral } from "@tnl/canvas-interface/theme"
+import { draw, TextOp as DrawTextOp } from "@tnl/canvas-interface/draw"
+import { Paint, Stack, Text, VStack, defineSurface, mountSurface, type SurfaceDefinition } from "@tnl/canvas-interface/builder"
+import { createElement } from "@tnl/canvas-interface/jsx"
 import { getPlaybackSession } from "@/ui/playback/session"
 import { formatTimecode } from "@/ui/playback/timecode"
 

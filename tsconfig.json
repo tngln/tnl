@@ -6,7 +6,11 @@
     "moduleResolution": "Bundler",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@tnl/canvas-interface": ["packages/canvas-interface/src/index.ts"],
+      "@tnl/canvas-interface/*": ["packages/canvas-interface/src/*"],
+      "@tnl/app": ["packages/tnl-app/src/index.ts"],
+      "@tnl/app/*": ["packages/tnl-app/src/*"]
     },
     "jsx": "react",
     "jsxFactory": "createElement",

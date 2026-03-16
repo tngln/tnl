@@ -1,10 +1,8 @@
-import { theme, neutral } from "@/config/theme"
-import { draw, RectOp } from "@/core/draw"
+import { theme, neutral } from "@tnl/canvas-interface/theme"
+import { draw, RectOp, clamp } from "@tnl/canvas-interface/draw"
 import { createEventStream, pointerDragSession } from "@/core/event_stream"
-import { signal, type Signal } from "@/core/reactivity"
-import { clamp } from "@/core/rect"
-import { CursorRegion, UIElement, type Rect, type Vec2, PointerUIEvent, pointInRect } from "@/ui/base/ui"
-import { ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "@/ui/base/viewport"
+import { signal, type Signal } from "@tnl/canvas-interface/reactivity"
+import { CursorRegion, UIElement, type Rect, type Vec2, PointerUIEvent, pointInRect, ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "@tnl/canvas-interface/ui"
 
 type Axis = "x" | "y"
 type DividerHandleChrome = {

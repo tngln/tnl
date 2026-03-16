@@ -1,0 +1,16 @@
+{
+  "name": "@tnl/canvas-interface",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./reactivity": "./src/reactivity.ts",
+    "./draw": "./src/draw.ts",
+    "./layout": "./src/layout.ts",
+    "./ui": "./src/ui.ts",
+    "./builder": "./src/builder.ts",
+    "./browser": "./src/browser.ts",
+    "./theme": "./src/theme.ts",
+    "./jsx": "./src/jsx.ts"
+  }
+}

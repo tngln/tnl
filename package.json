@@ -2,10 +2,15 @@
   "name": "tnl",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "bun src/index.html",
     "check": "tsc -p tsconfig.json --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "check:canvas-interface": "tsc -p packages/canvas-interface/tsconfig.json --noEmit",
+    "check:tnl-app": "tsc -p packages/tnl-app/tsconfig.json --noEmit"
   },
   "devDependencies": {
     "typescript": "^5.8.0"

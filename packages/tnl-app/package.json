@@ -1,0 +1,11 @@
+{
+  "name": "@tnl/app",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./render": "./src/render.ts",
+    "./platform": "./src/platform.ts",
+    "./playback": "./src/playback.ts"
+  }
+}

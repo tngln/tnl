@@ -1,11 +1,7 @@
-import { theme, neutral } from "@/config/theme"
-import { draw, LineOp, RectOp, TextOp } from "@/core/draw"
-import { signal, type Signal } from "@/core/reactivity"
-import { clamp } from "@/core/rect"
-import { UIElement, type DebugTreeNodeSnapshot, type Rect, type Vec2, WheelUIEvent, pointInRect } from "@/ui/base/ui"
-import { ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "@/ui/base/viewport"
-import { InteractiveElement } from "@/ui/widgets/interactive"
-import { Scrollbar } from "@/ui/widgets"
+import { theme, neutral } from "@tnl/canvas-interface/theme"
+import { draw, LineOp, RectOp, TextOp, clamp } from "@tnl/canvas-interface/draw"
+import { signal, type Signal } from "@tnl/canvas-interface/reactivity"
+import { UIElement, type DebugTreeNodeSnapshot, type Rect, type Vec2, WheelUIEvent, pointInRect, ViewportElement, SurfaceRoot, type Surface, type ViewportContext, InteractiveElement, Scrollbar } from "@tnl/canvas-interface/ui"
 
 class TabButton extends InteractiveElement {
   private readonly text: () => string

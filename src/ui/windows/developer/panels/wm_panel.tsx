@@ -1,6 +1,5 @@
-import { createElement, Fragment } from "@/ui/jsx"
-import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack } from "@/ui/builder/components"
-import { defineSurface, mountSurface } from "@/ui/builder/surface_builder"
+import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
+import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 
 export function createWmPanel(): DeveloperPanelSpec {

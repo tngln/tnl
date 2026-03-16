@@ -1,8 +1,7 @@
-import { createElement, Fragment } from "@/ui/jsx"
-import { PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, TreeView, VStack } from "@/ui/builder/components"
-import { defineSurface, mountSurface, treeItem, type TreeItem } from "@/ui/builder/surface_builder"
+import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
+import { PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, TreeView, VStack, defineSurface, mountSurface, treeItem, type TreeItem } from "@tnl/canvas-interface/builder"
 import { collectIds } from "@/util/util"
-import type { DebugTreeNodeSnapshot } from "@/ui/base/ui"
+import type { DebugTreeNodeSnapshot } from "@tnl/canvas-interface/ui"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 
 export function createInspectorPanel(): DeveloperPanelSpec {

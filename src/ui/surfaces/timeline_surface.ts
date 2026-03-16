@@ -1,9 +1,6 @@
-import { font, theme, neutral, alpha } from "@/config/theme"
-import { draw, LineOp, RectOp, TextOp } from "@/core/draw"
-import { clamp, ZERO_RECT } from "@/core/rect"
-import { PointerUIEvent, UIElement, WheelUIEvent, pointInRect, type Rect, type Vec2 } from "@/ui/base/ui"
-import { ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "@/ui/base/viewport"
-import { Scrollbar } from "@/ui/widgets/scrollbar"
+import { font, theme, neutral, alpha } from "@tnl/canvas-interface/theme"
+import { draw, LineOp, RectOp, TextOp, clamp, ZERO_RECT } from "@tnl/canvas-interface/draw"
+import { PointerUIEvent, UIElement, WheelUIEvent, pointInRect, type Rect, type Vec2, ViewportElement, SurfaceRoot, type Surface, type ViewportContext, Scrollbar } from "@tnl/canvas-interface/ui"
 import {
   clampPxPerUnit,
   computeHorizontalScrollLimit,

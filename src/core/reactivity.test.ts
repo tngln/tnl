@@ -1,15 +1,15 @@
-import { describe, test, expect } from "bun:test"
+import { describe, expect, it } from "bun:test"
 import { signal, effect, batch, scheduleEffect, computed } from "./reactivity"
 
 describe("signal", () => {
-  test("get and set", () => {
+  it("get and set", () => {
     const s = signal(1)
     expect(s.get()).toBe(1)
     s.set(2)
     expect(s.get()).toBe(2)
   })
 
-  test("peek does not subscribe", () => {
+  it("peek does not subscribe", () => {
     const s = signal(0)
     let runs = 0
     effect(() => {
@@ -21,13 +21,13 @@ describe("signal", () => {
     expect(runs).toBe(1)
   })
 
-  test("set with updater function", () => {
+  it("set with updater function", () => {
     const s = signal(5)
     s.set((prev) => prev + 3)
     expect(s.get()).toBe(8)
   })
 
-  test("skips notification for same value", () => {
+  it("skips notification for same value", () => {
     const s = signal(1)
     let runs = 0
     effect(() => {
@@ -41,7 +41,7 @@ describe("signal", () => {
 })
 
 describe("effect", () => {
-  test("runs immediately and re-runs on dependency changes", () => {
+  it("runs immediately and re-runs on dependency changes", () => {
     const s = signal(0)
     const values: number[] = []
     effect(() => {
@@ -54,7 +54,7 @@ describe("effect", () => {
     expect(values).toEqual([0, 1, 2])
   })
 
-  test("dispose stops tracking", () => {
+  it("dispose stops tracking", () => {
     const s = signal(0)
     let runs = 0
     const dispose = effect(() => {
@@ -67,7 +67,7 @@ describe("effect", () => {
     expect(runs).toBe(1)
   })
 
-  test("cleanup runs before re-execution", () => {
+  it("cleanup runs before re-execution", () => {
     const s = signal(0)
     const log: string[] = []
     effect(() => {
@@ -82,7 +82,7 @@ describe("effect", () => {
 })
 
 describe("computed", () => {
-  test("derives value from signals", () => {
+  it("derives value from signals", () => {
     const a = signal(2)
     const b = signal(3)
     const sum = computed(() => a.get() + b.get())
@@ -93,7 +93,7 @@ describe("computed", () => {
 })
 
 describe("batch", () => {
-  test("defers effect to end of batch", () => {
+  it("defers effect to end of batch", () => {
     const a = signal(0)
     const b = signal(0)
     const values: [number, number][] = []
@@ -110,7 +110,7 @@ describe("batch", () => {
     expect(values).toEqual([[0, 0], [1, 2]])
   })
 
-  test("effect runs once even with many signal changes", () => {
+  it("effect runs once even with many signal changes", () => {
     const signals = Array.from({ length: 10 }, (_, i) => signal(i))
     let runs = 0
     effect(() => {
@@ -125,7 +125,7 @@ describe("batch", () => {
     expect(runs).toBe(2)
   })
 
-  test("nested batch defers until outermost completes", () => {
+  it("nested batch defers until outermost completes", () => {
     const s = signal(0)
     let runs = 0
     effect(() => {
@@ -147,7 +147,7 @@ describe("batch", () => {
     expect(s.peek()).toBe(2)
   })
 
-  test("effects triggered by batch-flushed effects are processed", () => {
+  it("effects triggered by batch-flushed effects are processed", () => {
     const a = signal(0)
     const b = signal(0)
     // a drives b via effect
@@ -172,7 +172,7 @@ describe("batch", () => {
 })
 
 describe("scheduleEffect", () => {
-  test("runs initially synchronously to establish deps", () => {
+  it("runs initially synchronously to establish deps", () => {
     const s = signal(1)
     let value = 0
     scheduleEffect(() => {
@@ -181,7 +181,7 @@ describe("scheduleEffect", () => {
     expect(value).toBe(1)
   })
 
-  test("defers re-run to microtask", async () => {
+  it("defers re-run to microtask", async () => {
     const s = signal(0)
     const values: number[] = []
     scheduleEffect(() => {
@@ -198,7 +198,7 @@ describe("scheduleEffect", () => {
     expect(values).toEqual([0, 1])
   })
 
-  test("coalesces multiple signal changes into one re-run", async () => {
+  it("coalesces multiple signal changes into one re-run", async () => {
     const a = signal(0)
     const b = signal(0)
     let runs = 0
@@ -218,7 +218,7 @@ describe("scheduleEffect", () => {
     expect(runs).toBe(2)
   })
 
-  test("dispose cancels pending microtask", async () => {
+  it("dispose cancels pending microtask", async () => {
     const s = signal(0)
     let runs = 0
     const dispose = scheduleEffect(() => {

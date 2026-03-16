@@ -1,9 +1,8 @@
-import { createElement, Fragment } from "@/ui/jsx"
-import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, VStack } from "@/ui/builder/components"
-import { defineSurface, mountSurface } from "@/ui/builder/surface_builder"
-import { invalidateAll } from "@/ui/invalidate"
+import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
+import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
+import { invalidateAll } from "@tnl/canvas-interface/ui"
 import type { WorkerRuntimeEntry } from "@/core/workers"
-import { theme } from "@/config/theme"
+import { theme } from "@tnl/canvas-interface/theme"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 
 function formatTime(ms: number | undefined) {

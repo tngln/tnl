@@ -1,12 +1,11 @@
-import { createElement, Fragment } from "@/ui/jsx"
-import { Button, ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, VStack } from "@/ui/builder/components"
-import { defineSurface, mountSurface } from "@/ui/builder/surface_builder"
+import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
+import { Button, ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
 import type { CodecRuntimeEntry } from "@/core/codecs"
 import { getDebugLevel } from "@/core/debug"
-import { theme } from "@/config/theme"
+import { theme } from "@tnl/canvas-interface/theme"
 import { getWebNavigatorInfo, getWebRuntimeFlags } from "@/platform/web/navigator"
 import { probeCodecConfig } from "@/platform/web/webcodecs"
-import { invalidateAll } from "@/ui/invalidate"
+import { invalidateAll } from "@tnl/canvas-interface/ui"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 
 type ProbeRow = {

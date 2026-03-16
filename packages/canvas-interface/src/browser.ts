@@ -1,0 +1,6 @@
+export * from "../../../src/platform/web/app"
+export * from "../../../src/platform/web/animation"
+export * from "../../../src/platform/web/canvas"
+export * from "../../../src/platform/web/input"
+export * from "../../../src/platform/web/navigator"
+export * from "../../../src/platform/web/text_input"
