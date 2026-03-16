@@ -124,6 +124,10 @@ export class BuilderRuntime {
     draw: ControlDrawFn
     onClick?: () => void
     onDoubleClick?: () => void
+    onPointerDown?: (e: import("@/ui/base/ui").PointerUIEvent) => void
+    onPointerMove?: (e: import("@/ui/base/ui").PointerUIEvent) => void
+    onPointerUp?: (e: import("@/ui/base/ui").PointerUIEvent) => void
+    onPointerCancel?: (reason: import("@/core/event_stream").InteractionCancelReason) => void
     cursor?: CursorKind
   }) {
     let cell = this.controls.get(key)
@@ -134,16 +138,24 @@ export class BuilderRuntime {
       this.controls.set(key, cell)
     }
     cell.used = true
-    cell.el.update({ rect, active, disabled: opts.disabled ?? false, draw: opts.draw, onClick: opts.onClick, onDoubleClick: opts.onDoubleClick, cursor: opts.cursor })
+    cell.el.update({
+      rect,
+      active,
+      disabled: opts.disabled ?? false,
+      draw: opts.draw,
+      onClick: opts.onClick,
+      onDoubleClick: opts.onDoubleClick,
+      onPointerDown: opts.onPointerDown,
+      onPointerMove: opts.onPointerMove,
+      onPointerUp: opts.onPointerUp,
+      onPointerCancel: opts.onPointerCancel,
+      cursor: opts.cursor,
+    })
     cell.active = active
   }
 
   mountRichTextSelectable(key: string, rect: Rect, block: RichTextBlock, active: boolean) {
     this.mountWidget("richTextSelectable", key, rect, { block, topLayer: this.topLayer }, active)
-  }
-
-  mountSlider(key: string, rect: Rect, node: { min: number; max: number; value: number; onChange?: (next: number) => void; disabled?: boolean }, active: boolean) {
-    this.mountWidget("slider", key, rect, node, active)
   }
 
   mountTreeView(key: string, rect: Rect, node: TreeViewNode, active: boolean) {

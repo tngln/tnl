@@ -1,57 +1,35 @@
 import { describe, expect, it } from "bun:test"
-import { PointerUIEvent } from "../base/ui"
-import { Slider } from "./slider"
-
-function pointer(x: number, y: number, buttons = 1) {
-  return new PointerUIEvent({
-    pointerId: 1,
-    x,
-    y,
-    button: 0,
-    buttons,
-    altKey: false,
-    ctrlKey: false,
-    shiftKey: false,
-    metaKey: false,
-  })
-}
+import { resolveSliderThumbRect, resolveSliderValueFromPointer } from "../builder/slider_control"
 
 describe("slider", () => {
-  it("updates the value from horizontal pointer position", () => {
-    let value = 0
-    const slider = new Slider({
-      rect: () => ({ x: 0, y: 0, w: 100, h: 20 }),
-      min: 0,
-      max: 10,
-      value: () => value,
-      onChange: (next) => {
-        value = next
-      },
-    })
-
-    slider.emit("pointerenter")
-    slider.emit("pointerdown", pointer(75, 10))
+  it("resolves value from horizontal pointer position", () => {
+    const value = resolveSliderValueFromPointer(
+      { x: 0, y: 0, w: 100, h: 20 },
+      { min: 0, max: 10, value: 0 },
+      { x: 75, y: 10 },
+    )
 
     expect(value).toBeGreaterThan(6)
     expect(value).toBeLessThan(9)
   })
 
-  it("does not change when disabled", () => {
-    let value = 3
-    const slider = new Slider({
-      rect: () => ({ x: 0, y: 0, w: 100, h: 20 }),
-      min: 0,
-      max: 10,
-      value: () => value,
-      disabled: () => true,
-      onChange: (next) => {
-        value = next
-      },
-    })
+  it("clamps vertical pointer values and inverts the axis", () => {
+    const value = resolveSliderValueFromPointer(
+      { x: 0, y: 0, w: 20, h: 100 },
+      { axis: "y", min: 0, max: 10, value: 0 },
+      { x: 10, y: 5 },
+    )
 
-    slider.emit("pointerenter")
-    slider.emit("pointerdown", pointer(90, 10))
+    expect(value).toBe(10)
+  })
 
-    expect(value).toBe(3)
+  it("resolves thumb rect from the current value", () => {
+    const thumb = resolveSliderThumbRect(
+      { x: 0, y: 0, w: 100, h: 20 },
+      { min: 0, max: 10, value: 5 },
+    )
+
+    expect(thumb.x).toBe(44)
+    expect(thumb.w).toBe(12)
   })
 })

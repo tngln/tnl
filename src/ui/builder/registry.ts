@@ -4,9 +4,10 @@ import { measureTextWidth } from "@/core/draw.text"
 import { AppError } from "@/core/errors"
 import { measureLayout, type LayoutStyle } from "@/core/layout"
 import { ZERO_RECT } from "@/core/rect"
-import { TREE_ROW_HEIGHT, dropdownDescriptor, richTextSelectableDescriptor, scrollAreaDescriptor, scrollbarDescriptor, sliderDescriptor, textBoxDescriptor, treeRowDescriptor } from "@/ui/widgets"
+import { TREE_ROW_HEIGHT, dropdownDescriptor, richTextSelectableDescriptor, scrollAreaDescriptor, scrollbarDescriptor, textBoxDescriptor, treeRowDescriptor } from "@/ui/widgets"
 import { textFont } from "./text"
 import { drawButton, drawCheckbox, drawListRow, drawRadio } from "./draw_controls"
+import { drawSlider, resolveSliderValueFromPointer } from "./slider_control"
 import { inheritedTextToRichTextStyle, resolveTextColor, resolveTextEmphasis, resolveTextStyle } from "./styles"
 import type { BuilderEngine } from "./engine"
 import type { AstNode, BuilderNode, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, DropdownNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, SpacerNode, TextBoxNode, TextNode, TreeViewNode } from "./types"
@@ -17,7 +18,6 @@ widgetRegistry.register(dropdownDescriptor)
 widgetRegistry.register(richTextSelectableDescriptor)
 widgetRegistry.register(scrollAreaDescriptor)
 widgetRegistry.register(scrollbarDescriptor)
-widgetRegistry.register(sliderDescriptor)
 widgetRegistry.register(textBoxDescriptor)
 widgetRegistry.register(treeRowDescriptor)
 
@@ -284,7 +284,27 @@ const sliderHandler: BuilderNodeHandler<SliderNode> = {
   kind: "slider",
   measure: (_engine, _ctx, _node, max) => ({ w: max.w, h: 20 }),
   mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountWidget("slider", path, ast.rect ?? ZERO_RECT, node, active)
+    const rect = ast.rect ?? ZERO_RECT
+    engine.runtime.mountControl(path, rect, active, {
+      disabled: node.disabled ?? false,
+      draw: (ctx, nextRect, state) => drawSlider(ctx, nextRect, { min: node.min, max: node.max, value: node.value }, state),
+      onPointerDown: (e) => {
+        if (!node.onChange) return
+        node.onChange(resolveSliderValueFromPointer(rect, { min: node.min, max: node.max, value: node.value }, { x: e.x, y: e.y }))
+        e.capture()
+        e.handle()
+      },
+      onPointerMove: (e) => {
+        if (!node.onChange) return
+        node.onChange(resolveSliderValueFromPointer(rect, { min: node.min, max: node.max, value: node.value }, { x: e.x, y: e.y }))
+        e.handle()
+      },
+      onPointerUp: (e) => {
+        if (!node.onChange) return
+        node.onChange(resolveSliderValueFromPointer(rect, { min: node.min, max: node.max, value: node.value }, { x: e.x, y: e.y }))
+        e.handle()
+      },
+    })
   },
 }
 

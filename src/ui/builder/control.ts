@@ -21,6 +21,7 @@ import { usePress, type PressBinding } from "@/ui/use/use_press"
 export type ControlState = {
   hover: boolean
   pressed: boolean
+  dragging: boolean
   disabled: boolean
 }
 
@@ -33,6 +34,10 @@ export type ControlUpdateOpts = {
   draw: ControlDrawFn
   onClick?: () => void
   onDoubleClick?: () => void
+  onPointerDown?: (e: PointerUIEvent) => void
+  onPointerMove?: (e: PointerUIEvent) => void
+  onPointerUp?: (e: PointerUIEvent) => void
+  onPointerCancel?: (reason: InteractionCancelReason) => void
   cursor?: CursorKind
 }
 
@@ -46,9 +51,14 @@ export class ControlElement extends UIElement {
   private _drawFn: ControlDrawFn = () => {}
   private _onClick: (() => void) | undefined
   private _onDoubleClick: (() => void) | undefined
+  private _onPointerDown: ((e: PointerUIEvent) => void) | undefined
+  private _onPointerMove: ((e: PointerUIEvent) => void) | undefined
+  private _onPointerUp: ((e: PointerUIEvent) => void) | undefined
+  private _onPointerCancel: ((reason: InteractionCancelReason) => void) | undefined
   private _cursor: CursorKind | null = null
   private _active = false
   private _disabled = false
+  private _dragging = false
   private _rect: Rect = { x: 0, y: 0, w: 0, h: 0 }
 
   constructor() {
@@ -63,6 +73,27 @@ export class ControlElement extends UIElement {
       if (e.button !== 0) return
       this._onDoubleClick?.()
     })
+    this.on("pointerdown", (e: PointerUIEvent) => {
+      if (!this._active || this._disabled) return
+      if (!this._onPointerDown) return
+      if (e.button !== 0) return
+      this._dragging = true
+      this._onPointerDown(e)
+    })
+    this.on("pointermove", (e: PointerUIEvent) => {
+      if (!this._dragging) return
+      this._onPointerMove?.(e)
+    })
+    this.on("pointerup", (e: PointerUIEvent) => {
+      if (!this._dragging) return
+      this._dragging = false
+      this._onPointerUp?.(e)
+    })
+    this.on("pointercancel", (payload: { event: PointerUIEvent | null; reason: InteractionCancelReason }) => {
+      if (!this._dragging) return
+      this._dragging = false
+      this._onPointerCancel?.(payload.reason)
+    })
   }
 
   update(opts: ControlUpdateOpts) {
@@ -72,8 +103,18 @@ export class ControlElement extends UIElement {
     this._drawFn = opts.draw
     this._onClick = opts.onClick
     this._onDoubleClick = opts.onDoubleClick
+    this._onPointerDown = opts.onPointerDown
+    this._onPointerMove = opts.onPointerMove
+    this._onPointerUp = opts.onPointerUp
+    this._onPointerCancel = opts.onPointerCancel
     this._cursor = opts.cursor ?? null
-    if (!opts.active) this.press.cancel("inactive")
+    if (!opts.active) {
+      this.press.cancel("inactive")
+      if (this._dragging) {
+        this._dragging = false
+        this._onPointerCancel?.("inactive")
+      }
+    }
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
@@ -81,6 +122,7 @@ export class ControlElement extends UIElement {
     this._drawFn(ctx, this._rect, {
       hover: this.hover,
       pressed: this.press.pressed(),
+      dragging: this._dragging,
       disabled: this._disabled,
     })
   }

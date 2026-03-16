@@ -616,27 +616,33 @@ createCanvasApp({
 - 新增 `src/ui/use/control_visual.ts`，统一 simple controls 的 hover/pressed/disabled/selected 填充与文本色决策
 - `draw_controls.ts` 已切换到共享 recipe，移除散落状态颜色分支
 
-5. **BuilderSurface 局部失效入口已接通**
+5. **`Slider` 已迁移到 generic control 路径**
+- 已删除旧 `src/ui/widgets/slider.ts` retained widget / descriptor
+- 新增 `src/ui/builder/slider_control.ts`，集中承载 slider 的值映射、thumb 几何与绘制逻辑
+- `sliderHandler` 现走 `mountControl()`，并通过 `ControlElement` 的 pointer hooks 处理连续拖拽
+
+6. **BuilderSurface 局部失效入口已接通**
 - `BuilderSurface` / `FunctionalBuilderSurface` / `BuilderTreeSurface` 已支持注入 surface-local invalidator
 - `ViewportElement` 在挂载 surface 时会把局部失效回调注入目标 surface；未挂载时仍回退到全局 `invalidateAll()`
 - `BuilderRuntime` 中 tree row 的 select/toggle 已改为优先走 surface-local invalidation，不再默认全局失效
 
-6. **TreeRow 已接入共享 visual recipe**
+7. **TreeRow 已接入共享 visual recipe**
 - `TreeRow` 的 selected/hover/pressed 背景决策已改为使用 `control_visual`
 
-7. **回归验证**
+8. **回归验证**
 - `bun x tsc -p tsconfig.json --noEmit` 通过
 - `bun test` 216/216 通过
 
 **当前遗留：**
-- `ui/use` 目前已有 `usePress` 与 `control_visual`，但 `useHover/useFocus/useDragSession` 等尚未补齐
+- `ui/use` 目前已有 `usePress` 与 `control_visual`，但 `useHover/useFocus` 等仍未补齐
 - BuilderSurface 已具备 surface-local invalidation 入口，但仍是“整块 viewport rect 失效”，尚未细化到 builder 节点级 dirty rect
+- `Scrollbar`、`Textbox`、`RichTextSelectable` 等拖拽型 retained 控件仍各自保留会话逻辑，尚未判断是否值得抽成新的 drag composable
 
 ---
 
 ### 下一步（Phase 3 优先任务，2026-03-16 起）
 
-1. **继续扩展 composable 层 `src/ui/use/`**：补 `useHover`、`useFocus`、`useDragSession`，并迁移 `menu_bar`、`tree_row` 等 retained 控件
+1. **继续扩展 composable 层 `src/ui/use/`**：补 `useHover`、`useFocus`，并评估 `Scrollbar` / `Textbox` / `RichTextSelectable` 的拖拽会话是否值得抽成共享 helper
 2. **收敛样式 recipe**：把 `draw_controls.ts` 中 hover/pressed/disabled/selected 逻辑提取为共享 `control_recipe` 工具
 3. **缩减 runtime 全局失效依赖**：替换 BuilderSurface 默认 `invalidateAll()`，建立 surface 级 invalidation 入口
 4. **Phase 4 预备**：评估普通窗口定义方式简化的切入点（window frame 分离、overlay 声明模型）
