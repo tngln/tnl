@@ -1,12 +1,12 @@
 import { theme } from "@tnl/canvas-interface/theme"
-import { openOpfs, type OpfsEntryV1 } from "@/core/opfs"
-import { showAlert, showConfirm, showPrompt } from "@/platform/web/dialogs"
-import { downloadBlob, pickFiles } from "@/platform/web/file_io"
-import { buildAcceptString } from "@/platform/web/media_formats"
+import { openOpfs, type OpfsEntryV1 } from "@tnl/app/platform"
+import { showAlert, showConfirm, showPrompt } from "@tnl/app/platform"
+import { downloadBlob, pickFiles } from "@tnl/app/platform"
+import { buildAcceptString } from "@tnl/app/platform"
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
 import { invalidateAll } from "@tnl/canvas-interface/ui"
-import { formatBytes } from "@/util/util"
+import { formatBytes } from "@tnl/canvas-interface/util"
 import type { DeveloperPanelSpec } from "../index"
 
 export function createStoragePanel(): DeveloperPanelSpec {

@@ -2,8 +2,8 @@ import { font, theme, neutral } from "@tnl/canvas-interface/theme"
 import { draw, TextOp as DrawTextOp } from "@tnl/canvas-interface/draw"
 import { Paint, Stack, Text, VStack, defineSurface, mountSurface, type SurfaceDefinition } from "@tnl/canvas-interface/builder"
 import { createElement } from "@tnl/canvas-interface/jsx"
-import { getPlaybackSession } from "@/ui/playback/session"
-import { formatTimecode } from "@/ui/playback/timecode"
+import { getPlaybackSession } from "@tnl/app/playback"
+import { formatTimecode } from "@tnl/app/playback"
 
 type TimecodeSurfaceProps = { id: string }
 

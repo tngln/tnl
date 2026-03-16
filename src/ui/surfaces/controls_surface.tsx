@@ -1,7 +1,6 @@
-import { createElement, Fragment } from "../jsx"
-import { Button, Checkbox, Dropdown, FormRow, PanelColumn, PanelSection, Radio, RichText, Spacer, Text, TextBox } from "../builder/components"
-import { defineSurface } from "../builder/surface_builder"
-import { signal } from "../../core/reactivity"
+import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
+import { Button, Checkbox, Dropdown, FormRow, PanelColumn, PanelSection, Radio, RichText, Spacer, Text, TextBox, defineSurface } from "@tnl/canvas-interface/builder"
+import { signal } from "@tnl/canvas-interface/reactivity"
 
 export const ControlsSurface = defineSurface({
   id: "ControlsSurface",

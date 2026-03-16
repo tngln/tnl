@@ -1,11 +1,11 @@
 import { theme, neutral, font } from "@tnl/canvas-interface/theme"
 import { draw, RectOp, TextOp as DrawTextOp } from "@tnl/canvas-interface/draw"
-import { getDebugLevel, listDebugEntries, setDebugLevel, type DebugEntry, type DebugLevel } from "@/core/debug"
-import { baseNameOr } from "@/util/util"
+import { getDebugLevel, listDebugEntries, setDebugLevel, type DebugEntry, type DebugLevel } from "@tnl/canvas-interface/ui"
+import { baseNameOr } from "@tnl/canvas-interface/util"
 import { Button, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, SliderField, Spacer, Text, VStack, defineSurface } from "@tnl/canvas-interface/builder"
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
-import { getPlaybackSession } from "@/ui/playback/session"
-import { formatTimecode } from "@/ui/playback/timecode"
+import { getPlaybackSession } from "@tnl/app/playback"
+import { formatTimecode } from "@tnl/app/playback"
 
 const DEBUG_LEVELS: DebugLevel[] = ["error", "warn", "info", "debug", "trace"]
 

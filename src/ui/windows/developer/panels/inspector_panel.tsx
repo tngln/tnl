@@ -1,6 +1,6 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, TreeView, VStack, defineSurface, mountSurface, treeItem, type TreeItem } from "@tnl/canvas-interface/builder"
-import { collectIds } from "@/util/util"
+import { collectIds } from "@tnl/canvas-interface/util"
 import type { DebugTreeNodeSnapshot } from "@tnl/canvas-interface/ui"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 

@@ -1,7 +1,7 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
 import { invalidateAll } from "@tnl/canvas-interface/ui"
-import type { WorkerRuntimeEntry } from "@/core/workers"
+import type { WorkerRuntimeEntry } from "@tnl/app/render"
 import { theme } from "@tnl/canvas-interface/theme"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 

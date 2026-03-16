@@ -11,6 +11,7 @@
     "./builder": "./src/builder.ts",
     "./browser": "./src/browser.ts",
     "./theme": "./src/theme.ts",
-    "./jsx": "./src/jsx.ts"
+    "./jsx": "./src/jsx.ts",
+    "./util": "./src/util.ts"
   }
 }

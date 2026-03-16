@@ -1,5 +1,5 @@
-import type { CodecRuntimeEntry } from "@/core/codecs"
-import type { WorkerRuntimeEntry } from "@/core/workers"
+import type { CodecRuntimeEntry } from "@tnl/app/render"
+import type { WorkerRuntimeEntry } from "@tnl/app/render"
 import type { Rect } from "@tnl/canvas-interface/draw"
 import type { DebugBlitInfo, DebugLayerInfo, DebugTreeNodeSnapshot, Surface, WindowControlApi } from "@tnl/canvas-interface/ui"
 import type { DockingControlApi } from "@/ui/docking/manager"

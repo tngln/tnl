@@ -1,6 +1,6 @@
 import { PlaybackSurface } from "../surfaces/playback_surface"
-import { mountSurface } from "../builder/surface_builder"
-import { SurfaceWindow } from "../base/window"
+import { mountSurface } from "@tnl/canvas-interface/builder"
+import { SurfaceWindow } from "@tnl/canvas-interface/ui"
 
 export const PLAYBACK_TOOL_WINDOW_ID = "Playback.Tool"
 

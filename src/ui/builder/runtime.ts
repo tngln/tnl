@@ -6,6 +6,8 @@ import { TopLayerController } from "../base/top_layer"
 import { widgetRegistry } from "./widget_registry"
 import { TREE_ROW_HEIGHT } from "../widgets"
 import type { BuilderNode, TreeItem, TreeViewNode } from "./types"
+import { ControlElement, type ControlDrawFn } from "./control"
+import type { CursorKind } from "@/platform/web"
 
 export type BuilderTreeSurfaceLike = Surface & {
   setNode(node: BuilderNode | null): void
@@ -21,6 +23,7 @@ export class BuilderRuntime {
   readonly topLayer = new TopLayerController({ rect: () => this.root.bounds(), invalidate: invalidateAll, z: 8_000_000 })
   private readonly widgets = new Map<string, Map<string, { state: any; widget: UIElement; active: boolean; used: boolean }>>()
   private readonly richBlocks = new Map<string, ReturnType<typeof createRichTextBlock>>()
+  private readonly controls = new Map<string, { el: ControlElement; active: boolean; used: boolean }>()
 
   constructor(private readonly createTreeSurface: (id: string) => BuilderTreeSurfaceLike) {
     this.root.add(this.topLayer.host)
@@ -34,7 +37,7 @@ export class BuilderRuntime {
 
   debugCounts() {
     return {
-      widgets: this.widgets.size,
+      widgets: this.widgets.size + this.controls.size,
     }
   }
 
@@ -46,6 +49,7 @@ export class BuilderRuntime {
     for (const map of this.widgets.values()) {
       for (const cell of map.values()) cell.used = false
     }
+    for (const cell of this.controls.values()) cell.used = false
   }
 
   endFrame() {
@@ -56,6 +60,13 @@ export class BuilderRuntime {
         this.updateWidgetActive(cell.widget, cell.active, false)
         cell.active = false
         descriptor?.unmount?.(cell.state)
+      }
+    }
+    for (const cell of this.controls.values()) {
+      if (cell.used) continue
+      if (cell.active) {
+        cell.el.update({ rect: { x: 0, y: 0, w: 0, h: 0 }, active: false, disabled: false, draw: () => {} })
+        cell.active = false
       }
     }
   }
@@ -100,6 +111,25 @@ export class BuilderRuntime {
     descriptor.mount(cell.state, props, rect, active)
 
     this.updateWidgetActive(cell.widget, cell.active, active)
+    cell.active = active
+  }
+
+  mountControl(key: string, rect: Rect, active: boolean, opts: {
+    disabled?: boolean
+    draw: ControlDrawFn
+    onClick?: () => void
+    onDoubleClick?: () => void
+    cursor?: CursorKind
+  }) {
+    let cell = this.controls.get(key)
+    if (!cell) {
+      const el = new ControlElement()
+      cell = { el, active: false, used: true }
+      this.root.add(el)
+      this.controls.set(key, cell)
+    }
+    cell.used = true
+    cell.el.update({ rect, active, disabled: opts.disabled ?? false, draw: opts.draw, onClick: opts.onClick, onDoubleClick: opts.onDoubleClick, cursor: opts.cursor })
     cell.active = active
   }
 

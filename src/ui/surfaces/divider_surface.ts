@@ -1,6 +1,6 @@
 import { theme, neutral } from "@tnl/canvas-interface/theme"
 import { draw, RectOp, clamp } from "@tnl/canvas-interface/draw"
-import { createEventStream, pointerDragSession } from "@/core/event_stream"
+import { createEventStream, pointerDragSession } from "@tnl/canvas-interface/ui"
 import { signal, type Signal } from "@tnl/canvas-interface/reactivity"
 import { CursorRegion, UIElement, type Rect, type Vec2, PointerUIEvent, pointInRect, ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "@tnl/canvas-interface/ui"
 

@@ -1,3 +1,4 @@
+export * from "../../../src/core/opfs"
 export * from "../../../src/platform/web/opfs"
 export * from "../../../src/platform/web/file_io"
 export * from "../../../src/platform/web/dialogs"

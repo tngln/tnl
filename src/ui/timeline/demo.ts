@@ -1,5 +1,5 @@
 import type { TimelineViewModel } from "./model"
-import { clipPalette } from "@/config/theme"
+import { clipPalette } from "@tnl/canvas-interface/theme"
 
 export function createTimelineDemoModel(): TimelineViewModel {
   return {

@@ -1,7 +1,6 @@
-import { createElement, Fragment } from "../jsx"
-import { PanelColumn, RichText, Text } from "../builder/components"
-import { defineSurface, mountSurface, type SurfaceDefinition } from "../builder/surface_builder"
-import { theme } from "../../config/theme"
+import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
+import { PanelColumn, RichText, Text, defineSurface, mountSurface, type SurfaceDefinition } from "@tnl/canvas-interface/builder"
+import { theme } from "@tnl/canvas-interface/theme"
 
 type TextSurfaceProps = { title: string; body: string }
 

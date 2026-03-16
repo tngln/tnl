@@ -3,7 +3,7 @@ import { Button, PanelColumn, PanelScroll, PanelSection, PanelToolbar, Spacer, T
 import type { DeveloperPanelSpec } from "../index"
 import { getStateTreeItems } from "../states"
 import { listSignals, type DebugSignalRecord } from "@tnl/canvas-interface/reactivity"
-import { collectIds, formatLocalTime } from "@/util/util"
+import { collectIds, formatLocalTime } from "@tnl/canvas-interface/util"
 
 export function createDataPanel(): DeveloperPanelSpec {
   return {

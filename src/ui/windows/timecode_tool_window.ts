@@ -1,6 +1,6 @@
-import type { Surface } from "../base/viewport"
+import type { Surface } from "@tnl/canvas-interface/ui"
 import { createTimecodeToolSurface } from "../surfaces/timecode_surface"
-import { SurfaceWindow } from "../base/window"
+import { SurfaceWindow } from "@tnl/canvas-interface/ui"
 
 export const TIMECODE_TOOL_WINDOW_ID = "Timecode.Tool"
 export { createTimecodeToolSurface }

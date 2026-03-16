@@ -1,8 +1,7 @@
-import { createElement, Fragment } from "../jsx"
-import { PanelColumn, RichText, Spacer, Text } from "../builder/components"
-import { defineSurface, surfaceMount } from "../builder/surface_builder"
-import { theme } from "../../config/theme"
-import { SurfaceWindow } from "../base/window"
+import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
+import { PanelColumn, RichText, Spacer, Text, defineSurface, surfaceMount } from "@tnl/canvas-interface/builder"
+import { theme } from "@tnl/canvas-interface/theme"
+import { SurfaceWindow } from "@tnl/canvas-interface/ui"
 
 export const ABOUT_DIALOG_ID = "Help.About"
 

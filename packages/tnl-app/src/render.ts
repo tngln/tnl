@@ -1,5 +1,7 @@
 export * from "../../../src/render/render_engine"
 export * from "../../../src/render/types"
+export * from "../../../src/core/codecs"
+export * from "../../../src/core/workers"
 export * from "../../../src/render/proxy/proxy_manager"
 export * from "../../../src/render/proxy/tnlp"
 export * from "../../../src/render/proxy/types"

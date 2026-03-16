@@ -6,6 +6,7 @@ import { measureLayout, type LayoutStyle } from "@/core/layout"
 import { ZERO_RECT } from "@/core/rect"
 import { TREE_ROW_HEIGHT, buttonDescriptor, checkboxDescriptor, clickAreaDescriptor, dropdownDescriptor, listRowDescriptor, radioDescriptor, richTextSelectableDescriptor, scrollAreaDescriptor, scrollbarDescriptor, sliderDescriptor, textBoxDescriptor, treeRowDescriptor } from "@/ui/widgets"
 import { textFont } from "./text"
+import { drawButton, drawCheckbox, drawListRow, drawRadio } from "./draw_controls"
 import { inheritedTextToRichTextStyle, resolveTextColor, resolveTextEmphasis, resolveTextStyle } from "./styles"
 import type { BuilderEngine } from "./engine"
 import type { AstNode, BuilderNode, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, DropdownNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, SpacerNode, TextBoxNode, TextNode, TreeViewNode } from "./types"
@@ -131,7 +132,11 @@ const buttonHandler: BuilderNodeHandler<ButtonNode> = {
     return { w: Math.min(max.w, w + 28), h: theme.ui.controls.buttonHeight }
   },
   mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountWidget("button", path, ast.rect ?? ZERO_RECT, node, active)
+    engine.runtime.mountControl(path, ast.rect ?? ZERO_RECT, active, {
+      disabled: node.disabled ?? false,
+      draw: (ctx, r, state) => drawButton(ctx, r, { text: node.text, title: node.title }, state),
+      onClick: node.onClick,
+    })
   },
 }
 
@@ -155,7 +160,11 @@ const checkboxHandler: BuilderNodeHandler<CheckboxNode> = {
     return { w: Math.min(max.w, w + 28), h: theme.ui.controls.choiceHeight }
   },
   mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountWidget("checkbox", path, ast.rect ?? ZERO_RECT, node, active)
+    engine.runtime.mountControl(path, ast.rect ?? ZERO_RECT, active, {
+      disabled: node.disabled ?? false,
+      draw: (ctx, r, state) => drawCheckbox(ctx, r, { label: node.label, checked: node.checked.peek() }, state),
+      onClick: () => node.checked.set((v) => !v),
+    })
   },
 }
 
@@ -195,7 +204,11 @@ const radioHandler: BuilderNodeHandler<RadioNode> = {
     return { w: Math.min(max.w, w + 28), h: theme.ui.controls.choiceHeight }
   },
   mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountWidget("radio", path, ast.rect ?? ZERO_RECT, node, active)
+    engine.runtime.mountControl(path, ast.rect ?? ZERO_RECT, active, {
+      disabled: node.disabled ?? false,
+      draw: (ctx, r, state) => drawRadio(ctx, r, { label: node.label, value: node.value, selected: node.selected.peek() }, state),
+      onClick: () => node.selected.set(node.value),
+    })
   },
 }
 
@@ -220,7 +233,11 @@ const rowItemHandler: BuilderNodeHandler<RowNode> = {
   kind: "listRow",
   measure: (_engine, _ctx, _node, max) => ({ w: max.w, h: theme.ui.controls.rowHeight }),
   mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountWidget("listRow", path, ast.rect ?? ZERO_RECT, node, active)
+    engine.runtime.mountControl(path, ast.rect ?? ZERO_RECT, active, {
+      draw: (ctx, r, state) => drawListRow(ctx, r, { leftText: node.leftText, rightText: node.rightText, indent: node.indent, variant: node.variant, selected: node.selected }, state),
+      onClick: node.onClick,
+      onDoubleClick: node.onDoubleClick,
+    })
   },
 }
 
