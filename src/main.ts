@@ -1,4 +1,4 @@
-import { effect } from "./core/reactivity"
+import { scheduleEffect } from "./core/reactivity"
 import { createLogger } from "./core/debug"
 import { invariant, toErrorInfo } from "./core/errors"
 import { createCodecRegistry } from "./core/codecs"
@@ -225,12 +225,13 @@ windows.setCanvasSize(ui.sizeCss)
 ;(globalThis as any).__TNL_DEVTOOLS__.docking = docking
 const lastRects = new Map<string, { x: number; y: number; w: number; h: number }>()
 
-effect(() => {
+scheduleEffect(() => {
   const pad = 24
 
   for (const snap of windows.listWindows()) {
     const cur = snap.rect
     const prev = lastRects.get(snap.id)
+    if (prev && prev.x === cur.x && prev.y === cur.y && prev.w === cur.w && prev.h === cur.h) continue
     lastRects.set(snap.id, cur)
     if (!prev) ui.invalidateRect(cur, { pad })
     else ui.invalidateRect(unionRect(prev, cur), { pad })

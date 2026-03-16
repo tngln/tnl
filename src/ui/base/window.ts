@@ -1,7 +1,7 @@
 import { font, theme, neutral, alpha } from "@/config/theme"
 import { draw, LineOp, RectOp, TextOp } from "@/core/draw"
 import { createEventStream, pointerDragSession, type InteractionCancelReason } from "@/core/event_stream"
-import { signal, type Signal } from "@/core/reactivity"
+import { batch, signal, type Signal } from "@/core/reactivity"
 import { clamp, ZERO_RECT } from "@/core/rect"
 import { CursorRegion, pointInRect, type DebugEventListenerSnapshot, type Rect as BoundsRect, type Vec2, PointerUIEvent, UIElement } from "@/ui/base/ui"
 import { ViewportElement, type Surface } from "@/ui/base/viewport"
@@ -254,8 +254,10 @@ export class ModalWindow extends UIElement {
         this.titleInteraction.lastPointer = pointer
         const nx = pointer.x - this.titleInteraction.context.dragOffset.x
         const ny = pointer.y - this.titleInteraction.context.dragOffset.y
-        this.x.set(nx)
-        this.y.set(ny)
+        batch(() => {
+          this.x.set(nx)
+          this.y.set(ny)
+        })
         this.hooks?.onTitleDragMove?.(this, pointer)
         this.dragHooks?.onTitleDragMove?.(this, pointer)
         return
@@ -351,30 +353,34 @@ export class ModalWindow extends UIElement {
   }
 
   private applyWindowRect(r: BoundsRect) {
-    this.x.set(r.x)
-    this.y.set(r.y)
-    this.w.set(clamp(r.w, this.minW, this.maxW))
-    this.h.set(clamp(r.h, this.minH, this.maxH))
+    batch(() => {
+      this.x.set(r.x)
+      this.y.set(r.y)
+      this.w.set(clamp(r.w, this.minW, this.maxW))
+      this.h.set(clamp(r.h, this.minH, this.maxH))
+    })
   }
 
   private startDragFromAnchoredState(pointer: Vec2) {
-    const restoreRect = this.restoreRect ?? this.currentWindowRect()
-    const anchor = clamp((pointer.x - this.x.peek()) / Math.max(1, this.w.peek()), 0.1, 0.9)
-    this.maximized.set(false)
-    this.screenUsage.set("none")
-    this.applyWindowRect(restoreRect)
-    const restoredW = this.w.peek()
-    const restoredH = this.h.peek()
-    const nx = pointer.x - restoredW * anchor
-    const ny = pointer.y - Math.min(this.titleBarHeight / 2, restoredH - this.titleBarHeight)
-    this.x.set(nx)
-    this.y.set(ny)
-    this.restoreRect = null
-    const dragOffset = { x: pointer.x - this.x.peek(), y: pointer.y - this.y.peek() }
-    this.hooks?.onTitleDragStart?.(this, pointer)
-    this.dragHooks?.onTitleDragStart?.(this, pointer)
-    this.hooks?.onStateChanged?.()
-    return dragOffset
+    return batch(() => {
+      const restoreRect = this.restoreRect ?? this.currentWindowRect()
+      const anchor = clamp((pointer.x - this.x.peek()) / Math.max(1, this.w.peek()), 0.1, 0.9)
+      this.maximized.set(false)
+      this.screenUsage.set("none")
+      this.applyWindowRect(restoreRect)
+      const restoredW = this.w.peek()
+      const restoredH = this.h.peek()
+      const nx = pointer.x - restoredW * anchor
+      const ny = pointer.y - Math.min(this.titleBarHeight / 2, restoredH - this.titleBarHeight)
+      this.x.set(nx)
+      this.y.set(ny)
+      this.restoreRect = null
+      const dragOffset = { x: pointer.x - this.x.peek(), y: pointer.y - this.y.peek() }
+      this.hooks?.onTitleDragStart?.(this, pointer)
+      this.dragHooks?.onTitleDragStart?.(this, pointer)
+      this.hooks?.onStateChanged?.()
+      return dragOffset
+    })
   }
 
   private cancelTitleInteraction(reason: string) {
@@ -512,19 +518,23 @@ export class ModalWindow extends UIElement {
   maximize() {
     if (!this.resizable || this.maximized.peek()) return
     this.cancelTitleInteraction("maximize")
-    if (this.screenUsage.peek() === "none" && !this.maximized.peek()) this.restoreRect = this.currentWindowRect()
-    this.maximized.set(true)
-    this.screenUsage.set("none")
-    this.applyWindowRect(this.maximizeBounds)
+    batch(() => {
+      if (this.screenUsage.peek() === "none" && !this.maximized.peek()) this.restoreRect = this.currentWindowRect()
+      this.maximized.set(true)
+      this.screenUsage.set("none")
+      this.applyWindowRect(this.maximizeBounds)
+    })
     this.hooks?.onStateChanged?.()
   }
 
   unmaximize() {
     if (!this.maximized.peek()) return
     this.cancelTitleInteraction("unmaximize")
-    this.maximized.set(false)
-    this.screenUsage.set("none")
-    if (this.restoreRect) this.applyWindowRect(this.restoreRect)
+    batch(() => {
+      this.maximized.set(false)
+      this.screenUsage.set("none")
+      if (this.restoreRect) this.applyWindowRect(this.restoreRect)
+    })
     this.restoreRect = null
     this.hooks?.onStateChanged?.()
   }
@@ -532,20 +542,24 @@ export class ModalWindow extends UIElement {
   useLeftHalfScreen(r: BoundsRect) {
     if (!this.resizable) return
     this.cancelTitleInteraction("left-half")
-    if (!this.maximized.peek() && this.screenUsage.peek() === "none") this.restoreRect = this.currentWindowRect()
-    this.maximized.set(false)
-    this.screenUsage.set("left-half")
-    this.applyWindowRect(r)
+    batch(() => {
+      if (!this.maximized.peek() && this.screenUsage.peek() === "none") this.restoreRect = this.currentWindowRect()
+      this.maximized.set(false)
+      this.screenUsage.set("left-half")
+      this.applyWindowRect(r)
+    })
     this.hooks?.onStateChanged?.()
   }
 
   useRightHalfScreen(r: BoundsRect) {
     if (!this.resizable) return
     this.cancelTitleInteraction("right-half")
-    if (!this.maximized.peek() && this.screenUsage.peek() === "none") this.restoreRect = this.currentWindowRect()
-    this.maximized.set(false)
-    this.screenUsage.set("right-half")
-    this.applyWindowRect(r)
+    batch(() => {
+      if (!this.maximized.peek() && this.screenUsage.peek() === "none") this.restoreRect = this.currentWindowRect()
+      this.maximized.set(false)
+      this.screenUsage.set("right-half")
+      this.applyWindowRect(r)
+    })
     this.hooks?.onStateChanged?.()
   }
 
@@ -556,8 +570,10 @@ export class ModalWindow extends UIElement {
     }
     if (this.screenUsage.peek() === "none") return
     this.cancelTitleInteraction("restore-screen-usage")
-    this.screenUsage.set("none")
-    if (this.restoreRect) this.applyWindowRect(this.restoreRect)
+    batch(() => {
+      this.screenUsage.set("none")
+      if (this.restoreRect) this.applyWindowRect(this.restoreRect)
+    })
     this.restoreRect = null
     this.hooks?.onStateChanged?.()
   }
@@ -574,9 +590,11 @@ export class ModalWindow extends UIElement {
 
   setWindowRect(r: BoundsRect) {
     this.cancelTitleInteraction("set-rect")
-    if (this.maximized.peek()) this.maximized.set(false)
-    if (this.screenUsage.peek() !== "none") this.screenUsage.set("none")
-    this.applyWindowRect(r)
+    batch(() => {
+      if (this.maximized.peek()) this.maximized.set(false)
+      if (this.screenUsage.peek() !== "none") this.screenUsage.set("none")
+      this.applyWindowRect(r)
+    })
     this.restoreRect = null
     this.hooks?.onStateChanged?.()
   }

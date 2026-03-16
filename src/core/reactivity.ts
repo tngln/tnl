@@ -4,6 +4,8 @@ type EffectFn = (() => EffectCleanup) & { deps?: Set<Signal<unknown>>; cleanup?:
 
 let activeEffect: EffectFn | null = null
 const effectStack: EffectFn[] = []
+let batchDepth = 0
+const pendingEffects = new Set<EffectFn>()
 let nextSignalId = 1
 const debugSignals = new Map<number, Signal<unknown>>()
 const debugMeta = new Map<number, { name?: string; debugLabel?: string; scope?: string; hidden?: boolean; createdAt: number; createdStack?: string }>()
@@ -71,7 +73,11 @@ export function signal<T>(initial: T, opts: { debugLabel: string } | { debugLabe
   }
 
   function notify() {
-    for (const sub of [...subs]) sub()
+    if (batchDepth > 0) {
+      for (const sub of subs) pendingEffects.add(sub)
+    } else {
+      for (const sub of [...subs]) sub()
+    }
   }
 
   const sig: Signal<T> = {
@@ -129,6 +135,55 @@ export function effect(fn: () => EffectCleanup): () => void {
 
   runner()
   return () => cleanupEffect(runner)
+}
+
+export function batch<T>(fn: () => T): T {
+  batchDepth++
+  try {
+    const result = fn()
+    return result
+  } finally {
+    batchDepth--
+    if (batchDepth === 0) {
+      while (pendingEffects.size > 0) {
+        const effects = [...pendingEffects]
+        pendingEffects.clear()
+        for (const eff of effects) eff()
+      }
+    }
+  }
+}
+
+export function scheduleEffect(fn: () => EffectCleanup): () => void {
+  let pending = false
+  let disposed = false
+
+  const execute = () => {
+    pending = false
+    if (disposed) return
+    cleanupEffect(runner)
+    activeEffect = runner
+    effectStack.push(runner)
+    try {
+      runner.cleanup = fn() ?? undefined
+    } finally {
+      effectStack.pop()
+      activeEffect = effectStack.length ? effectStack[effectStack.length - 1] : null
+    }
+  }
+
+  const runner: EffectFn = (() => {
+    if (pending || disposed) return
+    pending = true
+    queueMicrotask(execute)
+  }) as EffectFn
+
+  execute()
+  return () => {
+    disposed = true
+    pending = false
+    cleanupEffect(runner)
+  }
 }
 
 export function computed<T>(fn: () => T): Signal<T> {
