@@ -2,15 +2,19 @@ import { font, theme, neutral } from "@/config/theme"
 import { draw, CircleOp, LineOp, RectOp, TextOp } from "@/core/draw"
 import { truncateToWidth } from "@/core/draw.text"
 import type { Rect } from "@/core/rect"
+import { resolveControlFill, resolveControlTextColor } from "@/ui/use/control_visual"
 import type { ControlState } from "./control"
 
 // --- Button ---
 
 export function drawButton(ctx: CanvasRenderingContext2D, r: Rect, props: { text: string; title?: string }, state: ControlState) {
   const { hover, pressed, disabled } = state
-  const bg = disabled ? theme.colors.disabled : pressed ? theme.colors.pressed : hover ? theme.colors.hover : "transparent"
+  const bg = resolveControlFill(
+    { hover, pressed, disabled },
+    { disabled: theme.colors.disabled, pressed: theme.colors.pressed, hover: theme.colors.hover, idle: "transparent" },
+  )
   const stroke = disabled ? neutral[400] : theme.colors.border
-  const textColor = disabled ? theme.colors.textMuted : theme.colors.text
+  const textColor = resolveControlTextColor({ disabled }, { normal: theme.colors.text, disabled: theme.colors.textMuted })
   draw(
     ctx,
     RectOp({ x: r.x, y: r.y, w: r.w, h: r.h }, { radius: theme.radii.sm, fill: { paint: bg }, stroke: { color: stroke, hairline: true } }),
@@ -50,9 +54,12 @@ export function drawButton(ctx: CanvasRenderingContext2D, r: Rect, props: { text
 export function drawCheckbox(ctx: CanvasRenderingContext2D, r: Rect, props: { label: string; checked: boolean }, state: ControlState) {
   const { hover, pressed, disabled } = state
   const box = { x: r.x, y: r.y + 2, w: 16, h: 16 }
-  const bg = disabled ? theme.colors.disabled : pressed ? theme.colors.pressed : hover ? theme.colors.hover : "transparent"
+  const bg = resolveControlFill(
+    { hover, pressed, disabled },
+    { disabled: theme.colors.disabled, pressed: theme.colors.pressed, hover: theme.colors.hover, idle: "transparent" },
+  )
   const stroke = disabled ? neutral[400] : theme.colors.border
-  const textColor = disabled ? theme.colors.textMuted : theme.colors.text
+  const textColor = resolveControlTextColor({ disabled }, { normal: theme.colors.text, disabled: theme.colors.textMuted })
   draw(
     ctx,
     RectOp({ x: box.x, y: box.y, w: box.w, h: box.h }, { radius: 4, fill: { paint: bg }, stroke: { color: stroke, hairline: true } }),
@@ -76,16 +83,19 @@ export function drawRadio(ctx: CanvasRenderingContext2D, r: Rect, props: { label
   const { hover, pressed, disabled } = state
   const cx = r.x + 8
   const cy = r.y + 10
-  const stroke = disabled ? theme.colors.disabled : pressed ? theme.colors.pressed : hover ? theme.colors.hover : theme.colors.active
+  const stroke = resolveControlFill(
+    { hover, pressed, disabled },
+    { disabled: theme.colors.disabled, pressed: theme.colors.pressed, hover: theme.colors.hover, idle: theme.colors.active },
+  )
   draw(ctx, CircleOp({ x: cx, y: cy, r: 8 }, { stroke: { color: stroke, hairline: true } }))
   if (props.selected === props.value) {
-    draw(ctx, CircleOp({ x: cx, y: cy, r: 4 }, { fill: { paint: disabled ? theme.colors.textMuted : theme.colors.text } }))
+    draw(ctx, CircleOp({ x: cx, y: cy, r: 4 }, { fill: { paint: resolveControlTextColor({ disabled }, { normal: theme.colors.text, disabled: theme.colors.textMuted }) } }))
   }
   draw(ctx, TextOp({
     x: r.x + 24,
     y: r.y,
     text: props.label,
-    style: { color: disabled ? theme.colors.textMuted : theme.colors.text, font: font(theme, theme.typography.body), baseline: "top" },
+    style: { color: resolveControlTextColor({ disabled }, { normal: theme.colors.text, disabled: theme.colors.textMuted }), font: font(theme, theme.typography.body), baseline: "top" },
   }))
 }
 
@@ -101,8 +111,10 @@ export type ListRowDrawProps = {
 
 export function drawListRow(ctx: CanvasRenderingContext2D, r: Rect, props: ListRowDrawProps, state: ControlState) {
   const { hover, pressed } = state
-  const bg = props.selected ? theme.colors.rowSelected : hover ? theme.colors.hover : "transparent"
-  const resolvedBg = pressed ? theme.colors.pressed : bg
+  const resolvedBg = resolveControlFill(
+    { hover, pressed, disabled: false, selected: !!props.selected },
+    { disabled: theme.colors.disabled, pressed: theme.colors.pressed, hover: theme.colors.hover, selected: theme.colors.rowSelected, idle: "transparent" },
+  )
   if (resolvedBg !== "transparent") draw(ctx, RectOp(r, { fill: { paint: resolvedBg } }))
 
   const indent = Math.max(0, props.indent ?? 0)

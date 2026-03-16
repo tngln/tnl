@@ -1,11 +1,12 @@
 import { theme } from "@/config/theme"
 import { draw, RectOp, TextOp } from "@/core/draw"
 import { truncateToWidth } from "@/core/draw.text"
-import { createPressMachine } from "@/core/fsm"
 import { ZERO_RECT } from "@/core/rect"
 import type { RowVariant } from "@/ui/builder/types"
 import { UIElement, pointInRect, type Rect } from "@/ui/base/ui"
 import { chevronDownIcon, chevronRightIcon, iconToShape, type IconDef } from "@/ui/icons"
+import { resolveControlFill } from "@/ui/use/control_visual"
+import { usePress, type PressBinding } from "@/ui/use/use_press"
 import type { WidgetDescriptor } from "@/ui/builder/widget_registry"
 
 export const TREE_ROW_HEIGHT = theme.ui.controls.treeRowHeight
@@ -42,7 +43,7 @@ export class TreeRow extends UIElement {
   private onSelect: (() => void) | undefined
   private onToggle: (() => void) | undefined
   private onDoubleClickHandler: (() => void) | undefined
-  private readonly press = createPressMachine()
+  private readonly press: PressBinding
 
   constructor() {
     super()
@@ -54,34 +55,23 @@ export class TreeRow extends UIElement {
       },
     )
 
-    this.on("pointerleave", () => {
-      if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "leave" })
+    this.press = usePress(this, {
+      enabled: () => this.activeValue,
+      onActivateEvent: (e) => {
+        if (this.layout.expandable && pointInRect({ x: e.x, y: e.y }, this.disclosureRect())) {
+          this.onToggle?.()
+          this.invalidateSelf({ force: true })
+          return
+        }
+        this.onSelect?.()
+      },
     })
-    this.on("pointerdown", (e) => {
-      if (e.button !== 0) return
-      this.press.send({ type: "PRESS", point: { x: e.x, y: e.y } })
-      e.capture()
-    })
-    this.on("pointerup", (e) => {
-      if (!this.press.matches("pressed")) return
-      this.press.send({ type: "RELEASE", point: { x: e.x, y: e.y } })
-      if (!this.hover) return
-      if (this.layout.expandable && pointInRect({ x: e.x, y: e.y }, this.disclosureRect())) {
-        this.onToggle?.()
-        this.invalidateSelf({ force: true })
-        return
-      }
-      this.onSelect?.()
-    })
+
     this.on("doubleclick", (e) => {
       if (!this.hover) return
       if (e.button !== 0) return
       if (this.layout.expandable && pointInRect({ x: e.x, y: e.y }, this.disclosureRect())) return
       this.onDoubleClickHandler?.()
-    })
-    this.on("pointercancel", ({ reason }) => {
-      if (!this.press.matches("pressed")) return
-      this.press.send({ type: "CANCEL", reason })
     })
   }
 
@@ -103,13 +93,11 @@ export class TreeRow extends UIElement {
   protected onDraw(ctx: CanvasRenderingContext2D) {
     const r = this.layout.rect
     if (r.w <= 0 || r.h <= 0) return
-    const pressed = this.press.matches("pressed")
-    const bg = this.layout.selected
-      ? theme.colors.rowSelected
-      : this.hover
-        ? theme.colors.hover
-        : "transparent"
-    const resolvedBg = pressed ? theme.colors.pressed : bg
+    const pressed = this.press.pressed()
+    const resolvedBg = resolveControlFill(
+      { hover: this.hover, pressed, disabled: false, selected: !!this.layout.selected },
+      { disabled: theme.colors.disabled, pressed: theme.colors.pressed, hover: theme.colors.hover, selected: theme.colors.rowSelected, idle: "transparent" },
+    )
     if (resolvedBg !== "transparent") draw(ctx, RectOp(r, { fill: { paint: resolvedBg } }))
 
     const isGroup = (this.layout.variant ?? "item") === "group"

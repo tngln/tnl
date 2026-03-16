@@ -207,6 +207,37 @@ describe("surface builder", () => {
     }
   })
 
+  it("prefers a surface-local invalidator over global invalidation", () => {
+    const clicks = signal(0, { debugLabel: "test.builder.local.invalidate" })
+    const DemoSurface = defineSurface<{}>({
+      id: "Demo.Reactive.Local",
+      setup: () => () => buttonNode(`Count:${clicks.get()}`, { key: "btn" }),
+    })
+
+    const prevDevtools = (globalThis as any).__TNL_DEVTOOLS__
+    let globalInvalidations = 0
+    let localInvalidations = 0
+    ;(globalThis as any).__TNL_DEVTOOLS__ = {
+      ...(prevDevtools ?? {}),
+      invalidate: () => {
+        globalInvalidations += 1
+      },
+    }
+
+    try {
+      const surface = mountSurface(DemoSurface, {}) as any
+      surface.setInvalidator(() => {
+        localInvalidations += 1
+      })
+      clicks.set(1)
+      clicks.set(2)
+      expect(localInvalidations).toBe(2)
+      expect(globalInvalidations).toBe(0)
+    } finally {
+      ;(globalThis as any).__TNL_DEVTOOLS__ = prevDevtools
+    }
+  })
+
   it("applies inherited text style from parent containers", () => {
     const defaultSurface = new BuilderSurface({
       id: "Builder.Inherit.Default",

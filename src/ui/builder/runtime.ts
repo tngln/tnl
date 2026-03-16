@@ -24,9 +24,14 @@ export class BuilderRuntime {
   private readonly widgets = new Map<string, Map<string, { state: any; widget: UIElement; active: boolean; used: boolean }>>()
   private readonly richBlocks = new Map<string, ReturnType<typeof createRichTextBlock>>()
   private readonly controls = new Map<string, { el: ControlElement; active: boolean; used: boolean }>()
+  private invalidateSurface: () => void = invalidateAll
 
   constructor(private readonly createTreeSurface: (id: string) => BuilderTreeSurfaceLike) {
     this.root.add(this.topLayer.host)
+  }
+
+  setInvalidator(fn: (() => void) | null) {
+    this.invalidateSurface = fn ?? invalidateAll
   }
 
   private updateWidgetActive(widget: UIElement, previous: boolean, next: boolean) {
@@ -166,14 +171,14 @@ export class BuilderRuntime {
           onSelect: node.onSelect
             ? () => {
                 node.onSelect?.(row.item.id)
-                invalidateAll()
+                this.invalidateSurface()
               }
             : undefined,
           onToggle:
             row.expandable && node.onToggle
               ? () => {
                   node.onToggle?.(row.item.id)
-                  invalidateAll()
+                  this.invalidateSurface()
                 }
               : undefined,
         },

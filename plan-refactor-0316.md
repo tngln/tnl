@@ -590,17 +590,53 @@ createCanvasApp({
 4. ✅ 现有实际面板通过新模型正常工作
 
 **遗留/待处理：**
-- 旧 `Button`、`Checkbox`、`Radio`、`ListRow` 类及其 descriptor 仍存在于代码库，已不被 builder 使用，待删除
-- `clickArea` 仍走旧 `mountWidget` 路径，可迁移至 `mountControl`
 - 局部 invalidation scope 未改：BuilderSurface 仍依赖全局 `invalidateAll()`
 - 原计划的 `DrawNode / HitNode / RenderNode` 数据结构契约被更实用的 `ControlElement + ControlDrawFn` 方式替代，未建立独立 render contract 层
 
 ---
 
+### Phase 3 — 第一批清理进行中（2026-03-16）
+
+**已完成内容：**
+
+1. **清理旧 simple-control retained 路径**
+- 已删除旧文件：`src/ui/widgets/button.ts`、`checkbox.ts`、`radio.ts`、`list_row.ts`、`click_area.ts`、`row.ts`
+- 已移除对应导出与 registry 注册；builder 不再依赖这批 descriptor
+
+2. **`clickArea` 已迁移到 `mountControl`**
+- `clickAreaHandler` 现走 `mountControl(..., { draw: () => {}, onClick })`
+- simple controls 统一落在 `ControlElement` 池中
+
+3. **建立 composable 层第一步：`usePress`**
+- 新增 `src/ui/use/use_press.ts`
+- `ControlElement` 与 `InteractiveElement` 已切换到 `usePress`，去除重复 press 状态机样板
+
+4. **扩展 composable 与视觉 recipe 收敛**
+- `MenuBar`、`TreeRow` 已迁移到 `usePress`
+- 新增 `src/ui/use/control_visual.ts`，统一 simple controls 的 hover/pressed/disabled/selected 填充与文本色决策
+- `draw_controls.ts` 已切换到共享 recipe，移除散落状态颜色分支
+
+5. **BuilderSurface 局部失效入口已接通**
+- `BuilderSurface` / `FunctionalBuilderSurface` / `BuilderTreeSurface` 已支持注入 surface-local invalidator
+- `ViewportElement` 在挂载 surface 时会把局部失效回调注入目标 surface；未挂载时仍回退到全局 `invalidateAll()`
+- `BuilderRuntime` 中 tree row 的 select/toggle 已改为优先走 surface-local invalidation，不再默认全局失效
+
+6. **TreeRow 已接入共享 visual recipe**
+- `TreeRow` 的 selected/hover/pressed 背景决策已改为使用 `control_visual`
+
+7. **回归验证**
+- `bun x tsc -p tsconfig.json --noEmit` 通过
+- `bun test` 216/216 通过
+
+**当前遗留：**
+- `ui/use` 目前已有 `usePress` 与 `control_visual`，但 `useHover/useFocus/useDragSession` 等尚未补齐
+- BuilderSurface 已具备 surface-local invalidation 入口，但仍是“整块 viewport rect 失效”，尚未细化到 builder 节点级 dirty rect
+
+---
+
 ### 下一步（Phase 3 优先任务，2026-03-16 起）
 
-1. **清理旧 retained widget 类**：删除 `Button`、`Checkbox`、`Radio`、`ListRow` 的 class 定义及 descriptor，从 widgetRegistry 注册表和 widgets/index.ts 导出中移除
-2. **迁移 `clickArea` 至 `mountControl`**：clickArea 无 draw 内容，适合用 `mountControl` + 空 draw fn
-3. **建立 composable 层 `src/ui/use/`**：`usePress`、`useHover`、`useDragSession` 等，将各控件中的重复交互逻辑提取为独立 hook
-4. **收敛样式 recipe**：将 `draw_controls.ts` 中的 hover/pressed/disabled 颜色逻辑抽成共享工具函数，减少各控件条件分支
-5. **Phase 4 预备**：评估普通窗口定义方式简化的切入点（window frame 分离、overlay 声明模型）
+1. **继续扩展 composable 层 `src/ui/use/`**：补 `useHover`、`useFocus`、`useDragSession`，并迁移 `menu_bar`、`tree_row` 等 retained 控件
+2. **收敛样式 recipe**：把 `draw_controls.ts` 中 hover/pressed/disabled/selected 逻辑提取为共享 `control_recipe` 工具
+3. **缩减 runtime 全局失效依赖**：替换 BuilderSurface 默认 `invalidateAll()`，建立 surface 级 invalidation 入口
+4. **Phase 4 预备**：评估普通窗口定义方式简化的切入点（window frame 分离、overlay 声明模型）

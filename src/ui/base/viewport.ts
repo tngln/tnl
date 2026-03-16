@@ -1,3 +1,4 @@
+import { invalidateAll } from "../invalidate"
 import type { InteractionCancelReason } from "@/core/event_stream"
 import { ZERO_RECT } from "@/core/rect"
 import { Compositor } from "./compositor"
@@ -48,6 +49,7 @@ export type Surface = {
   onPointerCancel?: (e: PointerUIEvent | null, reason: InteractionCancelReason, viewport: ViewportContext) => void
   onWheel?: (e: WheelUIEvent, viewport: ViewportContext) => void
   debugSnapshot?: (viewport: ViewportContext) => DebugTreeNodeSnapshot
+  setInvalidator?: (fn: (() => void) | null) => void
 }
 
 export function surfaceDebugSnapshot(surface: Surface, viewport: ViewportContext): DebugTreeNodeSnapshot {
@@ -104,6 +106,7 @@ export class ViewportElement extends UIElement {
   private capture: UIEventTargetNode | null = null
   private hoverChild: UIElement | null = null
   private readonly surfaceBridge: SurfaceEventBridge
+  private surfaceInvalidator: (() => void) | null = null
 
   constructor(opts: { rect: () => BoundsRect; target?: Surface | null; options?: ViewportOptions }) {
     super()
@@ -221,7 +224,9 @@ export class ViewportElement extends UIElement {
   }
 
   setTarget(s: Surface | null) {
+    this.target?.setInvalidator?.(null)
     this.target = s
+    this.target?.setInvalidator?.(this.surfaceInvalidator)
   }
 
   protected debugDescribe() {
@@ -276,6 +281,13 @@ export class ViewportElement extends UIElement {
     const vp = this.viewportCtx()
     const rt = this.renderRuntime()
     const comp = rt?.compositor
+    const nextInvalidator = rt?.invalidateRect
+      ? () => rt.invalidateRect!(vp.rect, { pad: 24 })
+      : () => invalidateAll()
+    if (this.surfaceInvalidator !== nextInvalidator) {
+      this.surfaceInvalidator = nextInvalidator
+      s.setInvalidator?.(this.surfaceInvalidator)
+    }
 
     if (vp.clip) {
       ctx.save()

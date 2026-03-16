@@ -11,6 +11,7 @@ export class BuilderTreeSurface implements Surface {
   readonly engine: BuilderEngine
   private node: BuilderNode | null = null
   private wheelFallback: ((e: WheelUIEvent) => void) | null = null
+  private invalidateSurface: () => void = invalidateAll
 
   constructor(id: string) {
     this.id = id
@@ -23,6 +24,15 @@ export class BuilderTreeSurface implements Surface {
 
   setWheelFallback(fn: ((e: WheelUIEvent) => void) | null) {
     this.wheelFallback = fn
+  }
+
+  setInvalidator(fn: (() => void) | null) {
+    this.invalidateSurface = fn ?? invalidateAll
+    this.engine.runtime.setInvalidator(fn)
+  }
+
+  invalidate() {
+    this.invalidateSurface()
   }
 
   contentSize(viewportSize: Vec2) {
@@ -83,7 +93,7 @@ export class BuilderSurface implements Surface {
         ready = true
         return
       }
-      invalidateAll()
+      this.tree.invalidate()
     })
   }
 
@@ -117,6 +127,10 @@ export class BuilderSurface implements Surface {
   debugSnapshot() {
     return this.tree.debugSnapshot()
   }
+
+  setInvalidator(fn: (() => void) | null) {
+    this.tree.setInvalidator(fn)
+  }
 }
 
 export class FunctionalBuilderSurface<P> implements MountedSurface<P> {
@@ -139,7 +153,7 @@ export class FunctionalBuilderSurface<P> implements MountedSurface<P> {
         ready = true
         return
       }
-      invalidateAll()
+      this.tree.invalidate()
     })
   }
 
@@ -180,6 +194,10 @@ export class FunctionalBuilderSurface<P> implements MountedSurface<P> {
 
   debugSnapshot() {
     return this.tree.debugSnapshot()
+  }
+
+  setInvalidator(fn: (() => void) | null) {
+    this.tree.setInvalidator(fn)
   }
 }
 

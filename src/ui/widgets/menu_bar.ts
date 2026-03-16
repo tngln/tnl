@@ -1,9 +1,9 @@
 import { font, theme, neutral } from "@/config/theme"
 import { draw, LineOp, RectOp, TextOp } from "@/core/draw"
 import { measureTextWidth } from "@/core/draw.text"
-import { createPressMachine } from "@/core/fsm"
 import { UIElement, pointInRect, type Rect, type Vec2 } from "@/ui/base/ui"
 import type { TopLayerController } from "@/ui/base/top_layer"
+import { usePress, type PressBinding } from "@/ui/use/use_press"
 import type { MenuItem } from "./menu"
 import { MenuStack } from "./menu_stack"
 
@@ -20,7 +20,7 @@ export class MenuBar extends UIElement {
   private readonly menuId: string
 
   private hoveredIndex = -1
-  private readonly press = createPressMachine()
+  private readonly press: PressBinding
 
   private openKey: string | null = null
   private readonly stack: MenuStack
@@ -42,15 +42,19 @@ export class MenuBar extends UIElement {
     this.stack = new MenuStack({ id: this.menuId, topLayer: this.topLayer, viewport: () => this.topLayer.host.bounds() })
     this.setBounds(this.rect)
 
+    this.press = usePress(this, {
+      onActivateEvent: (e) => {
+        this.syncOpen()
+        const idx = this.indexFromPoint({ x: e.x, y: e.y })
+        if (idx >= 0) this.openMenu(idx)
+      },
+    })
+
     this.on("pointerleave", () => {
       this.hoveredIndex = -1
-      if (this.press.matches("pressed")) this.press.send({ type: "CANCEL", reason: "leave" })
     })
     this.on("pointerdown", (e) => {
       this.syncOpen()
-      if (e.button !== 0) return
-      this.press.send({ type: "PRESS", point: { x: e.x, y: e.y } })
-      e.capture()
     })
     this.on("pointermove", (e) => {
       this.syncOpen()
@@ -66,18 +70,8 @@ export class MenuBar extends UIElement {
         if (m && m.key !== this.openKey) this.openMenu(idx)
       }
     })
-    this.on("pointerup", (e) => {
-      this.syncOpen()
-      if (!this.press.matches("pressed")) return
-      this.press.send({ type: "RELEASE", point: { x: e.x, y: e.y } })
-      if (!this.hover) return
-      const idx = this.indexFromPoint({ x: e.x, y: e.y })
-      if (idx >= 0) this.openMenu(idx)
-    })
-    this.on("pointercancel", ({ reason }) => {
+    this.on("pointercancel", () => {
       this.hoveredIndex = -1
-      if (!this.press.matches("pressed")) return
-      this.press.send({ type: "CANCEL", reason })
     })
   }
 
