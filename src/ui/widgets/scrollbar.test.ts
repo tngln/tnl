@@ -17,6 +17,31 @@ function pointer(x: number, y: number, buttons = 1) {
 }
 
 describe("scrollbar", () => {
+  it("tracks live getter values without requiring update()", () => {
+    let rect = { x: 0, y: 0, w: 12, h: 0 }
+    let viewportSize = 0
+    let contentSize = 0
+    let value = 0
+
+    const scrollbar = new Scrollbar({
+      rect: () => rect,
+      viewportSize: () => viewportSize,
+      contentSize: () => contentSize,
+      value: () => value,
+      onChange: (next) => {
+        value = next
+      },
+    })
+
+    expect(scrollbar.bounds().h).toBe(0)
+
+    rect = { x: 0, y: 0, w: 12, h: 100 }
+    viewportSize = 100
+    contentSize = 300
+
+    expect(scrollbar.bounds().h).toBe(100)
+  })
+
   it("jumps toward the clicked track position and keeps dragging from there", () => {
     let value = 0
     const scrollbar = new Scrollbar({

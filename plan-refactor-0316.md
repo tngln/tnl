@@ -633,6 +633,13 @@ createCanvasApp({
 - `bun x tsc -p tsconfig.json --noEmit` 通过
 - `bun test` 216/216 通过
 
+9. **窗口内 Scrollbar 可见性回归修复**
+- 修复 `TabPanelSurface` 中 scrollbar z-order（`scrollbar.z = 10`），避免被内容 `ViewportElement` 覆盖
+- 新增 `src/ui/surfaces/tab_panel_surface.test.ts`，校验 scrollbar 始终位于内容 viewport 之上
+- 修复 `Scrollbar` 的直接 retained 用法：此前构造函数只在创建时对 `rect / viewportSize / contentSize / value / active` 求值一次，导致 `TabPanelSurface` 与 `Timeline` 内的 scrollbar 长期停留在初始化零尺寸状态；现已改为保留 live getter 并在绘制/命中/hidden 判定时实时读取
+- 新增 `src/ui/widgets/scrollbar.test.ts` 用例，覆盖“无需 `update()` 也能跟踪 live getter 值变化”的行为
+- 保留更高对比度的 scrollbar 绘制，便于在窗口背景上稳定辨识
+
 **当前遗留：**
 - `ui/use` 目前已有 `usePress` 与 `control_visual`，但 `useHover/useFocus` 等仍未补齐
 - BuilderSurface 已具备 surface-local invalidation 入口，但仍是“整块 viewport rect 失效”，尚未细化到 builder 节点级 dirty rect

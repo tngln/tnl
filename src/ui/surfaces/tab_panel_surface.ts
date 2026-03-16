@@ -123,6 +123,7 @@ export class TabPanelSurface implements Surface {
           this.contentScroll.y = next
         },
       })
+      this.scrollbar.z = 10
       this.root.add(this.scrollbar)
     } else {
       this.scrollbar = null

@@ -29,15 +29,15 @@ type ScrollbarEvent =
   | { type: "CANCEL"; reason: string }
 
 export class Scrollbar extends UIElement {
-  private rectValue: Rect = ZERO_RECT
+  private rectValue: () => Rect = () => ZERO_RECT
   private axis: Axis = "y"
-  private viewportSize: number = 0
-  private contentSize: number = 0
-  private value: number = 0
+  private viewportSize: () => number = () => 0
+  private contentSize: () => number = () => 0
+  private value: () => number = () => 0
   private onChange: (next: number) => void = () => {}
   private minThumb: number = 20
   private autoHide: boolean = true
-  private activeValue: boolean = true
+  private activeValue: () => boolean = () => true
 
   private readonly downEvents = createEventStream<PointerUIEvent>()
   private readonly moveEvents = createEventStream<PointerUIEvent>()
@@ -59,7 +59,7 @@ export class Scrollbar extends UIElement {
   }) {
     super()
     this.update(opts)
-    this.setBounds(() => this.rectValue, () => !this.hidden())
+    this.setBounds(() => this.rectValue(), () => !this.hidden())
     this.z = 40
     this.machine = createMachine<ScrollbarState, ScrollbarEvent, ScrollbarContext>({
       initial: "idle",
@@ -161,21 +161,21 @@ export class Scrollbar extends UIElement {
     autoHide?: boolean
     active?: () => boolean
   }) {
-    this.rectValue = opts.rect()
+    this.rectValue = opts.rect
     this.axis = opts.axis ?? "y"
-    this.viewportSize = opts.viewportSize()
-    this.contentSize = opts.contentSize()
-    this.value = opts.value()
+    this.viewportSize = opts.viewportSize
+    this.contentSize = opts.contentSize
+    this.value = opts.value
     this.onChange = opts.onChange
     this.minThumb = Math.max(10, opts.minThumb ?? 20)
     this.autoHide = opts.autoHide ?? true
-    this.activeValue = opts.active ? opts.active() : true
+    this.activeValue = opts.active ?? (() => true)
   }
 
   private metrics(): ThumbMetrics {
-    const r = this.rectValue
-    const viewport = Math.max(0, this.viewportSize)
-    const content = Math.max(0, this.contentSize)
+    const r = this.rectValue()
+    const viewport = Math.max(0, this.viewportSize())
+    const content = Math.max(0, this.contentSize())
     const trackLength = Math.max(0, this.axis === "y" ? r.h : r.w)
     const maxValue = Math.max(0, content - viewport)
     if (trackLength <= 0 || maxValue <= 0 || content <= 0 || viewport <= 0) {
@@ -183,26 +183,26 @@ export class Scrollbar extends UIElement {
     }
     const thumbLength = clamp((viewport / content) * trackLength, this.minThumb, trackLength)
     const span = Math.max(0, trackLength - thumbLength)
-    const value = clamp(this.value, 0, maxValue)
+    const value = clamp(this.value(), 0, maxValue)
     const thumbOffset = span <= 0 ? 0 : (value / maxValue) * span
     return { maxValue, trackLength, thumbLength, thumbOffset }
   }
 
   private hidden() {
-    if (!this.activeValue) return true
+    if (!this.activeValue()) return true
     if (!this.autoHide) return false
     return this.metrics().maxValue <= 0
   }
 
   private thumbRect() {
-    const r = this.rectValue
+    const r = this.rectValue()
     const m = this.metrics()
     if (this.axis === "y") return { x: r.x, y: r.y + m.thumbOffset, w: r.w, h: m.thumbLength }
     return { x: r.x + m.thumbOffset, y: r.y, w: m.thumbLength, h: r.h }
   }
 
   private setByPointer(pointer: number, dragOffset: number) {
-    const r = this.rectValue
+    const r = this.rectValue()
     const m = this.metrics()
     if (m.maxValue <= 0) return
     const trackPos = this.axis === "y" ? pointer - r.y : pointer - r.x
@@ -249,17 +249,29 @@ export class Scrollbar extends UIElement {
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
     if (this.hidden()) return
-    const r = this.rectValue
+    const r = this.rectValue()
     const t = this.thumbRect()
     const active = this.machine.matches("pressed") || this.machine.matches("dragging")
-    const track = active ? neutral[500] : this.hover ? neutral[600] : neutral[700]
-    const thumb = active ? theme.colors.scrollThumbActive : this.hover ? theme.colors.scrollThumbHover : theme.colors.scrollThumb
+    const track = active ? "rgba(15,23,42,0.82)" : this.hover ? "rgba(15,23,42,0.74)" : "rgba(15,23,42,0.66)"
+    const thumb = active ? "rgba(233,237,243,0.92)" : this.hover ? "rgba(233,237,243,0.80)" : "rgba(233,237,243,0.68)"
+    const thumbStroke = active ? neutral[100] : neutral[300]
     draw(
       ctx,
-      RectOp({ x: r.x, y: r.y, w: r.w, h: r.h }, { radius: Math.min(theme.radii.sm, Math.min(r.w, r.h) / 2), fill: { paint: track } }),
+      RectOp(
+        { x: r.x, y: r.y, w: r.w, h: r.h },
+        {
+          radius: Math.min(theme.radii.sm, Math.min(r.w, r.h) / 2),
+          fill: { paint: track },
+          stroke: { color: "rgba(233,237,243,0.18)", hairline: true },
+        },
+      ),
       RectOp(
         { x: t.x + 1, y: t.y + 1, w: Math.max(0, t.w - 2), h: Math.max(0, t.h - 2) },
-        { radius: Math.min(theme.radii.sm, Math.min(t.w, t.h) / 2), fill: { paint: thumb } },
+        {
+          radius: Math.min(theme.radii.sm, Math.min(t.w, t.h) / 2),
+          fill: { paint: thumb },
+          stroke: { color: thumbStroke, hairline: true },
+        },
       ),
     )
   }
