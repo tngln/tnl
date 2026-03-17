@@ -743,3 +743,67 @@ createCanvasApp({
 1. `src/ui/base` 中与浏览器宿主无关的通用 runtime 基础设施
 2. `src/ui/builder` 中已经稳定的 surface/runtime 入口
 3. `src/core/shortcuts.ts`、`commands.ts` 等仍然偏通用但尚未迁移的基础模块
+
+---
+
+### UI Base 事件/元素基座继续迁移 — 已完成（2026-03-18）
+
+**本轮完成内容：**
+
+- 将以下 `ui/base` 通用基座实现物理迁入 `packages/canvas-interface/src/`
+  - `ui.hit_test.ts`
+  - `ui.events.ts`
+  - `ui.dispatch.ts`
+  - `ui.element.ts`
+- 新增 `packages/canvas-interface/src/ui_base.ts`，作为 package 内部的基础 UI 聚合入口
+- `packages/canvas-interface/src/ui.ts` 已改为优先导出 package 内部的 `ui_base.ts`
+- 在原 `src/ui/base/*` 位置保留轻量兼容转发层，保证现有 `viewport`、`ui.canvas`、widgets 和测试链路不需要同步大改 import
+
+**当前边界推进情况：**
+
+1. `canvas-interface` 已开始承载 UI 事件模型、元素树与基础 hit-test 逻辑
+2. `viewport`、`compositor`、`top_layer`、`window` 仍暂留在 `src/ui/base`，作为下一批迁移对象
+3. 迁移策略仍保持“真实实现进 package，旧路径保留兼容桥”
+
+**本轮验证：**
+
+1. `bun x tsc -p tsconfig.json --noEmit` 通过
+2. `bun test src/ui/base/ui.event_bubble.test.ts src/ui/base/ui.pointer_cancel.test.ts src/ui/base/ui.debug.test.ts src/ui/base/drag_drop.test.ts` 通过
+3. `bun test` 219/219 通过
+
+**建议的下一批迁移对象：**
+
+1. `src/ui/base/viewport.ts`
+2. `src/ui/base/compositor.ts`
+3. `src/ui/base/top_layer.ts` 与 `drag_drop.ts`
+
+---
+
+### UI Base Viewport / Compositor 继续迁移 — 已完成（2026-03-18）
+
+**本轮完成内容：**
+
+- 将以下通用 runtime 实现物理迁入 `packages/canvas-interface/src/`
+  - `viewport.ts`
+  - `compositor.ts`
+- `packages/canvas-interface/src/ui.ts` 已改为优先导出 package 内部的 `viewport` 与 `compositor`
+- 在原 `src/ui/base/viewport.ts` 与 `src/ui/base/compositor.ts` 保留轻量兼容转发层
+- `viewport` 已改为依赖 package 内部的 `ui_base / event_stream / draw / compositor`，避免继续绑定旧 `src/ui/base` 聚合入口
+
+**当前边界推进情况：**
+
+1. `canvas-interface` 已承载 UI 事件模型、元素树、hit-test、viewport、compositor 这条主 runtime 骨架
+2. `top_layer`、`drag_drop`、`window`、`window_manager` 仍暂留在 `src/ui/base`
+3. `ui.canvas` 仍留在旧位置，但已经通过兼容桥消费 package 内部的新基座实现
+
+**本轮验证：**
+
+1. `bun x tsc -p tsconfig.json --noEmit` 通过
+2. `bun test src/ui/base/compositor.test.ts src/ui/base/ui.event_bubble.test.ts src/ui/base/ui.pointer_cancel.test.ts src/ui/base/window_manager.test.ts` 通过
+3. `bun test` 219/219 通过
+
+**建议的下一批迁移对象：**
+
+1. `src/ui/base/top_layer.ts`
+2. `src/ui/base/drag_drop.ts` 与 `drag_drop.overlay.ts`
+3. `src/ui/base/window.ts`、`window_manager.ts`
