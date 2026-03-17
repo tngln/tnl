@@ -840,3 +840,35 @@ createCanvasApp({
 1. `src/ui/base/window.ts`
 2. `src/ui/base/window_manager.ts`
 3. `src/ui/base/ui.canvas.ts`
+
+---
+
+### UI Base Window / WindowManager 继续迁移 — 已完成（2026-03-18）
+
+**本轮完成内容：**
+
+- 将以下窗口 runtime 实现物理迁入 `packages/canvas-interface/src/`
+  - `window.ts`
+  - `window_manager.ts`
+- `packages/canvas-interface/src/ui.ts` 已改为优先导出 package 内部的 `window` 与 `window_manager`
+- 在原 `src/ui/base/window.ts` 与 `src/ui/base/window_manager.ts` 保留轻量兼容转发层
+- `window` 已改为直接依赖 package 内部的 `draw / event_stream / reactivity / ui_base / viewport`
+- `window_manager` 已改为直接依赖 package 内部的 `draw / errors / ui_base / window`
+
+**当前边界推进情况：**
+
+1. `canvas-interface` 已承载 UI runtime 主骨架：事件、元素树、hit-test、viewport、compositor、top-layer、drag-drop、window、window-manager
+2. `src/ui/base` 中尚未迁入 package 的主文件已基本只剩 `ui.canvas.ts`
+3. 旧 `src/ui/base/*` 仍作为兼容桥存在，现有 widgets、builder、docking、测试链路无需同步大改 import
+
+**本轮验证：**
+
+1. `bun x tsc -p tsconfig.json --noEmit` 通过
+2. `bun test src/ui/base/window_manager.test.ts src/ui/surfaces/tab_panel_surface.test.ts src/ui/widgets/menu_bar.test.ts src/ui/widgets/dropdown.test.ts` 通过
+3. `bun test` 219/219 通过
+
+**建议的下一批迁移对象：**
+
+1. `src/ui/base/ui.canvas.ts`
+2. `src/ui/builder` 中已稳定的 runtime 入口
+3. `src/core/shortcuts.ts`、`commands.ts`
