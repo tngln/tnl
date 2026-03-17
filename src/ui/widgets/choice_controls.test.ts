@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
-import { signal } from "../../core/reactivity"
-import { ControlElement } from "../builder/control"
-import { PointerUIEvent } from "../base/ui"
+import { signal } from "@tnl/canvas-interface/reactivity"
+import { ControlElement } from "@tnl/canvas-interface/builder"
+import { PointerUIEvent } from "@tnl/canvas-interface/ui"
 
 function pointer() {
   return new PointerUIEvent({

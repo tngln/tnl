@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test"
-import { TopLayerController, useClickOutsideHandler } from "../base/top_layer"
-import { PointerUIEvent } from "../base/ui"
-import { Menu, MENU_ROW_HEIGHT, MENU_SEPARATOR_HEIGHT, type MenuItem } from "./menu"
+import { PointerUIEvent, TopLayerController, useClickOutsideHandler } from "@tnl/canvas-interface/ui"
+import { Menu, MENU_ROW_HEIGHT, MENU_SEPARATOR_HEIGHT, type MenuItem } from "@tnl/canvas-interface/widgets"
 
 function pointer(x: number, y: number, buttons = 1) {
   return new PointerUIEvent({

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { Root, SurfaceWindow } from "../base/window"
-import { WindowManager } from "../base/window_manager"
+import { Root, SurfaceWindow, WindowManager } from "@tnl/canvas-interface/ui"
 import { DockingManager } from "./manager"
 import { firstLeaf } from "./model"
 

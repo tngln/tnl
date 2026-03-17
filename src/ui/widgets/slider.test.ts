@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { resolveSliderThumbRect, resolveSliderValueFromPointer } from "../builder/slider_control"
+import { resolveSliderThumbRect, resolveSliderValueFromPointer } from "@tnl/canvas-interface/builder"
 
 describe("slider", () => {
   it("resolves value from horizontal pointer position", () => {

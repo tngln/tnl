@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test"
-import { signal } from "../../core/reactivity"
+import { signal } from "@tnl/canvas-interface/reactivity"
 import { theme } from "../../config/theme"
-import { BuilderSurface, buttonNode, checkboxNode, column, defineSurface, flattenTreeItems, mountSurface, richTextNode, row, rowItemNode, scrollAreaNode, textBoxNode, textNode, treeItem, treeViewNode } from "./surface_builder"
-import { PointerUIEvent } from "../base/ui"
+import { BuilderSurface, buttonNode, checkboxNode, column, defineSurface, flattenTreeItems, mountSurface, richTextNode, row, rowItemNode, scrollAreaNode, textBoxNode, textNode, treeItem, treeViewNode } from "@tnl/canvas-interface/builder"
+import { PointerUIEvent } from "@tnl/canvas-interface/ui"
 import { fakeCtx, withFakeDocument } from "./test_utils"
 
 describe("surface builder", () => {

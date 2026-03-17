@@ -1,8 +1,7 @@
-import { createElement, Fragment } from "./jsx"
+import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { describe, expect, it } from "bun:test"
-import { HStack, RichText, Stack, Text, VStack } from "./builder/components"
+import { HStack, RichText, Stack, Text, VStack, resolveRichTextChildren } from "@tnl/canvas-interface/builder"
 import { theme } from "../config/theme"
-import { resolveRichTextChildren } from "./builder/rich_text_children"
 
 describe("jsx runtime", () => {
   it("flattens children and ignores falsey values", () => {

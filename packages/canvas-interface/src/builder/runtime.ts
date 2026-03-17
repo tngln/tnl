@@ -4,7 +4,7 @@ import { SurfaceRoot, type Surface } from "../viewport"
 import { UIElement, WheelUIEvent, type Rect, type Vec2, type CursorKind, type PointerUIEvent } from "../ui_base"
 import { TopLayerController } from "../top_layer"
 import { widgetRegistry } from "./widget_registry"
-import { TREE_ROW_HEIGHT } from "../../../../src/ui/widgets"
+import { TREE_ROW_HEIGHT } from "../widgets/tree_row"
 import type { BuilderNode, TreeItem, TreeViewNode } from "./types"
 import { ControlElement, type ControlDrawFn } from "./control"
 

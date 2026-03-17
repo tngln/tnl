@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { PointerUIEvent } from "../base/ui"
+import { PointerUIEvent } from "@tnl/canvas-interface/ui"
 import { DividerSurface } from "./divider_surface"
 
 function pointer(x: number, y: number, buttons = 1) {

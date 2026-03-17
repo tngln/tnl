@@ -1,4 +1,4 @@
-import { invariant } from "../../core/errors"
+import { invariant } from "@tnl/canvas-interface/errors"
 
 export async function getOpfsRootDirectory() {
   const nav = navigator as Navigator & {

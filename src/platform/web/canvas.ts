@@ -1,4 +1,4 @@
-import { invariant } from "../../core/errors"
+import { invariant } from "@tnl/canvas-interface/errors"
 
 export type AnyCanvas = OffscreenCanvas | HTMLCanvasElement
 export type Any2DContext = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D

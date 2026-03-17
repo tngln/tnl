@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
-import { ControlElement } from "../builder/control"
-import { PointerUIEvent } from "../base/ui"
+import { ControlElement } from "@tnl/canvas-interface/builder"
+import { PointerUIEvent } from "@tnl/canvas-interface/ui"
 
 function pointer() {
   return new PointerUIEvent({

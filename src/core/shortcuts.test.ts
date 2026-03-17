@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { ShortcutManager, type ShortcutContextResolver, type ShortcutExecutionContext } from "./shortcuts"
+import { ShortcutManager, type ShortcutContextResolver, type ShortcutExecutionContext } from "@tnl/canvas-interface/shortcuts"
 
 type TestContext = ShortcutExecutionContext & {
   log: string[]

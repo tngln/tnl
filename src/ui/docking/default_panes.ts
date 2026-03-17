@@ -8,7 +8,7 @@ import { createToolsSurface, TOOLS_DIALOG_ID } from "../windows/tools_dialog"
 import type { DockablePaneInit } from "./manager"
 import { theme, neutral } from "../../config/theme"
 import { createLayerCanvas, getCanvas2DContext } from "../../platform/web/canvas"
-import type { DragImageSpec } from "../base/drag_drop"
+import type { DragImageSpec } from "@tnl/canvas-interface/drag_drop"
 
 export function createDefaultDockablePanes(ctx: DeveloperContext): DockablePaneInit[] {
   function makePaneDragImage(title: string): DragImageSpec {

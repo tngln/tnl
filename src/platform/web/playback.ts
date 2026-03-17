@@ -1,6 +1,6 @@
 import { scheduleAnimationFrame } from "./animation"
-import { createLogger } from "../../core/debug"
-import { AppError, describeError, toAppError, toErrorInfo } from "../../core/errors"
+import { createLogger } from "@tnl/canvas-interface/debug"
+import { AppError, describeError, toAppError, toErrorInfo } from "@tnl/canvas-interface/errors"
 import { getSeekableEnd, probeVideoDuration, resolvePlaybackDuration, type PlaybackDurationInfo, type PlaybackDurationSource } from "./video_duration"
 import { inferMimeCandidates, isAviPath } from "./media_formats"
 

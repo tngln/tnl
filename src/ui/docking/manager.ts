@@ -1,11 +1,7 @@
-import type { InteractionCancelReason } from "../../core/event_stream"
-import { invariant } from "../../core/errors"
-import type { Surface } from "../base/viewport"
-import { pointInRect, type Rect, type Vec2 } from "../base/ui"
-import { DragDropController, type ActiveDragSession, type DragBehavior, type DragImageSpec, type DragPayload, type DropCandidate, type DropProvider } from "../base/drag_drop"
-import { DragImageOverlay } from "../base/drag_drop.overlay"
-import { SurfaceWindow } from "../base/window"
-import { type WindowManager } from "../base/window_manager"
+import type { InteractionCancelReason } from "@tnl/canvas-interface/event_stream"
+import { invariant } from "@tnl/canvas-interface/errors"
+import { pointInRect, SurfaceWindow, type Rect, type Surface, type Vec2, type WindowManager } from "@tnl/canvas-interface/ui"
+import { DragDropController, DragImageOverlay, type ActiveDragSession, type DragBehavior, type DragImageSpec, type DragPayload, type DropCandidate, type DropProvider } from "@tnl/canvas-interface/drag_drop"
 import { clampRatio, findLeaf, findLeafByPane, firstLeaf, insertPane, removePane, type DockDropPlacement, type DockNode } from "./model"
 import { DockWorkspaceSurface, type DockDropPreview, type DockWorkspaceDriver } from "./workspace_surface"
 
@@ -16,7 +12,7 @@ type DockPaneDragPayload = {
     | { kind: "floating"; originRect: Rect; followPointer: boolean }
 }
 
-declare module "../base/drag_drop" {
+declare module "@tnl/canvas-interface/drag_drop" {
   interface DragPayloadByKind {
     "dock.pane": DockPaneDragPayload
   }

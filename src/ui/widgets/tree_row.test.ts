@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
-import { PointerUIEvent } from "../base/ui"
-import { chevronDownIcon, chevronRightIcon } from "../icons"
-import { TREE_ROW_DISCLOSURE_SLOT, TREE_ROW_HEIGHT, TREE_ROW_INDENT_STEP, TreeRow, treeRowDisclosureIcon } from "./tree_row"
+import { PointerUIEvent } from "@tnl/canvas-interface/ui"
+import { chevronDownIcon, chevronRightIcon } from "@tnl/canvas-interface/icons"
+import { TREE_ROW_DISCLOSURE_SLOT, TREE_ROW_HEIGHT, TREE_ROW_INDENT_STEP, TreeRow, treeRowDisclosureIcon } from "@tnl/canvas-interface/widgets"
 
 function pointer(x: number, y: number) {
   return new PointerUIEvent({

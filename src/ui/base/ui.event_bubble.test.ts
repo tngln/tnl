@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { CanvasUI, UIElement, type Rect } from "./ui"
-import { SurfaceRoot, ViewportElement, type Surface } from "./viewport"
+import { CanvasUI, SurfaceRoot, UIElement, ViewportElement, type Rect, type Surface } from "@tnl/canvas-interface/ui"
 import { pointerEvent, wheelEvent, withFakeDom } from "./test_utils"
 
 class HostElement extends UIElement {

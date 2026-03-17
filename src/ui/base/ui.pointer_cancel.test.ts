@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { CanvasUI, CursorRegion, UIElement, type Rect } from "./ui"
+import { CanvasUI, CursorRegion, UIElement, type Rect } from "@tnl/canvas-interface/ui"
 import { pointerEvent, withFakeDom } from "./test_utils"
 
 class CaptureElement extends UIElement {

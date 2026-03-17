@@ -1,7 +1,7 @@
 export { InteractiveElement } from "./interactive"
 export * from "./dropdown"
 export { DropdownMenu, type DropdownMenuOption } from "./dropdown_menu"
-export { Menu, type MenuItem, MENU_ROW_HEIGHT } from "./menu"
+export { Menu, type MenuItem, MENU_ROW_HEIGHT, MENU_SEPARATOR_HEIGHT } from "./menu"
 export { MenuBar, type MenuBarMenu } from "./menu_bar"
 export { placeFloatingRect, type FloatingPlacement } from "./floating"
 export { Label } from "./label"

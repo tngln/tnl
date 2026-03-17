@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { audit, bufferCount, classifyClicks, classifySpatialClicks, createEventStream, debounce, delay, distinctUntilChanged, dragSession, filter, interactionCancelStream, keyChordSequence, map, mergeStreams, once, pairwise, pointerDragSession, sample, scan, skip, startWith, switchMap, take, takeUntil, throttle, type Scheduler, withLatestFrom } from "./event_stream"
+import { audit, bufferCount, classifyClicks, classifySpatialClicks, createEventStream, debounce, delay, distinctUntilChanged, dragSession, filter, interactionCancelStream, keyChordSequence, map, mergeStreams, once, pairwise, pointerDragSession, sample, scan, skip, startWith, switchMap, take, takeUntil, throttle, type Scheduler, withLatestFrom } from "@tnl/canvas-interface/event_stream"
 
 function createFakeClock(): Scheduler & { advance(ms: number): void } {
   let now = 0

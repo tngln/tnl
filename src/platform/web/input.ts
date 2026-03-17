@@ -1,4 +1,4 @@
-import type { InteractionCancelReason } from "../../core/event_stream"
+import type { InteractionCancelReason } from "@tnl/canvas-interface/event_stream"
 
 export type CursorKind =
   | "default"

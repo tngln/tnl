@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
-import { signal } from "../../core/reactivity"
-import { KeyUIEvent, PointerUIEvent } from "../base/ui"
-import { TextBox } from "./textbox"
+import { signal } from "@tnl/canvas-interface/reactivity"
+import { KeyUIEvent, PointerUIEvent } from "@tnl/canvas-interface/ui"
+import { TextBox } from "@tnl/canvas-interface/widgets"
 import type { OnePxTextboxBridge, OnePxTextboxSession, OnePxTextboxSyncState } from "../../platform/web"
 import { withFakeDocument } from "../builder/test_utils"
 

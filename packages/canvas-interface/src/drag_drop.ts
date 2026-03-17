@@ -5,6 +5,8 @@ import type { Rect, Vec2 } from "./ui_base"
 // declare module "../base/drag_drop" { interface DragPayloadByKind { "dock.pane": MyPayload } }
 export interface DragPayloadByKind {}
 
+export { DragImageOverlay } from "./drag_drop.overlay"
+
 export type DragKind = keyof DragPayloadByKind & string
 export type DragPayload<K extends DragKind> = DragPayloadByKind[K]
 

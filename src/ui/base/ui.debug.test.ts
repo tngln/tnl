@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { UIElement } from "./ui"
-import { ViewportElement } from "./viewport"
+import { UIElement, ViewportElement } from "@tnl/canvas-interface/ui"
 
 class BoxElement extends UIElement {
   constructor(private readonly rect: { x: number; y: number; w: number; h: number }, private readonly label: string) {

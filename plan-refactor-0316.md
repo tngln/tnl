@@ -999,3 +999,53 @@ createCanvasApp({
 1. 逐步把 `src/main.ts`、`src/ui/*`、`src/platform/*` 中仍指向兼容桥的 import 改到 package 公开入口
 2. 挑第一批稳定兼容桥开始删除
 3. 补 `canvas-interface` 最小 demo / examples，开始满足 Phase 1 剩余验收项
+
+---
+
+### Compatibility Bridge 清理（第一轮）— 已完成（2026-03-18）
+
+**本轮完成内容：**
+
+- 删除了第一批仅用于重定向到 `packages/canvas-interface` 的桥文件，覆盖：
+  - `src/core/` 中已迁移模块
+  - `src/ui/base/` 中已迁移 runtime 主链
+  - `src/ui/builder/` 中已迁移主实现
+  - `src/ui/icons/`
+  - `src/ui/widgets/`
+  - `src/ui/use/`
+  - `src/ui/jsx.ts`
+  - `src/ui/invalidate.ts`
+  - `src/util/util.ts`
+- 将 app 代码与测试中的旧路径导入统一改到 `@tnl/canvas-interface/*` 公开入口
+- 为清桥补充并收紧了 package 公开入口：
+  - `event_stream`
+  - `fsm`
+  - `errors`
+  - `debug`
+  - `invalidate`
+  - `drag_drop`
+  - `viewport`
+  - `compositor`
+  - `window`
+  - `window_manager`
+  - `icons`
+  - `widgets`
+- `drag_drop` 公开入口已补导出 `DragImageOverlay`，便于 docking 侧直接依赖 package API
+- `builder` 公开入口已补导出 `control / slider_control / widget_registry / rich_text_children / types / utils`
+
+**当前边界推进情况：**
+
+1. 已迁移模块在 `src/` 中不再依赖一层“export * from ...”兼容桥继续存活
+2. app 代码和测试已开始真正消费 `canvas-interface` 的公开 API，而不是旧目录壳
+3. 兼容桥清理已从“实现迁移阶段”进入“入口收紧阶段”
+
+**本轮验证：**
+
+1. `bun x tsc -p tsconfig.json --noEmit` 通过
+2. `bun test` 219/219 通过
+
+**建议的下一批工作：**
+
+1. 检查 `src/` 中剩余是否还有新的“只做转发”的桥文件
+2. 开始补 `canvas-interface` demo / examples
+3. 继续收紧 app 对 package 内部文件路径的直接依赖

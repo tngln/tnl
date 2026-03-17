@@ -1,8 +1,7 @@
 import { describe, expect, it } from "bun:test"
-import { signal } from "../../core/reactivity"
-import { PointerUIEvent } from "../base/ui"
-import { TopLayerController } from "../base/top_layer"
-import { Dropdown } from "./dropdown"
+import { signal } from "@tnl/canvas-interface/reactivity"
+import { PointerUIEvent, TopLayerController } from "@tnl/canvas-interface/ui"
+import { Dropdown } from "@tnl/canvas-interface/widgets"
 
 function pointer(x: number, y: number, buttons = 1) {
   return new PointerUIEvent({

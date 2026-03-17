@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
-import { PointerUIEvent } from "../base/ui"
-import { Scrollbar } from "./scrollbar"
+import { PointerUIEvent } from "@tnl/canvas-interface/ui"
+import { Scrollbar } from "@tnl/canvas-interface/widgets"
 
 function pointer(x: number, y: number, buttons = 1) {
   return new PointerUIEvent({

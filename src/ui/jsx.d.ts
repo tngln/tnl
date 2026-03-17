@@ -1,8 +1,6 @@
-import type { BuilderElement } from "./jsx"
-
 declare global {
   namespace JSX {
-    type Element = BuilderElement
+    type Element = any
     interface ElementChildrenAttribute {
       children: {}
     }

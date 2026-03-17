@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
-import { createMachine, createPressMachine } from "./fsm"
-import { listSignals } from "./reactivity"
-import { classifyClicks, createEventStream, dragSession } from "./event_stream"
+import { createMachine, createPressMachine } from "@tnl/canvas-interface/fsm"
+import { listSignals } from "@tnl/canvas-interface/reactivity"
+import { classifyClicks, createEventStream, dragSession } from "@tnl/canvas-interface/event_stream"
 
 type DragEvent =
   | { type: "PRESS"; point: { x: number; y: number } }

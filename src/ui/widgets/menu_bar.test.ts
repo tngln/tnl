@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test"
-import { TopLayerController } from "../base/top_layer"
-import { PointerUIEvent } from "../base/ui"
-import { MenuBar, type MenuBarMenu } from "./menu_bar"
+import { PointerUIEvent, TopLayerController } from "@tnl/canvas-interface/ui"
+import { MenuBar, type MenuBarMenu } from "@tnl/canvas-interface/widgets"
 
 function pointer(x: number, y: number, buttons = 1) {
   return new PointerUIEvent({

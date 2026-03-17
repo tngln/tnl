@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { CommandRegistry } from "./commands"
+import { CommandRegistry } from "@tnl/canvas-interface/commands"
 
 type TestContext = {
   log: string[]

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { fontString, layoutRichText, measureTextWidth } from "./draw.text"
+import { fontString, layoutRichText, measureTextWidth } from "@tnl/canvas-interface/draw"
 
 type FakeMeasure = { width: number; actualBoundingBoxAscent?: number; actualBoundingBoxDescent?: number }
 

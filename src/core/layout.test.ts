@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { columnLayout, createLayoutContext, layout, measureLayout, rowLayout, type LayoutNode } from "./layout"
+import { columnLayout, createLayoutContext, layout, measureLayout, rowLayout, type LayoutNode } from "@tnl/canvas-interface/layout"
 
 function leaf(id: string, w: number, h: number, style?: LayoutNode["style"]): LayoutNode {
   return {

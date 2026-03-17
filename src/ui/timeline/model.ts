@@ -1,4 +1,4 @@
-import { clamp } from "../../core/rect"
+import { clamp } from "@tnl/canvas-interface/draw"
 
 export type TimelineSelection = { trackId?: string; itemId?: string }
 

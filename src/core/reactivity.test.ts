@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { signal, effect, batch, scheduleEffect, computed } from "./reactivity"
+import { signal, effect, batch, scheduleEffect, computed } from "@tnl/canvas-interface/reactivity"
 
 describe("signal", () => {
   it("get and set", () => {
