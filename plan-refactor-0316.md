@@ -653,3 +653,32 @@ createCanvasApp({
 2. **收敛样式 recipe**：把 `draw_controls.ts` 中 hover/pressed/disabled/selected 逻辑提取为共享 `control_recipe` 工具
 3. **缩减 runtime 全局失效依赖**：替换 BuilderSurface 默认 `invalidateAll()`，建立 surface 级 invalidation 入口
 4. **Phase 4 预备**：评估普通窗口定义方式简化的切入点（window frame 分离、overlay 声明模型）
+
+---
+
+### Package 实现落点迁移 — 进行中（2026-03-17）
+
+**本轮完成内容：**
+
+- 将第一批低耦合基础实现物理迁入 `packages/canvas-interface/src`：
+  - `geometry.ts`
+  - `rect.ts`
+  - `layout_impl.ts`
+  - `reactivity_impl.ts`
+  - `draw_impl.ts`
+  - `draw.text.ts`
+  - `util_impl.ts`
+- `packages/canvas-interface` 的 `draw / layout / reactivity / util` 公开入口已改为优先导出包内实现，而不再直接转发 `src/core` / `src/util`
+- 在原 `src/core/*` 与 `src/util/util.ts` 位置保留轻量兼容转发层，避免现有测试与历史导入路径失效
+
+**本轮结果：**
+
+1. `canvas-interface` 不再只是“包名边界”，已经开始承载真实实现文件
+2. 现有 `bun test` 219/219 通过
+3. `tsc --noEmit` 在当前环境仍被 `node_modules/typescript` 的文件访问权限阻塞（`EPERM`），暂未完成复核
+
+**建议的下一批迁移对象：**
+
+1. `src/core/event_stream.ts`、`fsm.ts`、`errors.ts`、`debug.ts`
+2. `src/ui/base` 中与浏览器无关的通用 runtime 基础设施
+3. `src/ui/builder` 中已稳定的声明式 surface/runtime 入口

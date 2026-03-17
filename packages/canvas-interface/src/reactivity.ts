@@ -1,1 +1,1 @@
-export * from "../../../src/core/reactivity"
+export * from "./reactivity_impl"
