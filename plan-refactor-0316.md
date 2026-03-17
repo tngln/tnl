@@ -872,3 +872,32 @@ createCanvasApp({
 1. `src/ui/base/ui.canvas.ts`
 2. `src/ui/builder` 中已稳定的 runtime 入口
 3. `src/core/shortcuts.ts`、`commands.ts`
+
+---
+
+### UI Base Canvas Host 迁移收尾 — 已完成（2026-03-18）
+
+**本轮完成内容：**
+
+- 将 `src/ui/base/ui.canvas.ts` 物理迁入 `packages/canvas-interface/src/ui.canvas.ts`
+- `packages/canvas-interface/src/ui_base.ts` 已改为优先导出 package 内部的 `ui.canvas`
+- 在原 `src/ui/base/ui.canvas.ts` 保留轻量兼容转发层
+- `ui.canvas` 已改为直接依赖 package 内部的 `event_stream / draw / compositor / ui.dispatch / ui.events / ui.element / ui.hit_test`
+
+**当前边界推进情况：**
+
+1. `src/ui/base` 这条主 runtime 链的核心实现已基本落入 `canvas-interface`
+2. 旧 `src/ui/base/*` 现在主要承担兼容桥角色
+3. 下一阶段可以把重点从 `ui/base` 继续转向 `builder runtime` 与剩余通用基础模块
+
+**本轮验证：**
+
+1. `bun x tsc -p tsconfig.json --noEmit` 通过
+2. `bun test src/ui/base/ui.pointer_cancel.test.ts src/ui/base/ui.event_bubble.test.ts src/ui/base/window_manager.test.ts src/platform/web/1px_textbox.test.ts src/platform/web/1px_textarea.test.ts` 通过
+3. `bun test` 219/219 通过
+
+**建议的下一批迁移对象：**
+
+1. `src/ui/builder` 中已稳定的 runtime 入口
+2. `src/core/shortcuts.ts`
+3. `src/core/commands.ts`
