@@ -7,7 +7,7 @@ import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
 import { invalidateAll } from "@tnl/canvas-interface/ui"
 import { formatBytes } from "@tnl/canvas-interface/util"
-import type { DeveloperPanelSpec } from "../index"
+import type { DeveloperPanelSpec } from "@tnl/canvas-interface/developer"
 
 export function createStoragePanel(): DeveloperPanelSpec {
   return {

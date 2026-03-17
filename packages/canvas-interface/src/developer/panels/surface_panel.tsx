@@ -1,8 +1,8 @@
-import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
-import { Button, ListRow, PanelColumn, PanelScroll, PanelSection, PanelToolbar, Spacer, Text, TextBox, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
-import { signal } from "@tnl/canvas-interface/reactivity"
+import { createElement, Fragment } from "../../jsx"
+import { Button, ListRow, PanelColumn, PanelScroll, PanelSection, PanelToolbar, Spacer, Text, TextBox, VStack, defineSurface, mountSurface } from "../../builder"
+import { signal } from "../../reactivity"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
-import type { DebugBlitInfo, DebugLayerInfo } from "@tnl/canvas-interface/ui"
+import type { DebugBlitInfo, DebugLayerInfo } from "../../ui"
 
 export function createSurfacePanel(): DeveloperPanelSpec {
   return {

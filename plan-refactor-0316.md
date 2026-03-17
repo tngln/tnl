@@ -682,3 +682,64 @@ createCanvasApp({
 1. `src/core/event_stream.ts`、`fsm.ts`、`errors.ts`、`debug.ts`
 2. `src/ui/base` 中与浏览器无关的通用 runtime 基础设施
 3. `src/ui/builder` 中已稳定的声明式 surface/runtime 入口
+
+---
+
+### Developer 工具边界收敛 — 进行中（2026-03-17）
+
+**本轮完成内容：**
+
+- 将通用 Developer 面板与工具装配迁入 `packages/canvas-interface/src/developer/`
+  - `Data`
+  - `Control`
+  - `WM`
+  - `Surface`
+  - `Inspector`
+  - `InfoPanel`
+  - `ControlsSurface`
+  - `DeveloperToolsSurface/Window`
+- 新增 `@tnl/canvas-interface/developer` 公开入口
+- `src/ui/windows/developer/index.ts` 改为 app 侧组合层：
+  - 复用 `canvas-interface` 的通用面板
+  - 追加 `Storage`、`Worker`、`Codec` 等业务/平台相关面板
+- `DeveloperContext` 从直接依赖 app 内部类型，收敛为更通用的结构化调试上下文
+
+**当前边界：**
+
+1. 通用 UI/runtime 调试能力归 `canvas-interface`
+2. OPFS、codec probe、worker/runtime 观测等仍留在 `tnl-app`
+3. `Developer` 窗口本身已经变成“通用骨架 + app 扩展面板”的组合模式
+
+**本轮验证：**
+
+1. `bun test` 219/219 通过
+2. `tsc --noEmit` 通过
+
+---
+
+### Core 通用运行时继续迁移 — 已完成（2026-03-18）
+
+**本轮完成内容：**
+
+- 将以下通用核心实现物理迁入 `packages/canvas-interface/src/`
+  - `event_stream.ts`
+  - `fsm.ts`
+  - `errors.ts`
+  - `debug.ts`
+- `packages/canvas-interface/src/ui.ts` 已改为优先导出包内这四个实现，不再继续从 `src/core/*` 转发
+- 在原 `src/core/` 路径保留轻量兼容转发层，保证现有 `src/ui/*`、平台层和测试无需同步大改 import
+- 顺手修复了上一轮 Developer 边界收敛遗留的类型问题：
+  - `DeveloperDockingApi.createContainer` 的可选调用
+  - `Worker` / `Codec` 面板对通用 developer 类型的适配
+
+**本轮结果：**
+
+1. `canvas-interface` 继续承载真实核心运行时实现，而不只是公开转发层
+2. `bun x tsc -p tsconfig.json --noEmit` 通过
+3. `bun test` 219/219 通过
+
+**建议的下一批迁移对象：**
+
+1. `src/ui/base` 中与浏览器宿主无关的通用 runtime 基础设施
+2. `src/ui/builder` 中已经稳定的 surface/runtime 入口
+3. `src/core/shortcuts.ts`、`commands.ts` 等仍然偏通用但尚未迁移的基础模块

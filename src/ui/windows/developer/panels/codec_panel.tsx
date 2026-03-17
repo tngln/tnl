@@ -1,12 +1,11 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { Button, ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
-import type { CodecRuntimeEntry } from "@tnl/app/render"
 import { getDebugLevel } from "@tnl/canvas-interface/ui"
 import { theme } from "@tnl/canvas-interface/theme"
 import { getWebNavigatorInfo, getWebRuntimeFlags } from "@tnl/canvas-interface/browser"
 import { probeCodecConfig } from "@tnl/app/platform"
 import { invalidateAll } from "@tnl/canvas-interface/ui"
-import type { DeveloperContext, DeveloperPanelSpec } from "../index"
+import type { DeveloperCodecEntry, DeveloperContext, DeveloperPanelSpec } from "@tnl/canvas-interface/developer"
 
 type ProbeRow = {
   id: string
@@ -23,7 +22,7 @@ type CodecProbeResult = {
   detail: string
 }
 
-function runtimeInstanceRows(instances: CodecRuntimeEntry[]) {
+function runtimeInstanceRows(instances: DeveloperCodecEntry[]) {
   return instances.map((entry) => {
     const parts = [entry.codec, entry.status]
     if (entry.queueSize !== undefined) parts.push(`q${entry.queueSize}`)

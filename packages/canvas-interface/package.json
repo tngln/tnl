@@ -8,6 +8,7 @@
     "./draw": "./src/draw.ts",
     "./layout": "./src/layout.ts",
     "./ui": "./src/ui.ts",
+    "./developer": "./src/developer.ts",
     "./builder": "./src/builder.ts",
     "./browser": "./src/browser.ts",
     "./theme": "./src/theme.ts",

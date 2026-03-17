@@ -1,39 +1,21 @@
-import type { CodecRuntimeEntry } from "@tnl/app/render"
-import type { WorkerRuntimeEntry } from "@tnl/app/render"
-import type { Rect } from "@tnl/canvas-interface/draw"
-import type { DebugBlitInfo, DebugLayerInfo, DebugTreeNodeSnapshot, Surface, WindowControlApi } from "@tnl/canvas-interface/ui"
-import type { DockingControlApi } from "@/ui/docking/manager"
+import {
+  createControlPanel,
+  createDataPanel,
+  createDeveloperToolsSurface as createBaseDeveloperToolsSurface,
+  createDeveloperToolsWindow as createBaseDeveloperToolsWindow,
+  createInspectorPanel,
+  createSurfacePanel,
+  createWmPanel,
+  DEVELOPER_WINDOW_ID,
+  type DeveloperContext,
+  type DeveloperPanelSpec,
+} from "@tnl/canvas-interface/developer"
 import { createCodecPanel } from "./panels/codec_panel"
-import { createControlPanel } from "./panels/control_panel"
-import { createDataPanel } from "./panels/data_panel"
-import { createInspectorPanel } from "./panels/inspector_panel"
 import { createStoragePanel } from "./panels/storage_panel"
-import { createSurfacePanel } from "./panels/surface_panel"
-import { createWmPanel } from "./panels/wm_panel"
 import { createWorkerPanel } from "./panels/worker_panel"
 
-export type DeveloperContext = {
-  reactivity?: { list?: () => unknown }
-  storage?: { opfs?: FileSystemDirectoryHandle }
-  wm?: WindowControlApi
-  workers?: { info?: () => unknown; list?: () => WorkerRuntimeEntry[] }
-  codecs?: { info?: () => unknown; list?: () => CodecRuntimeEntry[] }
-  surface?: {
-    listLayers?: () => DebugLayerInfo[]
-    listBlits?: () => DebugBlitInfo[]
-    setOverlay?: (rect: Rect | null) => void
-    setPaintFlash?: (on: boolean) => void
-    getPaintFlash?: () => boolean
-  }
-  inspector?: { tree?: () => DebugTreeNodeSnapshot; eval?: (code: string) => unknown }
-  docking?: DockingControlApi
-}
-
-export type DeveloperPanelSpec = {
-  id: string
-  title: string
-  build: (ctx: DeveloperContext) => Surface
-}
+export type { DeveloperContext, DeveloperPanelSpec }
+export { DEVELOPER_WINDOW_ID }
 
 export function defaultDeveloperPanels(): DeveloperPanelSpec[] {
   return [
@@ -46,4 +28,12 @@ export function defaultDeveloperPanels(): DeveloperPanelSpec[] {
     createSurfacePanel(),
     createInspectorPanel(),
   ]
+}
+
+export function createDeveloperToolsSurface(ctx: DeveloperContext = {}) {
+  return createBaseDeveloperToolsSurface(ctx, defaultDeveloperPanels())
+}
+
+export function createDeveloperToolsWindow(ctx: DeveloperContext = {}) {
+  return createBaseDeveloperToolsWindow(ctx, defaultDeveloperPanels())
 }

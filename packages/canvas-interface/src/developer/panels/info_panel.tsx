@@ -1,5 +1,5 @@
-import { createElement } from "@tnl/canvas-interface/jsx"
-import { PanelColumn, PanelScroll, PanelSection, PanelToolbar, RichText, Spacer, Text, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
+import { createElement } from "../../jsx"
+import { PanelColumn, PanelScroll, PanelSection, PanelToolbar, RichText, Spacer, Text, VStack, defineSurface, mountSurface } from "../../builder"
 import type { DeveloperPanelSpec } from "../index"
 
 type InfoPanelSpec = {

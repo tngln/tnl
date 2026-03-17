@@ -1,5 +1,5 @@
-import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
-import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
+import { createElement, Fragment } from "../../jsx"
+import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack, defineSurface, mountSurface } from "../../builder"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 
 export function createWmPanel(): DeveloperPanelSpec {
@@ -17,6 +17,7 @@ const WmPanelSurface = defineSurface({
 
     return ({ ctx }: { ctx: DeveloperContext }) => {
       const windows = ctx.wm?.listWindows() ?? []
+      const createContainer = ctx.docking?.createContainer
       if (selectedId && !windows.some((win) => win.id === selectedId)) selectedId = null
       if (!selectedId && windows.length) selectedId = windows[0].id
 
@@ -54,7 +55,7 @@ const WmPanelSurface = defineSurface({
               { key: "min", icon: "M", text: "Min", title: "Minimize", onClick: selected ? () => ctx.wm?.minimize(selected.id) : undefined, disabled: !selected || !selected.open || selected.minimized },
               { key: "restore", icon: "R", text: "Restore", title: "Restore", onClick: selected ? () => ctx.wm?.restore(selected.id) : undefined, disabled: !selected || !selected.minimized },
               { key: "max", icon: "X", text: "Max", title: "Toggle Maximize", onClick: selected ? () => ctx.wm?.toggleMaximize(selected.id) : undefined, disabled: !selected || !selected.open || selected.minimized || !selected.resizable },
-              { key: "dock", icon: "+", text: "Dock", title: "Create Docking Container", onClick: ctx.docking ? () => ctx.docking?.createContainer() : undefined, disabled: !ctx.docking },
+              { key: "dock", icon: "+", text: "Dock", title: "Create Docking Container", onClick: createContainer ? () => createContainer() : undefined, disabled: !createContainer },
             ]}
           />
           <PanelScroll key="wm.list">

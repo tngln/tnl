@@ -1,5 +1,5 @@
-import { ControlsSurface } from "@/ui/surfaces/controls_surface"
-import { mountSurface } from "@tnl/canvas-interface/builder"
+import { mountSurface } from "../../builder"
+import { ControlsSurface } from "../controls_surface"
 import type { DeveloperPanelSpec } from "../index"
 
 export function createControlPanel(): DeveloperPanelSpec {

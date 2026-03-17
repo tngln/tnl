@@ -1,5 +1,5 @@
-import { listSignals, type DebugSignalRecord } from "../../../core/reactivity"
-import { treeItem, type TreeItem } from "../../builder/surface_builder"
+import { listSignals, type DebugSignalRecord } from "../reactivity"
+import { treeItem, type TreeItem } from "../builder"
 
 function labelForSignal(r: DebugSignalRecord) {
   const name = r.name?.trim()

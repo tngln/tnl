@@ -1,9 +1,8 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
 import { invalidateAll } from "@tnl/canvas-interface/ui"
-import type { WorkerRuntimeEntry } from "@tnl/app/render"
 import { theme } from "@tnl/canvas-interface/theme"
-import type { DeveloperContext, DeveloperPanelSpec } from "../index"
+import type { DeveloperContext, DeveloperPanelSpec, DeveloperWorkerEntry } from "@tnl/canvas-interface/developer"
 
 function formatTime(ms: number | undefined) {
   if (!ms) return "-"
@@ -24,7 +23,7 @@ function formatDuration(ms: number) {
   return d > 0 ? `${d}d ${hh}:${mm}:${ss}` : `${hh}:${mm}:${ss}`
 }
 
-function workerRightText(w: WorkerRuntimeEntry) {
+function workerRightText(w: DeveloperWorkerEntry) {
   const parts: string[] = []
   parts.push(w.status)
   const m = w.metrics
