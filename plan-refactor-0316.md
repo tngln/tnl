@@ -901,3 +901,52 @@ createCanvasApp({
 1. `src/ui/builder` 中已稳定的 runtime 入口
 2. `src/core/shortcuts.ts`
 3. `src/core/commands.ts`
+
+---
+
+### Builder / JSX / Use / Commands 继续迁移 — 已完成（2026-03-18）
+
+**本轮完成内容：**
+
+- 将 `src/ui/builder/` 下除测试辅助外的主实现物理迁入 `packages/canvas-interface/src/builder/`
+  - `surface_builder`
+  - `components`
+  - `runtime`
+  - `engine`
+  - `registry`
+  - `types`
+  - `styles`
+  - `nodes`
+  - `patterns`
+  - `surfaces`
+  - `control`
+  - `draw_controls`
+  - `slider_control`
+  - `rich_text_children`
+  - `widget_registry`
+  - `text`
+  - `utils`
+- 将 `src/ui/jsx.ts` 迁入 `packages/canvas-interface/src/jsx_impl.ts`，`packages/canvas-interface/src/jsx.ts` 改为优先导出 package 内实现
+- 将 `src/ui/use/use_press.ts`、`control_visual.ts` 迁入 `packages/canvas-interface/src/use/`
+- 将 `src/ui/invalidate.ts` 迁入 `packages/canvas-interface/src/invalidate.ts`
+- 将 `src/core/commands.ts`、`shortcuts.ts` 迁入 `packages/canvas-interface/src/`
+- `packages/canvas-interface/src/builder.ts`、`index.ts`、`ui.ts`、`package.json` 已同步切到 package 内公开入口
+- 在原 `src/ui/builder/*`、`src/ui/jsx.ts`、`src/ui/use/*`、`src/ui/invalidate.ts`、`src/core/commands.ts`、`src/core/shortcuts.ts` 保留轻量兼容转发层
+
+**当前边界推进情况：**
+
+1. `canvas-interface` 已承载通用 `core` 主链、`ui/base` 主 runtime、`builder` 主实现、`jsx` 运行时、`usePress`/`control_visual`、`commands`、`shortcuts`
+2. `src/` 中保留的大量同名文件现在主要用于兼容旧 import 路径
+3. 下一阶段可以开始转向剩余通用 widgets 或继续清理 app 对兼容桥的依赖
+
+**本轮验证：**
+
+1. `bun x tsc -p tsconfig.json --noEmit` 通过
+2. `bun test src/core/commands.test.ts src/core/shortcuts.test.ts src/ui/builder/surface_builder.test.ts src/ui/jsx.test.tsx` 通过
+3. `bun test` 219/219 通过
+
+**建议的下一批工作：**
+
+1. 开始迁移 `src/ui/widgets` 中通用 retained widgets 与 descriptors
+2. 逐步把 `src/main.ts`、`src/ui/*` 中仍依赖兼容桥的路径替换为 package 公开入口
+3. 评估是否可以删除第一批已经稳定的兼容桥文件

@@ -1,4 +1,4 @@
-import { invalidateAll } from "../../../src/ui/invalidate"
+import { invalidateAll } from "./invalidate"
 import type { InteractionCancelReason } from "./event_stream"
 import { ZERO_RECT } from "./draw"
 import { Compositor } from "./compositor"

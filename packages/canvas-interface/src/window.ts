@@ -4,7 +4,7 @@ import { createEventStream, pointerDragSession, type InteractionCancelReason } f
 import { batch, signal, type Signal } from "./reactivity"
 import { CursorRegion, pointInRect, type DebugEventListenerSnapshot, PointerUIEvent, UIElement } from "./ui_base"
 import { ViewportElement, type Surface } from "./viewport"
-import { isSurfaceMountSpec, mountSurface, type SurfaceMountSpec } from "@/ui/builder/surface_builder"
+import { isSurfaceMountSpec, mountSurface, type SurfaceMountSpec } from "./builder/surface_builder"
 
 export type WindowSnapshot = {
   id: string

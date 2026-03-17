@@ -1,1 +1,1 @@
-export * from "../../../src/ui/jsx"
+export * from "./jsx_impl"
