@@ -807,3 +807,36 @@ createCanvasApp({
 1. `src/ui/base/top_layer.ts`
 2. `src/ui/base/drag_drop.ts` 与 `drag_drop.overlay.ts`
 3. `src/ui/base/window.ts`、`window_manager.ts`
+
+---
+
+### UI Base Overlay / DragDrop 继续迁移 — 已完成（2026-03-18）
+
+**本轮完成内容：**
+
+- 将以下通用交互基础设施物理迁入 `packages/canvas-interface/src/`
+  - `top_layer.ts`
+  - `drag_drop.ts`
+  - `drag_drop.overlay.ts`
+- `packages/canvas-interface/src/ui.ts` 已改为优先导出 package 内部的 `top_layer` 与 `drag_drop`
+- 在原 `src/ui/base/` 路径保留轻量兼容转发层，确保现有 widgets、docking 与 builder runtime 无需同步大改 import
+- `top_layer` 与 `drag_drop.overlay` 已改为直接依赖 package 内部 `ui_base / draw`
+- `drag_drop` 已改为直接依赖 package 内部 `event_stream / ui_base`
+
+**当前边界推进情况：**
+
+1. `canvas-interface` 已承载 UI 事件、元素树、hit-test、viewport、compositor、top-layer、drag-drop 这条主交互/runtime 骨架
+2. `window.ts`、`window_manager.ts` 仍暂留在 `src/ui/base`
+3. `ui.canvas` 仍留在旧位置，但消费的核心 runtime 已大部分切到 package 内实现
+
+**本轮验证：**
+
+1. `bun x tsc -p tsconfig.json --noEmit` 通过
+2. `bun test src/ui/base/drag_drop.test.ts src/ui/widgets/menu.test.ts src/ui/widgets/dropdown.test.ts src/ui/docking/manager.test.ts src/ui/docking/workspace_surface.test.ts` 通过
+3. `bun test` 219/219 通过
+
+**建议的下一批迁移对象：**
+
+1. `src/ui/base/window.ts`
+2. `src/ui/base/window_manager.ts`
+3. `src/ui/base/ui.canvas.ts`
