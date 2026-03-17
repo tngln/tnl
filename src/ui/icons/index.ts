@@ -1,4 +1,1 @@
-export * from "./types"
-export * from "./render"
-export * from "./set"
-
+export * from "../../../packages/canvas-interface/src/icons/index"

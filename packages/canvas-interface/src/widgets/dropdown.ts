@@ -1,0 +1,197 @@
+import { font, theme, neutral } from "../theme"
+import { draw, RectOp, TextOp, truncateToWidth, toGetter, type Rect, ZERO_RECT } from "../draw"
+import { signal, type Signal } from "../reactivity"
+import { PointerUIEvent } from "../ui_base"
+import type { TopLayerController } from "../top_layer"
+import { useClickOutsideHandler } from "../top_layer"
+import type { WidgetDescriptor } from "../builder/widget_registry"
+import { caretDownIcon, iconToShape } from "../icons"
+import { DropdownMenu, DROPDOWN_MENU_ROW_HEIGHT } from "./dropdown_menu"
+import { InteractiveElement } from "./interactive"
+
+export type DropdownOption = { value: string; label: string }
+
+export class Dropdown extends InteractiveElement {
+  private idValue: string = ""
+  private optionsValue: DropdownOption[] = []
+  private selected: any
+  private topLayer?: TopLayerController
+
+  private menu: DropdownMenu | null = null
+  private menuRectCache: Rect = ZERO_RECT
+  private dismissCleanup: (() => void) | null = null
+
+  constructor(opts: {
+    id: string
+    rect: () => Rect
+    options: DropdownOption[] | (() => DropdownOption[])
+    selected: any
+    topLayer?: TopLayerController
+    active?: () => boolean
+    disabled?: () => boolean
+  }) {
+    super(opts)
+    this.selected = opts.selected
+    this.update(opts)
+
+    this.on("blur", () => {
+      this.closeMenu()
+    })
+
+    this.on("pointerdown", (e: PointerUIEvent) => {
+      if (!this.interactive() || e.button !== 0) return
+      e.requestFocus(this)
+    })
+  }
+
+  update(opts: { id: string; options: DropdownOption[] | (() => DropdownOption[]); selected: any; topLayer?: TopLayerController }) {
+    this.idValue = opts.id
+    this.optionsValue = typeof opts.options === "function" ? opts.options() : opts.options
+    this.selected = opts.selected
+    if (opts.topLayer) this.topLayer = opts.topLayer
+  }
+
+  private mainRect() {
+    return this._rect()
+  }
+
+  canFocus() {
+    return this.interactive()
+  }
+
+  private closeMenu() {
+    this.dismissCleanup?.()
+    this.dismissCleanup = null
+  }
+
+  private menuId() {
+    return `dropdown:${this.idValue}`
+  }
+
+  private computeMenuRect() {
+    const r = this.mainRect()
+    const options = this.optionsValue
+    const h = Math.max(0, options.length * DROPDOWN_MENU_ROW_HEIGHT)
+    return { x: r.x, y: r.y + r.h + 2, w: r.w, h }
+  }
+
+  protected onActivate() {
+    if (!this.topLayer) return
+    if (this.topLayer.isOpen(this.menuId())) {
+      this.closeMenu()
+      return
+    }
+    this.menuRectCache = this.computeMenuRect()
+    if (!this.menu) {
+      this.menu = new DropdownMenu({
+        rect: () => this.menuRectCache,
+        options: () => this.optionsValue,
+        selected: this.selected,
+        onSelect: (value) => {
+          this.selected.set(value)
+          this.closeMenu()
+        },
+        onDismiss: () => this.closeMenu(),
+      })
+    }
+    this.dismissCleanup = useClickOutsideHandler({
+      id: this.menuId(),
+      element: this.menu,
+      topLayer: this.topLayer,
+      onDismiss: () => this.closeMenu(),
+    })
+  }
+
+  onRuntimeDeactivate() {
+    this.closeMenu()
+  }
+
+  protected onDraw(ctx: CanvasRenderingContext2D) {
+    if (!this._active()) return
+    const r = this.mainRect()
+    const disabled = this._disabled()
+    const pressed = this.pressed()
+    const bg = disabled
+      ? theme.colors.disabled
+      : pressed
+        ? theme.colors.pressed
+        : this.hover
+          ? theme.colors.hover
+          : "transparent"
+    const stroke = disabled ? neutral[400] : theme.colors.border
+    const textColor = disabled ? theme.colors.textMuted : theme.colors.text
+    const f = font(theme, theme.typography.body)
+
+    const options = this.optionsValue
+    const current = options.find((o) => o.value === this.selected.peek())
+    const label = current ? current.label : ""
+
+    ctx.save()
+    ctx.font = f
+    const labelMax = Math.max(0, r.w - 28)
+    const display = truncateToWidth(ctx, label, labelMax)
+    ctx.restore()
+
+    draw(
+      ctx,
+      RectOp(
+        { x: r.x, y: r.y, w: r.w, h: r.h },
+        { radius: theme.radii.sm, fill: { paint: bg }, stroke: { color: stroke, hairline: true } },
+      ),
+      TextOp({
+        x: r.x + theme.ui.controls.labelPadX,
+        y: r.y + r.h / 2 + 0.5,
+        text: display,
+        style: { color: textColor, font: f, baseline: "middle" },
+      }),
+      iconToShape(
+        caretDownIcon,
+        {
+          x: r.x + r.w - theme.ui.controls.caretPadX - 5,
+          y: r.y + r.h / 2 - 5,
+          w: 10,
+          h: 10,
+        },
+        { paint: theme.colors.textMuted },
+      ),
+    )
+
+    if (this.topLayer?.isOpen(this.menuId())) this.menuRectCache = this.computeMenuRect()
+  }
+}
+
+type DropdownState = {
+  widget: Dropdown
+  id: string
+  rect: Rect
+  active: boolean
+  disabled: boolean
+}
+
+export const dropdownDescriptor: WidgetDescriptor<DropdownState, { options: DropdownOption[]; selected: Signal<string>; disabled?: boolean; topLayer?: TopLayerController }> = {
+  id: "dropdown",
+  create: (id) => {
+    const state = { id, rect: ZERO_RECT, active: false, disabled: false } as DropdownState
+    state.widget = new Dropdown({
+      id,
+      rect: () => state.rect,
+      options: [],
+      selected: signal(""),
+      active: () => state.active,
+      disabled: () => state.disabled,
+    })
+    return state
+  },
+  getWidget: (state) => state.widget,
+  mount: (state, props, rect, active) => {
+    state.rect = rect
+    state.active = active
+    state.disabled = props.disabled ?? false
+    state.widget.update({
+      id: state.id,
+      options: props.options,
+      selected: props.selected,
+      topLayer: props.topLayer,
+    })
+  },
+}

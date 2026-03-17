@@ -950,3 +950,52 @@ createCanvasApp({
 1. 开始迁移 `src/ui/widgets` 中通用 retained widgets 与 descriptors
 2. 逐步把 `src/main.ts`、`src/ui/*` 中仍依赖兼容桥的路径替换为 package 公开入口
 3. 评估是否可以删除第一批已经稳定的兼容桥文件
+
+---
+
+### Widgets / Icons 继续迁移 — 已完成（2026-03-18）
+
+**本轮完成内容：**
+
+- 将 `src/ui/widgets/` 下通用 retained widgets 主实现物理迁入 `packages/canvas-interface/src/widgets/`
+  - `dropdown`
+  - `dropdown_menu`
+  - `floating`
+  - `interactive`
+  - `label`
+  - `menu`
+  - `menu_bar`
+  - `menu_stack`
+  - `paragraph`
+  - `rich_text_selectable`
+  - `scroll_area`
+  - `scrollbar`
+  - `textbox`
+  - `tree_row`
+  - `index`
+- 将 `src/ui/icons/` 下主实现物理迁入 `packages/canvas-interface/src/icons/`
+  - `types`
+  - `render`
+  - `set`
+  - `index`
+- 新增 `packages/canvas-interface/src/icons.ts` 与 `widgets.ts` 聚合入口
+- `packages/canvas-interface/src/ui.ts` 与 `packages/canvas-interface/package.json` 已改为优先导出 package 内部的 `icons/widgets`
+- 在原 `src/ui/widgets/*` 与 `src/ui/icons/*` 路径保留轻量兼容转发层，保证现有测试与调用方无需同步大改 import
+
+**当前边界推进情况：**
+
+1. `canvas-interface` 已承载通用 `core`、`ui/base`、`builder/jsx/use`、`icons`、`widgets` 主实现
+2. `src/` 中这批同名文件现在主要承担兼容桥角色
+3. 接下来更值得做的是清理 app 侧和测试侧对兼容桥的依赖，而不是继续搬迁同一层级的实现文件
+
+**本轮验证：**
+
+1. `bun x tsc -p tsconfig.json --noEmit` 通过
+2. `bun test src/ui/widgets/dropdown.test.ts src/ui/widgets/menu.test.ts src/ui/widgets/menu_bar.test.ts src/ui/widgets/scrollbar.test.ts src/ui/widgets/textbox.test.ts src/ui/widgets/tree_row.test.ts` 通过
+3. `bun test` 219/219 通过
+
+**建议的下一批工作：**
+
+1. 逐步把 `src/main.ts`、`src/ui/*`、`src/platform/*` 中仍指向兼容桥的 import 改到 package 公开入口
+2. 挑第一批稳定兼容桥开始删除
+3. 补 `canvas-interface` 最小 demo / examples，开始满足 Phase 1 剩余验收项
