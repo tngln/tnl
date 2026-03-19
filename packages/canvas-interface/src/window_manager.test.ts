@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { theme } from "../../config/theme"
+import { theme } from "@tnl/canvas-interface/theme"
 import { PointerUIEvent, Root, SurfaceWindow, WindowManager } from "@tnl/canvas-interface/ui"
 
 function makeWindow(id: string, title = id) {
