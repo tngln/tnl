@@ -1,7 +1,9 @@
 import type { Signal } from "../reactivity"
 import type { RichTextSpan, RichTextStyle, TextEmphasis } from "../draw"
+import type { IconDef } from "../icons"
 import type { LayoutNode, LayoutStyle } from "../layout"
 import type { Surface } from "../viewport"
+import type { VisualAppearance, VisualImageSource, VisualStyleInput } from "./visual"
 
 export type BoxStyle = {
   fill?: string
@@ -64,6 +66,10 @@ export type ButtonNode = NodeBase & {
   kind: "button"
   text: string
   title?: string
+  appearance?: VisualAppearance
+  visualStyle?: VisualStyleInput
+  leadingIcon?: VisualImageSource | IconDef | string
+  trailingIcon?: VisualImageSource | IconDef | string
   onClick?: () => void
   disabled?: boolean
 }
@@ -78,6 +84,8 @@ export type CheckboxNode = NodeBase & {
   kind: "checkbox"
   label: string
   checked: Signal<boolean>
+  appearance?: VisualAppearance
+  visualStyle?: VisualStyleInput
   disabled?: boolean
 }
 
@@ -93,6 +101,8 @@ export type RadioNode = NodeBase & {
   label: string
   value: string
   selected: Signal<string>
+  appearance?: VisualAppearance
+  visualStyle?: VisualStyleInput
   disabled?: boolean
 }
 
@@ -112,6 +122,8 @@ export type RowNode = NodeBase & {
   indent?: number
   variant?: RowVariant
   selected?: boolean
+  appearance?: VisualAppearance
+  visualStyle?: VisualStyleInput
   onClick?: () => void
   onDoubleClick?: () => void
 }
@@ -149,6 +161,8 @@ export type SliderNode = NodeBase & {
   min: number
   max: number
   value: number
+  appearance?: VisualAppearance
+  visualStyle?: VisualStyleInput
   onChange?: (next: number) => void
   disabled?: boolean
 }

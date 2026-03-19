@@ -9,13 +9,14 @@ import { scrollbarDescriptor } from "../widgets/scrollbar"
 import { textBoxDescriptor } from "../widgets/textbox"
 import { TREE_ROW_HEIGHT, treeRowDescriptor } from "../widgets/tree_row"
 import { textFont } from "./text"
-import { drawButton, drawCheckbox, drawListRow, drawRadio } from "./draw_controls"
+import { buildButtonVisual, buildCheckboxVisual, buildListRowVisual, buildRadioVisual, drawButton, drawCheckbox, drawListRow, drawRadio } from "./draw_controls"
 import { drawSlider, resolveSliderValueFromPointer } from "./slider_control"
 import { inheritedTextToRichTextStyle, resolveTextColor, resolveTextEmphasis, resolveTextStyle } from "./styles"
 import type { BuilderEngine } from "./engine"
 import type { ControlMountOpts } from "./runtime"
 import type { AstNode, BuilderNode, BuilderNodeRuntimeKind, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, DropdownNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, SpacerNode, TextBoxNode, TextNode, TreeViewNode } from "./types"
 import { flattenTreeItems } from "./runtime"
+import { measureVisualNode } from "./visual"
 import { widgetRegistry } from "./widget_registry"
 
 widgetRegistry.register(dropdownDescriptor)
@@ -181,18 +182,14 @@ const richTextHandler = primitiveHandler<RichTextNode>({
 
 const buttonHandler = controlHandler<ButtonNode>({
   kind: "button",
-  measure: (_engine, ctx, node, max) => {
-    const w = measureTextWidth(ctx, node.text, textFont({
-      fontFamily: theme.typography.family,
-      fontSize: theme.typography.body.size,
-      fontWeight: theme.typography.body.weight,
-      lineHeight: theme.spacing.lg,
-    }))
-    return { w: Math.min(max.w, w + 28), h: theme.ui.controls.buttonHeight }
-  },
+  measure: (_engine, ctx, node, max) =>
+    measureVisualNode(ctx, buildButtonVisual({ text: node.text, title: node.title, appearance: node.appearance, visualStyle: node.visualStyle, leadingIcon: node.leadingIcon, trailingIcon: node.trailingIcon }, { hover: false, pressed: false, dragging: false, disabled: !!node.disabled }, !!node.disabled), max, {
+      state: { hover: false, pressed: false, dragging: false, disabled: !!node.disabled },
+      disabled: node.disabled,
+    }),
   mountControl: (_engine, _ctx, node) => ({
       disabled: node.disabled ?? false,
-      draw: (ctx, r, state) => drawButton(ctx, r, { text: node.text, title: node.title }, state),
+      draw: (ctx, r, state) => drawButton(ctx, r, { text: node.text, title: node.title, appearance: node.appearance, visualStyle: node.visualStyle, leadingIcon: node.leadingIcon, trailingIcon: node.trailingIcon }, state, node.disabled ?? false),
       onClick: node.onClick,
     }),
 })
@@ -209,18 +206,19 @@ const clickAreaHandler = controlHandler<ClickAreaNode>({
 
 const checkboxHandler = controlHandler<CheckboxNode>({
   kind: "checkbox",
-  measure: (_engine, ctx, node, max) => {
-    const w = measureTextWidth(ctx, node.label, textFont({
-      fontFamily: theme.typography.family,
-      fontSize: theme.typography.body.size,
-      fontWeight: theme.typography.body.weight,
-      lineHeight: theme.spacing.lg,
-    }))
-    return { w: Math.min(max.w, w + 28), h: theme.ui.controls.choiceHeight }
-  },
+  measure: (_engine, ctx, node, max) =>
+    measureVisualNode(ctx, buildCheckboxVisual({ label: node.label, checked: node.checked.peek(), appearance: node.appearance, visualStyle: node.visualStyle }, {
+      state: { hover: false, pressed: false, dragging: false, disabled: !!node.disabled },
+      disabled: node.disabled,
+      checked: node.checked.peek(),
+    }), max, {
+      state: { hover: false, pressed: false, dragging: false, disabled: !!node.disabled },
+      disabled: node.disabled,
+      checked: node.checked.peek(),
+    }),
   mountControl: (_engine, _ctx, node) => ({
       disabled: node.disabled ?? false,
-      draw: (ctx, r, state) => drawCheckbox(ctx, r, { label: node.label, checked: node.checked.peek() }, state),
+      draw: (ctx, r, state) => drawCheckbox(ctx, r, { label: node.label, checked: node.checked.peek(), appearance: node.appearance, visualStyle: node.visualStyle }, state, node.disabled ?? false),
       onClick: () => node.checked.set((v) => !v),
     }),
 })
@@ -244,18 +242,19 @@ const dropdownHandler = widgetHandler<DropdownNode, { options: DropdownNode["opt
 
 const radioHandler = controlHandler<RadioNode>({
   kind: "radio",
-  measure: (_engine, ctx, node, max) => {
-    const w = measureTextWidth(ctx, node.label, textFont({
-      fontFamily: theme.typography.family,
-      fontSize: theme.typography.body.size,
-      fontWeight: theme.typography.body.weight,
-      lineHeight: theme.spacing.lg,
-    }))
-    return { w: Math.min(max.w, w + 28), h: theme.ui.controls.choiceHeight }
-  },
+  measure: (_engine, ctx, node, max) =>
+    measureVisualNode(ctx, buildRadioVisual({ label: node.label, value: node.value, selected: node.selected.peek(), appearance: node.appearance, visualStyle: node.visualStyle }, {
+      state: { hover: false, pressed: false, dragging: false, disabled: !!node.disabled },
+      disabled: node.disabled,
+      checked: node.selected.peek() === node.value,
+    }), max, {
+      state: { hover: false, pressed: false, dragging: false, disabled: !!node.disabled },
+      disabled: node.disabled,
+      checked: node.selected.peek() === node.value,
+    }),
   mountControl: (_engine, _ctx, node) => ({
       disabled: node.disabled ?? false,
-      draw: (ctx, r, state) => drawRadio(ctx, r, { label: node.label, value: node.value, selected: node.selected.peek() }, state),
+      draw: (ctx, r, state) => drawRadio(ctx, r, { label: node.label, value: node.value, selected: node.selected.peek(), appearance: node.appearance, visualStyle: node.visualStyle }, state, node.disabled ?? false),
       onClick: () => node.selected.set(node.value),
     }),
 })
@@ -278,9 +277,26 @@ const textBoxHandler = widgetHandler<TextBoxNode, TextBoxNode>({
 
 const rowItemHandler = controlHandler<RowNode>({
   kind: "listRow",
-  measure: (_engine, _ctx, _node, max) => ({ w: max.w, h: theme.ui.controls.rowHeight }),
+  measure: (_engine, ctx, node, max) => {
+    const measured = measureVisualNode(ctx, buildListRowVisual({
+      leftText: node.leftText,
+      rightText: node.rightText,
+      indent: node.indent,
+      variant: node.variant,
+      selected: node.selected,
+      appearance: node.appearance,
+      visualStyle: node.visualStyle,
+    }, {
+      state: { hover: false, pressed: false, dragging: false, disabled: false },
+      selected: node.selected,
+    }), max, {
+      state: { hover: false, pressed: false, dragging: false, disabled: false },
+      selected: node.selected,
+    })
+    return { w: max.w, h: Math.max(theme.ui.controls.rowHeight, measured.h) }
+  },
   mountControl: (_engine, _ctx, node) => ({
-      draw: (ctx, r, state) => drawListRow(ctx, r, { leftText: node.leftText, rightText: node.rightText, indent: node.indent, variant: node.variant, selected: node.selected }, state),
+      draw: (ctx, r, state) => drawListRow(ctx, r, { leftText: node.leftText, rightText: node.rightText, indent: node.indent, variant: node.variant, selected: node.selected, appearance: node.appearance, visualStyle: node.visualStyle }, state),
       onClick: node.onClick,
       onDoubleClick: node.onDoubleClick,
     }),
@@ -322,26 +338,28 @@ const paintHandler = primitiveHandler<PaintNode>({
 
 const sliderHandler = controlHandler<SliderNode>({
   kind: "slider",
-  measure: (_engine, _ctx, _node, max) => ({ w: max.w, h: 20 }),
+  measure: (_engine, ctx, node, max) => {
+    return { w: max.w, h: 20 }
+  },
   mountControl: (_engine, _ctx, node, ast) => {
     const rect = ast.rect ?? ZERO_RECT
     return {
       disabled: node.disabled ?? false,
-      draw: (ctx, nextRect, state) => drawSlider(ctx, nextRect, { min: node.min, max: node.max, value: node.value }, state),
+      draw: (ctx, nextRect, state) => drawSlider(ctx, nextRect, { min: node.min, max: node.max, value: node.value, appearance: node.appearance, visualStyle: node.visualStyle }, state),
       onPointerDown: (e) => {
         if (!node.onChange) return
-        node.onChange(resolveSliderValueFromPointer(rect, { min: node.min, max: node.max, value: node.value }, { x: e.x, y: e.y }))
+        node.onChange(resolveSliderValueFromPointer(rect, { min: node.min, max: node.max, value: node.value, appearance: node.appearance, visualStyle: node.visualStyle }, { x: e.x, y: e.y }))
         e.capture()
         e.handle()
       },
       onPointerMove: (e) => {
         if (!node.onChange) return
-        node.onChange(resolveSliderValueFromPointer(rect, { min: node.min, max: node.max, value: node.value }, { x: e.x, y: e.y }))
+        node.onChange(resolveSliderValueFromPointer(rect, { min: node.min, max: node.max, value: node.value, appearance: node.appearance, visualStyle: node.visualStyle }, { x: e.x, y: e.y }))
         e.handle()
       },
       onPointerUp: (e) => {
         if (!node.onChange) return
-        node.onChange(resolveSliderValueFromPointer(rect, { min: node.min, max: node.max, value: node.value }, { x: e.x, y: e.y }))
+        node.onChange(resolveSliderValueFromPointer(rect, { min: node.min, max: node.max, value: node.value, appearance: node.appearance, visualStyle: node.visualStyle }, { x: e.x, y: e.y }))
         e.handle()
       },
     }

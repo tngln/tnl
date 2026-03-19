@@ -1,6 +1,7 @@
-import { theme, neutral } from "../theme"
-import { draw, LineOp, RectOp, clamp, type Rect, type Vec2 } from "../draw"
+import { clamp, type Rect, type Vec2 } from "../draw"
 import type { ControlState } from "./control"
+import { drawSliderVisual } from "./draw_controls"
+import type { VisualAppearance, VisualStyleInput } from "./visual"
 
 export type SliderAxis = "x" | "y"
 
@@ -11,6 +12,8 @@ export type SliderControlProps = {
   value: number
   thumbSize?: number
   trackThickness?: number
+  appearance?: VisualAppearance
+  visualStyle?: VisualStyleInput
 }
 
 function resolveThumbSize(props: SliderControlProps) {
@@ -61,44 +64,5 @@ export function resolveSliderValueFromPointer(rect: Rect, props: SliderControlPr
 }
 
 export function drawSlider(ctx: CanvasRenderingContext2D, rect: Rect, props: SliderControlProps, state: ControlState) {
-  const thumb = resolveSliderThumbRect(rect, props)
-  const axis = resolveAxis(props)
-  const thumbSize = resolveThumbSize(props)
-  const trackThickness = resolveTrackThickness(props)
-  const dragging = !!state.dragging
-  const trackColor = state.disabled
-    ? neutral[500]
-    : dragging
-      ? neutral[200]
-      : state.hover
-        ? neutral[300]
-        : neutral[400]
-  const fillColor = state.disabled ? theme.colors.sliderDim : theme.colors.slider
-  const thumbColor = state.disabled
-    ? theme.colors.disabled
-    : dragging
-      ? theme.colors.pressed
-      : state.hover
-        ? theme.colors.hover
-        : theme.colors.active
-  const thumbStroke = state.disabled ? neutral[400] : neutral[700]
-
-  if (axis === "y") {
-    const x = rect.x + rect.w / 2
-    draw(
-      ctx,
-      LineOp({ x, y: rect.y + thumbSize / 2 }, { x, y: rect.y + rect.h - thumbSize / 2 }, { color: trackColor, width: trackThickness }),
-      LineOp({ x, y: thumb.y + thumb.h / 2 }, { x, y: rect.y + rect.h - thumbSize / 2 }, { color: fillColor, width: trackThickness }),
-      RectOp({ x: thumb.x, y: thumb.y, w: thumb.w, h: thumb.h }, { radius: Math.min(theme.radii.sm, thumb.w / 2), fill: { paint: thumbColor }, stroke: { color: thumbStroke, hairline: true } }),
-    )
-    return
-  }
-
-  const y = rect.y + rect.h / 2
-  draw(
-    ctx,
-    LineOp({ x: rect.x + thumbSize / 2, y }, { x: rect.x + rect.w - thumbSize / 2, y }, { color: trackColor, width: trackThickness }),
-    LineOp({ x: rect.x + thumbSize / 2, y }, { x: thumb.x + thumb.w / 2, y }, { color: fillColor, width: trackThickness }),
-    RectOp({ x: thumb.x, y: thumb.y, w: thumb.w, h: thumb.h }, { radius: Math.min(theme.radii.sm, thumb.h / 2), fill: { paint: thumbColor }, stroke: { color: thumbStroke, hairline: true } }),
-  )
+  drawSliderVisual(ctx, rect, props, state, state.disabled)
 }

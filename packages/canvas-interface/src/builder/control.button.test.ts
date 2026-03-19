@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test"
 import { ControlElement } from "@tnl/canvas-interface/builder"
 import { PointerUIEvent } from "@tnl/canvas-interface/ui"
+import { drawButton } from "./draw_controls"
+import { fakeCtx } from "./test_utils"
 
 function pointer() {
   return new PointerUIEvent({
@@ -79,5 +81,20 @@ describe("button", () => {
     button.emit("pointerleave")
 
     expect(invalidations).toBe(2)
+  })
+
+  it("renders button appearance tokens and leading icon through visual fragments", () => {
+    const ctx = fakeCtx() as CanvasRenderingContext2D & { calls: Array<{ op: string; args: any[] }> }
+    drawButton(
+      ctx,
+      { x: 0, y: 0, w: 120, h: 32 },
+      { text: "Run", appearance: ["stroke-none", "shadow-window"], leadingIcon: "+" },
+      { hover: false, pressed: false, dragging: false, disabled: false },
+    )
+
+    const fillTextCalls = ctx.calls.filter((call) => call.op === "fillText")
+    expect(fillTextCalls.map((call) => call.args[0])).toContain("+")
+    expect(fillTextCalls.map((call) => call.args[0])).toContain("Run")
+    expect(ctx.calls.some((call) => call.op === "strokeRect")).toBe(false)
   })
 })
