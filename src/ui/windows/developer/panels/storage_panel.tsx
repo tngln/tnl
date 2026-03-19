@@ -3,11 +3,12 @@ import { openOpfs, type OpfsEntryV1 } from "@tnl/app/platform"
 import { showAlert, showConfirm, showPrompt } from "@tnl/app/platform"
 import { downloadBlob, pickFiles } from "@tnl/app/platform"
 import { buildAcceptString } from "@tnl/app/platform"
-import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
+import { createElement } from "@tnl/canvas-interface/jsx"
 import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
 import { invalidateAll } from "@tnl/canvas-interface/ui"
 import { formatBytes } from "@tnl/canvas-interface/util"
 import type { DeveloperPanelSpec } from "@tnl/canvas-interface/developer"
+import { createAsyncJobState } from "@/ui/async_state"
 
 export function createStoragePanel(): DeveloperPanelSpec {
   return {
@@ -28,46 +29,51 @@ function formatUsageText(usage: { entries: number; bytes: number; quota?: number
   return parts.join(" · ")
 }
 
+type StorageSnapshot = {
+  entries: OpfsEntryV1[]
+  usage: { entries: number; bytes: number; quota?: number; usage?: number }
+  selectedPath: string | null
+}
+
 export const StoragePanelSurface = defineSurface({
   id: "Developer.Storage.Surface",
   setup: () => {
     let fsPromise: ReturnType<typeof openOpfs> | null = null
-    let opSeq = 0
     let initialized = false
 
     let entries: OpfsEntryV1[] = []
     let usage: { entries: number; bytes: number; quota?: number; usage?: number } = { entries: 0, bytes: 0 }
-    let error: string | null = null
-    let busy = false
     let prefix: string | null = null
     let selectedPath: string | null = null
+    const asyncState = createAsyncJobState({ invalidate: invalidateAll })
 
     const ensureFs = async () => {
       if (!fsPromise) fsPromise = openOpfs()
       return await fsPromise
     }
 
-    const refresh = async () => {
-      const seq = ++opSeq
-      busy = true
-      error = null
-      invalidateAll()
-      try {
-        const fs = await ensureFs()
-        const nextEntries = await fs.list(prefix ?? undefined)
-        const nextUsage = await fs.getUsage()
-        if (seq !== opSeq) return
-        entries = nextEntries.sort((a, b) => b.size - a.size || a.path.localeCompare(b.path))
-        usage = nextUsage
-        if (selectedPath && !entries.some((e) => e.path === selectedPath)) selectedPath = null
-      } catch (e) {
-        if (seq !== opSeq) return
-        error = e instanceof Error ? e.message : String(e)
-      } finally {
-        if (seq !== opSeq) return
-        busy = false
-        invalidateAll()
+    const loadSnapshot = async (nextPrefix: string | null, nextSelectedPath: string | null): Promise<StorageSnapshot> => {
+      const fs = await ensureFs()
+      const [rawEntries, nextUsage] = await Promise.all([fs.list(nextPrefix ?? undefined), fs.getUsage()])
+      const nextEntries = rawEntries.sort((a, b) => b.size - a.size || a.path.localeCompare(b.path))
+      return {
+        entries: nextEntries,
+        usage: nextUsage,
+        selectedPath: nextSelectedPath && nextEntries.some((entry) => entry.path === nextSelectedPath) ? nextSelectedPath : null,
       }
+    }
+
+    const applySnapshot = (snapshot: StorageSnapshot) => {
+      entries = snapshot.entries
+      usage = snapshot.usage
+      selectedPath = snapshot.selectedPath
+    }
+
+    const refresh = async () => {
+      await asyncState.runLatest(async (run) => {
+        const snapshot = await loadSnapshot(prefix, selectedPath)
+        run.commit(() => applySnapshot(snapshot))
+      })
     }
 
     const upload = async () => {
@@ -78,68 +84,36 @@ export const StoragePanelSurface = defineSurface({
       })
       if (!files.length) return
       const nextPrefix = (prefix ?? "uploads").trim() || "uploads"
-      const seq = ++opSeq
-      busy = true
-      invalidateAll()
-      try {
+      await asyncState.runLatest(async (run) => {
         const fs = await ensureFs()
         for (const file of files) {
           await fs.writeFile(`${nextPrefix}/${file.name}`, file, { type: file.type || "application/octet-stream" })
         }
-        if (seq !== opSeq) return
-        await refresh()
-      } catch (e) {
-        if (seq !== opSeq) return
-        error = e instanceof Error ? e.message : String(e)
-      } finally {
-        if (seq !== opSeq) return
-        busy = false
-        invalidateAll()
-      }
+        const snapshot = await loadSnapshot(prefix, selectedPath)
+        run.commit(() => applySnapshot(snapshot))
+      })
     }
 
     const downloadSelected = async () => {
       const path = selectedPath
       if (!path) return
-      const seq = ++opSeq
-      busy = true
-      invalidateAll()
-      try {
+      await asyncState.run(async () => {
         const fs = await ensureFs()
         const blob = await fs.readFile(path)
-        if (seq !== opSeq) return
         downloadBlob(blob, path.split("/").pop() ?? "download")
-      } catch (e) {
-        if (seq !== opSeq) return
-        error = e instanceof Error ? e.message : String(e)
-      } finally {
-        if (seq !== opSeq) return
-        busy = false
-        invalidateAll()
-      }
+      })
     }
 
     const deleteSelected = async () => {
       const path = selectedPath
       if (!path) return
       if (!showConfirm(`Delete ${path}?`)) return
-      const seq = ++opSeq
-      busy = true
-      invalidateAll()
-      try {
+      await asyncState.runLatest(async (run) => {
         const fs = await ensureFs()
         await fs.delete(path)
-        if (seq !== opSeq) return
-        selectedPath = null
-        await refresh()
-      } catch (e) {
-        if (seq !== opSeq) return
-        error = e instanceof Error ? e.message : String(e)
-      } finally {
-        if (seq !== opSeq) return
-        busy = false
-        invalidateAll()
-      }
+        const snapshot = await loadSnapshot(prefix, null)
+        run.commit(() => applySnapshot(snapshot))
+      })
     }
 
     const editSelectedMeta = async () => {
@@ -161,31 +135,26 @@ export const StoragePanelSurface = defineSurface({
         return
       }
 
-      const seq = ++opSeq
-      busy = true
-      invalidateAll()
-      try {
+      await asyncState.runLatest(async (run) => {
         const fs = await ensureFs()
         await fs.updateMeta(path, { type: type.trim() || current?.type, extras })
-        if (seq !== opSeq) return
-        await refresh()
-      } catch (e) {
-        if (seq !== opSeq) return
-        error = e instanceof Error ? e.message : String(e)
-      } finally {
-        if (seq !== opSeq) return
-        busy = false
-        invalidateAll()
-      }
+        const snapshot = await loadSnapshot(prefix, path)
+        run.commit(() => applySnapshot(snapshot))
+      })
     }
 
-    const setPrefix = () => {
+    const setPrefix = async () => {
       const next = showPrompt("prefix (optional)", prefix ?? "")
       if (next === null) return
       const value = next.trim()
-      prefix = value ? value : null
-      selectedPath = null
-      void refresh()
+      const nextPrefix = value ? value : null
+      await asyncState.runLatest(async (run) => {
+        const snapshot = await loadSnapshot(nextPrefix, null)
+        run.commit(() => {
+          prefix = nextPrefix
+          applySnapshot(snapshot)
+        })
+      })
     }
 
     return () => {
@@ -194,6 +163,8 @@ export const StoragePanelSurface = defineSurface({
         void refresh()
       }
 
+      const busy = asyncState.busy()
+      const error = asyncState.error()
       const selected = selectedPath !== null
       const statusText = busy ? "Working..." : error ? error : formatUsageText(usage)
       const statusColor = error ? theme.colors.danger : theme.colors.textMuted
@@ -213,7 +184,7 @@ export const StoragePanelSurface = defineSurface({
               { key: "download", icon: "D", text: "Download", title: "Download", onClick: () => void downloadSelected(), disabled: !selected },
               { key: "delete", icon: "X", text: "Delete", title: "Delete", onClick: () => void deleteSelected(), disabled: !selected },
               { key: "edit", icon: "M", text: "Edit Meta", title: "Edit Meta", onClick: () => void editSelectedMeta(), disabled: !selected },
-              { key: "prefix", icon: "P", text: prefix ? "Prefix*" : "Prefix", title: prefix ? `Prefix: ${prefix}` : "Set Prefix", onClick: setPrefix },
+              { key: "prefix", icon: "P", text: prefix ? "Prefix*" : "Prefix", title: prefix ? `Prefix: ${prefix}` : "Set Prefix", onClick: () => void setPrefix() },
             ]}
           />
           <PanelScroll key="storage.list">

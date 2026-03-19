@@ -10,6 +10,7 @@ import type { Surface } from "@tnl/canvas-interface/ui"
 import { Button, ClickArea, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelToolbar, Spacer, Stack, Text, TextBox, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
 import { invalidateAll } from "@tnl/canvas-interface/ui"
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
+import { createAsyncJobState } from "@/ui/async_state"
 
 export const EXPLORER_WINDOW_ID = "Explorer"
 
@@ -26,6 +27,11 @@ type ThumbState =
   | { state: "loading" }
   | { state: "ready"; img: HTMLImageElement; url: string }
   | { state: "error"; error: string }
+
+type ExplorerSelectionKey = {
+  kind: ExplorerItem["kind"]
+  path: string
+}
 
 function thumbDebugEnabled() {
   return (globalThis as any).__TNL_EXPLORER_THUMB_DEBUG__ === true
@@ -48,6 +54,72 @@ function isVideoEntry(entry: OpfsEntryV1) {
 
 function isStringRecord(v: unknown): v is Record<string, unknown> {
   return !!v && typeof v === "object" && !Array.isArray(v)
+}
+
+function selectionKey(item: ExplorerItem | null): ExplorerSelectionKey | null {
+  return item ? { kind: item.kind, path: item.path } : null
+}
+
+function thumbFallbackLabel(entry: OpfsEntryV1, thumbError: string | null) {
+  if (thumbError) return "ERR"
+  return isVideoEntry(entry) ? "VIDEO" : "FILE"
+}
+
+function drawThumbPreview(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }, img: HTMLImageElement | null, fallbackLabel: string) {
+  ctx.save()
+  ctx.fillStyle = neutral[900]
+  ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
+  if (img) {
+    const iw = img.naturalWidth || 1
+    const ih = img.naturalHeight || 1
+    const s = Math.max(rect.w / iw, rect.h / ih)
+    const dw = iw * s
+    const dh = ih * s
+    const dx = rect.x + (rect.w - dw) / 2
+    const dy = rect.y + (rect.h - dh) / 2
+    ctx.drawImage(img, dx, dy, dw, dh)
+  } else {
+    ctx.fillStyle = theme.colors.textMuted
+    ctx.font = `600 12px ${theme.typography.family}`
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle"
+    ctx.fillText(fallbackLabel, rect.x + rect.w / 2, rect.y + rect.h / 2)
+  }
+  ctx.restore()
+}
+
+function ThumbPreviewPaint(opts: { image: HTMLImageElement | null; fallbackLabel: string; maxWidth: number; height: number }) {
+  return (
+    <Paint
+      measure={(max) => ({ w: Math.min(opts.maxWidth, max.w), h: opts.height })}
+      draw={(ctx, rect) => {
+        drawThumbPreview(ctx, rect, opts.image, opts.fallbackLabel)
+      }}
+    />
+  )
+}
+
+function videoMetaText(entry: OpfsEntryV1) {
+  const extras = isStringRecord(entry.extras) ? entry.extras : null
+  const videoMeta = extras && isStringRecord(extras.videoMeta) ? (extras.videoMeta as Record<string, unknown>) : null
+  return {
+    duration:
+      videoMeta && typeof videoMeta.durationMs === "number" && Number.isFinite(videoMeta.durationMs)
+        ? `${(videoMeta.durationMs / 1000).toFixed(2)}s`
+        : "-",
+    dimensions:
+      videoMeta && typeof videoMeta.width === "number" && typeof videoMeta.height === "number"
+        ? `${videoMeta.width}×${videoMeta.height}`
+        : "-",
+    frameRate:
+      videoMeta && typeof videoMeta.frameRate === "number" && Number.isFinite(videoMeta.frameRate)
+        ? `${videoMeta.frameRate.toFixed(videoMeta.frameRate < 10 ? 2 : videoMeta.frameRate < 100 ? 1 : 0)} fps`
+        : "-",
+    audio:
+      videoMeta && typeof videoMeta.hasAudio === "boolean"
+        ? videoMeta.hasAudio ? "yes" : "no"
+        : "-",
+  }
 }
 
 async function loadImageFromBlob(blob: Blob): Promise<{ img: HTMLImageElement; url: string }> {
@@ -315,16 +387,13 @@ export const ExplorerSurface = defineSurface({
   id: "Explorer.Surface",
   setup: () => {
     let fsPromise: ReturnType<typeof openOpfs> | null = null
-    let opSeq = 0
     let initialized = false
 
     let cwdPrefix: string | null = null
     let entriesAll: OpfsEntryV1[] = []
     let items: ExplorerItem[] = []
     let selected: ExplorerItem | null = null
-
-    let busy = false
-    let error: string | null = null
+    const asyncState = createAsyncJobState({ invalidate: invalidateAll })
 
     const viewMode = signal<"list" | "thumbs">("list", { debugLabel: "explorer.viewMode" })
     const address = signal("", { debugLabel: "explorer.address" })
@@ -341,10 +410,12 @@ export const ExplorerSurface = defineSurface({
       return await fsPromise
     }
 
-    const setCwd = (next: string | null, pushHistory: boolean) => {
+    const setCwd = (next: string | null, opts: { pushHistory?: boolean; historyIndex?: number } = {}) => {
       cwdPrefix = next
       address.set(next ?? "")
-      if (pushHistory) {
+      if (typeof opts.historyIndex === "number") {
+        history.index = opts.historyIndex
+      } else if (opts.pushHistory) {
         const v = next ?? ""
         if (history.stack[history.index] !== v) {
           history.stack = history.stack.slice(0, history.index + 1)
@@ -352,7 +423,6 @@ export const ExplorerSurface = defineSurface({
           history.index = history.stack.length - 1
         }
       }
-      selected = null
     }
 
     const parseCwdInput = (input: string) => {
@@ -401,176 +471,124 @@ export const ExplorerSurface = defineSurface({
       return out
     }
 
-    const refresh = async () => {
-      const seq = ++opSeq
-      busy = true
-      error = null
-      invalidateAll()
-      try {
-        const fs = await ensureFs()
-        const nextEntries = await fs.list(cwdPrefix ?? undefined)
-        if (seq !== opSeq) return
-        entriesAll = nextEntries
-        items = projectItems(cwdPrefix, entriesAll)
-        if (selected) {
-          const still = items.find((i) => i.kind === selected!.kind && i.path === selected!.path) ?? null
-          selected = still
-        }
-      } catch (e) {
-        if (seq !== opSeq) return
-        error = e instanceof Error ? e.message : String(e)
-      } finally {
-        if (seq !== opSeq) return
-        busy = false
-        invalidateAll()
+    const loadListing = async (cwd: string | null, nextSelection: ExplorerSelectionKey | null) => {
+      const fs = await ensureFs()
+      const nextEntries = await fs.list(cwd ?? undefined)
+      const nextItems = projectItems(cwd, nextEntries)
+      return {
+        entriesAll: nextEntries,
+        items: nextItems,
+        selected: nextSelection
+          ? nextItems.find((item) => item.kind === nextSelection.kind && item.path === nextSelection.path) ?? null
+          : null,
       }
     }
 
+    const applyListing = (listing: { entriesAll: OpfsEntryV1[]; items: ExplorerItem[]; selected: ExplorerItem | null }) => {
+      entriesAll = listing.entriesAll
+      items = listing.items
+      selected = listing.selected
+    }
+
+    const refresh = async () => {
+      await asyncState.runLatest(async (run) => {
+        const listing = await loadListing(cwdPrefix, selectionKey(selected))
+        run.commit(() => applyListing(listing))
+      })
+    }
+
+    const navigate = async (next: string | null, opts: { pushHistory?: boolean; historyIndex?: number } = {}) => {
+      await asyncState.runLatest(async (run) => {
+        const listing = await loadListing(next, null)
+        run.commit(() => {
+          setCwd(next, opts)
+          applyListing(listing)
+        })
+      })
+    }
+
     const navigateToAddress = async () => {
-      const seq = ++opSeq
-      busy = true
-      error = null
-      invalidateAll()
-      try {
-        const next = parseCwdInput(address.get())
-        if (seq !== opSeq) return
-        setCwd(next, true)
-        await refresh()
-      } catch (e) {
-        if (seq !== opSeq) return
-        error = e instanceof Error ? e.message : String(e)
-      } finally {
-        if (seq !== opSeq) return
-        busy = false
-        invalidateAll()
-      }
+      await navigate(parseCwdInput(address.get()), { pushHistory: true })
     }
 
     const goUp = async () => {
       if (!cwdPrefix) return
       const parent = dirName(cwdPrefix)
-      setCwd(parent ? parent : null, true)
-      await refresh()
+      await navigate(parent ? parent : null, { pushHistory: true })
     }
 
     const goBack = async () => {
       if (history.index <= 0) return
-      history.index -= 1
-      const v = history.stack[history.index] ?? ""
-      setCwd(v ? v : null, false)
-      await refresh()
+      const nextIndex = history.index - 1
+      const v = history.stack[nextIndex] ?? ""
+      await navigate(v ? v : null, { historyIndex: nextIndex })
     }
 
     const goForward = async () => {
       if (history.index >= history.stack.length - 1) return
-      history.index += 1
-      const v = history.stack[history.index] ?? ""
-      setCwd(v ? v : null, false)
-      await refresh()
+      const nextIndex = history.index + 1
+      const v = history.stack[nextIndex] ?? ""
+      await navigate(v ? v : null, { historyIndex: nextIndex })
     }
 
     const enterSelectedDir = async () => {
       if (!selected || selected.kind !== "dir") return
-      setCwd(selected.path, true)
-      await refresh()
+      await navigate(selected.path, { pushHistory: true })
     }
 
     const importFiles = async () => {
       const files = await pickFiles({ multiple: true, accept: `${buildAcceptString("video")},${buildAcceptString("audio")},${buildAcceptString("image")}`, inputId: "tnl-explorer-file-input" })
       if (!files.length) return
-      const seq = ++opSeq
-      busy = true
-      error = null
-      invalidateAll()
-      try {
+      const nextSelection = selectionKey(selected)
+      await asyncState.runLatest(async (run) => {
         const fs = await ensureFs()
         for (const file of files) {
           const target = cwdPrefix ? `${cwdPrefix}/${file.name}` : file.name
           await fs.writeFile(target, file, { type: file.type || "application/octet-stream" })
         }
-        if (seq !== opSeq) return
-        await refresh()
-      } catch (e) {
-        if (seq !== opSeq) return
-        error = e instanceof Error ? e.message : String(e)
-      } finally {
-        if (seq !== opSeq) return
-        busy = false
-        invalidateAll()
-      }
+        const listing = await loadListing(cwdPrefix, nextSelection)
+        run.commit(() => applyListing(listing))
+      })
     }
 
     const exportSelected = async () => {
       if (!selected || selected.kind !== "file") return
-      const seq = ++opSeq
-      busy = true
-      error = null
-      invalidateAll()
-      try {
+      const path = selected.path
+      await asyncState.run(async () => {
         const fs = await ensureFs()
-        const blob = await fs.readFile(selected.path)
-        if (seq !== opSeq) return
-        downloadBlob(blob, baseName(selected.path))
-      } catch (e) {
-        if (seq !== opSeq) return
-        error = e instanceof Error ? e.message : String(e)
-      } finally {
-        if (seq !== opSeq) return
-        busy = false
-        invalidateAll()
-      }
+        const blob = await fs.readFile(path)
+        downloadBlob(blob, baseName(path))
+      })
     }
 
     const deleteSelected = async () => {
       if (!selected || selected.kind !== "file") return
-      if (!showConfirm(`Delete ${selected.path}?`)) return
-      const seq = ++opSeq
-      busy = true
-      error = null
-      invalidateAll()
-      try {
+      const path = selected.path
+      if (!showConfirm(`Delete ${path}?`)) return
+      await asyncState.runLatest(async (run) => {
         const fs = await ensureFs()
-        await fs.delete(selected.path)
-        if (seq !== opSeq) return
-        selected = null
-        await refresh()
-      } catch (e) {
-        if (seq !== opSeq) return
-        error = e instanceof Error ? e.message : String(e)
-      } finally {
-        if (seq !== opSeq) return
-        busy = false
-        invalidateAll()
-      }
+        await fs.delete(path)
+        const listing = await loadListing(cwdPrefix, null)
+        run.commit(() => applyListing(listing))
+      })
     }
 
     const renameSelected = async () => {
       if (!selected || selected.kind !== "file") return
-      const prevName = baseName(selected.path)
+      const path = selected.path
+      const prevName = baseName(path)
       const nextName = showPrompt("Rename to", prevName)
       if (nextName === null) return
       const name = nextName.trim()
       if (!name) return
-      const dir = dirName(selected.path)
+      const dir = dirName(path)
       const nextPath = dir ? `${dir}/${name}` : name
-      const seq = ++opSeq
-      busy = true
-      error = null
-      invalidateAll()
-      try {
+      await asyncState.runLatest(async (run) => {
         const fs = await ensureFs()
-        await fs.move(selected.path, nextPath)
-        if (seq !== opSeq) return
-        selected = null
-        await refresh()
-      } catch (e) {
-        if (seq !== opSeq) return
-        error = e instanceof Error ? e.message : String(e)
-      } finally {
-        if (seq !== opSeq) return
-        busy = false
-        invalidateAll()
-      }
+        await fs.move(path, nextPath)
+        const listing = await loadListing(cwdPrefix, { kind: "file", path: nextPath })
+        run.commit(() => applyListing(listing))
+      })
     }
 
     const ensureThumbState = (id: string) => {
@@ -693,7 +711,10 @@ export const ExplorerSurface = defineSurface({
         void refresh()
       }
 
-      const thumbStatusText = viewMode.get() === "thumbs" ? ` · thumbs ${thumbWorkerActive ? "busy" : "idle"} · q${thumbQueue.length}` : ""
+      const busy = asyncState.busy()
+      const error = asyncState.error()
+      const currentViewMode = viewMode.get()
+      const thumbStatusText = currentViewMode === "thumbs" ? ` · thumbs ${thumbWorkerActive ? "busy" : "idle"} · q${thumbQueue.length}` : ""
       const debugThumbText = thumbLastEvent ? ` · ${thumbLastEvent}` : ""
       const statusText = busy ? "Working..." : error ? error : `${items.length} items${thumbStatusText}${debugThumbText}`
       const statusColor = error ? theme.colors.danger : theme.colors.textMuted
@@ -711,10 +732,7 @@ export const ExplorerSurface = defineSurface({
           text="opfs:/"
           title="Root"
           style={{ fixed: 64 }}
-          onClick={() => {
-            setCwd(null, true)
-            void refresh()
-          }}
+          onClick={() => void navigate(null, { pushHistory: true })}
         />,
         ...breadcrumbParts.map((seg, idx) => {
           const path = breadcrumbParts.slice(0, idx + 1).join("/")
@@ -724,17 +742,14 @@ export const ExplorerSurface = defineSurface({
               text={seg}
               title={path}
               style={{ fixed: 90 }}
-              onClick={() => {
-                setCwd(path, true)
-                void refresh()
-              }}
+              onClick={() => void navigate(path, { pushHistory: true })}
             />
           )
         }),
       ]
 
       const content =
-        viewMode.get() === "list" ? (
+        currentViewMode === "list" ? (
           <VStack key="explorer.list" style={{ padding: { l: 2, t: 2, r: 14, b: 2 } }}>
             {items.map((item) => {
               if (item.kind === "dir") {
@@ -793,6 +808,7 @@ export const ExplorerSurface = defineSurface({
                     const st = ensureThumbState(e.id)
                     const img = st.state === "ready" ? st.img : null
                     const thumbError = st.state === "error" ? st.error : null
+                    const fallbackLabel = thumbFallbackLabel(e, thumbError)
                     return (
                       <Stack
                         key={`explorer.thumb.${e.path}`}
@@ -804,32 +820,7 @@ export const ExplorerSurface = defineSurface({
                         }}
                       >
                         <VStack key={`explorer.thumb.inner.${e.id}`} style={{ gap: 6 }}>
-                          <Paint
-                            key={`explorer.thumb.paint.${e.id}`}
-                            measure={(max) => ({ w: Math.min(156, max.w), h: 88 })}
-                            draw={(ctx, rect) => {
-                              ctx.save()
-                              ctx.fillStyle = neutral[900]
-                              ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
-                              if (img) {
-                                const iw = img.naturalWidth || 1
-                                const ih = img.naturalHeight || 1
-                                const s = Math.max(rect.w / iw, rect.h / ih)
-                                const dw = iw * s
-                                const dh = ih * s
-                                const dx = rect.x + (rect.w - dw) / 2
-                                const dy = rect.y + (rect.h - dh) / 2
-                                ctx.drawImage(img, dx, dy, dw, dh)
-                              } else {
-                                ctx.fillStyle = theme.colors.textMuted
-                                ctx.font = `600 12px ${theme.typography.family}`
-                                ctx.textAlign = "center"
-                                ctx.textBaseline = "middle"
-                                ctx.fillText(thumbError ? "ERR" : isVideoEntry(e) ? "VIDEO" : "FILE", rect.x + rect.w / 2, rect.y + rect.h / 2)
-                              }
-                              ctx.restore()
-                            }}
-                          />
+                          {ThumbPreviewPaint({ image: img, fallbackLabel, maxWidth: 156, height: 88 })}
                           <Text key={`explorer.thumb.name.${e.id}`} weight="bold">
                             {e.name}
                           </Text>
@@ -876,52 +867,11 @@ export const ExplorerSurface = defineSurface({
         const st = ensureThumbState(e.id)
         const img = st.state === "ready" ? st.img : null
         const thumbError = st.state === "error" ? st.error : null
-        const extras = isStringRecord(e.extras) ? e.extras : null
-        const videoMeta = extras && isStringRecord(extras.videoMeta) ? (extras.videoMeta as any) : null
-        const durationText =
-          videoMeta && typeof videoMeta.durationMs === "number" && Number.isFinite(videoMeta.durationMs)
-            ? `${(videoMeta.durationMs / 1000).toFixed(2)}s`
-            : "-"
-        const dimsText =
-          videoMeta && typeof videoMeta.width === "number" && typeof videoMeta.height === "number"
-            ? `${videoMeta.width}×${videoMeta.height}`
-            : "-"
-        const fpsText =
-          videoMeta && typeof videoMeta.frameRate === "number" && Number.isFinite(videoMeta.frameRate)
-            ? `${videoMeta.frameRate.toFixed(videoMeta.frameRate < 10 ? 2 : videoMeta.frameRate < 100 ? 1 : 0)} fps`
-            : "-"
-        const audioText =
-          videoMeta && typeof videoMeta.hasAudio === "boolean"
-            ? videoMeta.hasAudio ? "yes" : "no"
-            : "-"
+        const fallbackLabel = thumbFallbackLabel(e, thumbError)
+        const meta = videoMetaText(e)
         return (
           <VStack key="explorer.details.file" style={{ gap: 10, padding: 10 }}>
-            <Paint
-              key="explorer.details.preview"
-              measure={(max) => ({ w: Math.min(240, max.w), h: 120 })}
-              draw={(ctx, rect) => {
-                ctx.save()
-                ctx.fillStyle = neutral[900]
-                ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
-                if (img) {
-                  const iw = img.naturalWidth || 1
-                  const ih = img.naturalHeight || 1
-                  const s = Math.max(rect.w / iw, rect.h / ih)
-                  const dw = iw * s
-                  const dh = ih * s
-                  const dx = rect.x + (rect.w - dw) / 2
-                  const dy = rect.y + (rect.h - dh) / 2
-                  ctx.drawImage(img, dx, dy, dw, dh)
-                } else {
-                  ctx.fillStyle = theme.colors.textMuted
-                  ctx.font = `600 12px ${theme.typography.family}`
-                  ctx.textAlign = "center"
-                  ctx.textBaseline = "middle"
-                  ctx.fillText(thumbError ? "ERR" : isVideoEntry(e) ? "VIDEO" : "FILE", rect.x + rect.w / 2, rect.y + rect.h / 2)
-                }
-                ctx.restore()
-              }}
-            />
+            {ThumbPreviewPaint({ image: img, fallbackLabel, maxWidth: 240, height: 120 })}
             {thumbError ? (
               <VStack style={{ gap: 6 }}>
                 <Text tone="muted" size="meta">{thumbError}</Text>
@@ -943,10 +893,10 @@ export const ExplorerSurface = defineSurface({
               <Text size="meta" tone="muted">{`Updated: ${formatLocalTime(e.updatedAt)}`}</Text>
               {isVideoEntry(e) ? (
                 <Fragment>
-                  <Text size="meta" tone="muted">{`Duration: ${durationText}`}</Text>
-                  <Text size="meta" tone="muted">{`Video: ${dimsText}`}</Text>
-                  <Text size="meta" tone="muted">{`FPS: ${fpsText}`}</Text>
-                  <Text size="meta" tone="muted">{`Audio: ${audioText}`}</Text>
+                  <Text size="meta" tone="muted">{`Duration: ${meta.duration}`}</Text>
+                  <Text size="meta" tone="muted">{`Video: ${meta.dimensions}`}</Text>
+                  <Text size="meta" tone="muted">{`FPS: ${meta.frameRate}`}</Text>
+                  <Text size="meta" tone="muted">{`Audio: ${meta.audio}`}</Text>
                 </Fragment>
               ) : null}
             </VStack>
@@ -972,7 +922,7 @@ export const ExplorerSurface = defineSurface({
               text="List"
               title="List view"
               style={{ fixed: 52 }}
-              disabled={busy || viewMode.get() === "list"}
+              disabled={busy || currentViewMode === "list"}
               onClick={() => {
                 viewMode.set("list")
                 invalidateAll()
@@ -982,7 +932,7 @@ export const ExplorerSurface = defineSurface({
               text="Thumb"
               title="Thumbnail view"
               style={{ fixed: 64 }}
-              disabled={busy || viewMode.get() === "thumbs"}
+              disabled={busy || currentViewMode === "thumbs"}
               onClick={() => {
                 viewMode.set("thumbs")
                 invalidateAll()

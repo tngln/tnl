@@ -6,6 +6,7 @@ import { getWebNavigatorInfo, getWebRuntimeFlags } from "@tnl/canvas-interface/b
 import { probeCodecConfig } from "@tnl/app/platform"
 import { invalidateAll } from "@tnl/canvas-interface/ui"
 import type { DeveloperCodecEntry, DeveloperContext, DeveloperPanelSpec } from "@tnl/canvas-interface/developer"
+import { createAsyncJobState } from "@/ui/async_state"
 
 type ProbeRow = {
   id: string
@@ -181,25 +182,16 @@ const CodecPanelSurface = defineSurface({
   setup: (_props: { ctx: DeveloperContext }) => {
     const startedAtMs = Date.now()
     let initialized = false
-    let running = false
     let lastUpdated = ""
-    let error: string | null = null
     let results: CodecProbeResult[] = []
+    const asyncState = createAsyncJobState({ invalidate: invalidateAll })
 
     const refresh = async () => {
-      if (running) return
-      running = true
-      error = null
-      invalidateAll()
-      try {
+      if (asyncState.busy()) return
+      await asyncState.run(async () => {
         results = await collectCodecProbeResults()
         lastUpdated = new Date().toLocaleTimeString()
-      } catch (nextError) {
-        error = nextError instanceof Error ? nextError.message : String(nextError)
-      } finally {
-        running = false
-        invalidateAll()
-      }
+      })
     }
 
     return ({ ctx }: { ctx: DeveloperContext }) => {
@@ -208,6 +200,8 @@ const CodecPanelSurface = defineSurface({
         void refresh()
       }
 
+      const running = asyncState.busy()
+      const error = asyncState.error()
       const extraInfo = ctx.codecs?.info?.()
       const activeInstances = ctx.codecs?.list?.() ?? []
       const summary = running
