@@ -8,8 +8,18 @@
         "typescript": "^5.8.0",
       },
     },
+    "packages/canvas-interface": {
+      "name": "@tnl/canvas-interface",
+    },
+    "packages/tnl-app": {
+      "name": "@tnl/app",
+    },
   },
   "packages": {
+    "@tnl/app": ["@tnl/app@workspace:packages/tnl-app"],
+
+    "@tnl/canvas-interface": ["@tnl/canvas-interface@workspace:packages/canvas-interface"],
+
     "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
   }
 }
