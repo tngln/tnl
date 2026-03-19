@@ -1,6 +1,6 @@
 import { theme, neutral, font } from "@tnl/canvas-interface/theme"
 import { draw, RectOp, TextOp as DrawTextOp } from "@tnl/canvas-interface/draw"
-import { getDebugLevel, listDebugEntries, setDebugLevel, type DebugEntry, type DebugLevel } from "@tnl/canvas-interface/ui"
+import { getDebugLevel, listDebugEntries, setDebugLevel, type DebugEntry, type DebugLevel } from "@tnl/canvas-interface/debug"
 import { baseNameOr } from "@tnl/canvas-interface/util"
 import { Button, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, SliderField, Spacer, Text, VStack, defineSurface } from "@tnl/canvas-interface/builder"
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"

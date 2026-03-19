@@ -1,10 +1,10 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { Button, ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
-import { getDebugLevel } from "@tnl/canvas-interface/ui"
+import { getDebugLevel } from "@tnl/canvas-interface/debug"
 import { theme } from "@tnl/canvas-interface/theme"
 import { getWebNavigatorInfo, getWebRuntimeFlags } from "@tnl/canvas-interface/browser"
 import { probeCodecConfig } from "@tnl/app/platform"
-import { invalidateAll } from "@tnl/canvas-interface/ui"
+import { invalidateAll } from "@tnl/canvas-interface/invalidate"
 import type { DeveloperCodecEntry, DeveloperContext, DeveloperPanelSpec } from "@tnl/canvas-interface/developer"
 import { createAsyncJobState } from "@tnl/canvas-interface"
 

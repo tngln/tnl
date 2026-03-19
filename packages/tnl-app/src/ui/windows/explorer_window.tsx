@@ -6,7 +6,7 @@ import { buildAcceptString } from "@tnl/app/platform"
 import { baseName, dirName, formatBytes, formatLocalTime } from "@tnl/canvas-interface/util"
 import type { Surface } from "@tnl/canvas-interface/ui"
 import { Button, ClickArea, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelToolbar, Spacer, Stack, Text, TextBox, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
-import { invalidateAll } from "@tnl/canvas-interface/ui"
+import { invalidateAll } from "@tnl/canvas-interface/invalidate"
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { createAsyncJobState } from "@tnl/canvas-interface"
 

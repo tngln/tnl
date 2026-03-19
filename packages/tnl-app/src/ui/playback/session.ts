@@ -1,12 +1,12 @@
 import { buildAcceptString } from "../../platform/web/media_formats"
 import { pickFiles, openOpfs, type OpfsEntryV1 } from "@tnl/canvas-interface/browser"
 import { PlaybackRuntime, type PlaybackRuntimeSnapshot } from "../../platform/web/playback"
-import { createLogger } from "@tnl/canvas-interface/ui"
-import { describeError, toAppError, toErrorInfo } from "@tnl/canvas-interface/ui"
+import { createLogger } from "@tnl/canvas-interface/debug"
+import { describeError, toAppError, toErrorInfo } from "@tnl/canvas-interface/errors"
 import { baseNameOr } from "@tnl/canvas-interface/util"
 import { theme } from "@tnl/canvas-interface/theme"
 import type { TimelineTrackModel, TimelineViewModel } from "@/ui/timeline/model"
-import { invalidateAll } from "@tnl/canvas-interface/ui"
+import { invalidateAll } from "@tnl/canvas-interface/invalidate"
 
 const DEFAULT_SOURCE_PATH = "media/bbb.mp4"
 const DEFAULT_FPS = 30
