@@ -137,6 +137,7 @@ export class DividerSurface implements Surface {
 
   private readonly aViewport: ViewportElement
   private readonly bViewport: ViewportElement
+  private invalidateSurface: () => void = () => {}
 
   constructor(opts: { id: string; axis?: Axis; a: Surface; b: Surface; initial?: number; minA?: number; minB?: number; gutter?: number }) {
     this.id = opts.id
@@ -178,13 +179,21 @@ export class DividerSurface implements Surface {
     )
   }
 
+  setInvalidator(fn: (() => void) | null) {
+    this.invalidateSurface = fn ?? (() => {})
+  }
+
   render(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, viewport: ViewportContext) {
     this.size = { x: viewport.contentRect.w, y: viewport.contentRect.h }
     const total = this.axis === "x" ? this.size.x : this.size.y
     const maxPos = Math.max(this.minA, total - this.minB)
     const next = clamp(this.position.peek(), this.minA, maxPos)
     if (next !== this.position.peek()) this.position.set(next)
-    this.root.draw(ctx as any)
+    this.root.draw(ctx as any, {
+      frameId: 0,
+      dpr: viewport.dpr,
+      invalidateRect: () => this.invalidateSurface(),
+    })
   }
 
   hitTest(pSurface: Vec2) {

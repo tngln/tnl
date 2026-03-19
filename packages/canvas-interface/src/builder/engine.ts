@@ -2,6 +2,7 @@ import { theme } from "../theme"
 import { draw, RectOp, ZERO_RECT, type Rect, type Vec2 } from "../draw"
 import { AppError } from "../errors"
 import { createLayoutContext, layout, measureLayout, type Rect as LayoutRect } from "../layout"
+import type { DrawRuntime } from "../ui_base"
 import { BuilderRuntime } from "./runtime"
 import { createDefaultBuilderRegistry, type BuilderNodeRegistry } from "./registry"
 import { defaultInheritedStyle, mergeInheritedStyle } from "./styles"
@@ -61,7 +62,7 @@ export class BuilderEngine {
     return { x: Math.max(viewportSize.x, measured.w), y: Math.max(viewportSize.y, measured.h) }
   }
 
-  render(ctx: CanvasRenderingContext2D, size: Vec2, node: BuilderNode) {
+  render(ctx: CanvasRenderingContext2D, size: Vec2, node: BuilderNode, rt?: DrawRuntime) {
     this.runtime.beginFrame()
     this.drawOps = []
     const ast = this.toAst(node, ctx, "root", defaultInheritedStyle())
@@ -72,7 +73,7 @@ export class BuilderEngine {
     this.mountAst(ctx, ast, "root")
     for (const op of this.drawOps) op(ctx)
     this.runtime.endFrame()
-    this.runtime.root.draw(ctx)
+    this.runtime.root.draw(ctx, rt)
   }
 
   private mountAst(ctx: CanvasRenderingContext2D, ast: AstNode, path: string) {

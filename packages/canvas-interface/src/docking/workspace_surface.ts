@@ -368,6 +368,7 @@ export class DockWorkspaceSurface implements Surface {
   private readonly tabLeafByPane = new Map<string, string>()
   private leafLayouts = new Map<string, LeafLayout>()
   private splitLayouts = new Map<string, SplitLayout>()
+  private invalidateSurface: () => void = () => {}
 
   constructor(opts: { id: string; containerId: string; driver: DockWorkspaceDriver }) {
     this.id = opts.id
@@ -386,6 +387,11 @@ export class DockWorkspaceSurface implements Surface {
     this.menuBar.z = 100
     this.root.add(this.menuBar)
     this.root.add(this.topLayer.host)
+  }
+
+  setInvalidator(fn: (() => void) | null) {
+    this.invalidateSurface = fn ?? (() => {})
+    this.topLayer.setInvalidator(fn)
   }
 
   private toGlobal(point: Vec2): Vec2 {
@@ -570,7 +576,11 @@ export class DockWorkspaceSurface implements Surface {
       this.ensureSplit(split)
     }
 
-    this.root.draw(ctx as CanvasRenderingContext2D)
+    this.root.draw(ctx as CanvasRenderingContext2D, {
+      frameId: 0,
+      dpr: viewport.dpr,
+      invalidateRect: () => this.invalidateSurface(),
+    })
     this.deactivateUnused(activeLeafs, activeTabs, activeSplits)
   }
 

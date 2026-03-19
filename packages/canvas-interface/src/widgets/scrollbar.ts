@@ -29,6 +29,9 @@ export class Scrollbar extends UIElement {
     enabled: () => !this.hidden(),
     cancelOnLeave: true,
     thresholdSq: 0,
+    onStateChange: () => {
+      this.invalidateSelf({ pad: 2 })
+    },
     onPress: ({ current }) => {
       const thumb = this.thumbRect()
       const p = this.axis === "y" ? current.y : current.x
@@ -63,21 +66,6 @@ export class Scrollbar extends UIElement {
     this.update(opts)
     this.setBounds(() => this.rectValue(), () => !this.hidden())
     this.z = 40
-    this.on("pointerenter", () => {
-      this.invalidateSelf({ pad: 2 })
-    })
-    this.on("pointerleave", () => {
-      this.invalidateSelf({ pad: 2 })
-    })
-    this.on("pointerdown", () => {
-      this.invalidateSelf({ pad: 2 })
-    })
-    this.on("pointerup", () => {
-      this.invalidateSelf({ pad: 2 })
-    })
-    this.on("pointercancel", () => {
-      this.invalidateSelf({ pad: 2 })
-    })
   }
 
   update(opts: {

@@ -24,7 +24,7 @@ export type DebugEventListenerSnapshot = {
   detail?: string
 }
 
-type DrawRuntime = {
+export type DrawRuntime = {
   clip?: Rect
   compositor?: Compositor
   frameId: number
@@ -220,14 +220,19 @@ export abstract class UIElement {
   }
 
   emit<K extends keyof UIElementEventMap>(type: K, ...args: UIElementEventMap[K] extends void ? [] : [UIElementEventMap[K]]): void {
+    const wasHover = this.hover
     if (type === "pointerenter") this.hover = true
     else if (type === "pointerleave" || type === "pointercancel") this.hover = false
     const set = this.handlers?.get(type)
-    if (!set) return
     const event = args[0]
-    for (const handler of set) {
-      if (event !== undefined) (handler as (e: any) => void)(event)
-      else (handler as () => void)()
+    if (set) {
+      for (const handler of set) {
+        if (event !== undefined) (handler as (e: any) => void)(event)
+        else (handler as () => void)()
+      }
+    }
+    if (wasHover !== this.hover) {
+      this.invalidateSelf({ pad: 2 })
     }
   }
 

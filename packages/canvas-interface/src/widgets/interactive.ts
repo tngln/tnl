@@ -23,18 +23,9 @@ export class InteractiveElement extends UIElement {
     this.press = usePress(this, {
       enabled: () => this._active() && !this._disabled(),
       onActivate: () => this.onActivate(),
-    })
-    this.on("pointerenter", () => {
-      this.invalidateSelf({ pad: 2 })
-    })
-    this.on("pointerleave", () => {
-      this.invalidateSelf({ pad: 2 })
-    })
-    this.on("pointerdown", () => {
-      this.invalidateSelf({ pad: 2 })
-    })
-    this.on("pointerup", () => {
-      this.invalidateSelf({ pad: 2 })
+      onStateChange: () => {
+        this.invalidateSelf({ pad: 2 })
+      },
     })
     this.on("pointercancel", () => {
       this.invalidateSelf({ pad: 2 })

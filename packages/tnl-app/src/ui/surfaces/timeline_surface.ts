@@ -507,7 +507,11 @@ export class TimelineCompositeSurface implements Surface {
       }),
     )
 
-    this.root.draw(ctx as CanvasRenderingContext2D)
+    this.root.draw(ctx as CanvasRenderingContext2D, {
+      frameId: 0,
+      dpr: viewport.dpr,
+      invalidateRect: () => this.invalidateSurface(),
+    })
 
     const playheadX = this.playheadX()
     if (playheadX !== null && playheadX >= this.layoutState.headerWidth && playheadX <= this.layoutState.headerWidth + this.layoutState.contentRect.w) {

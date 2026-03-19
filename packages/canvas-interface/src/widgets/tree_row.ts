@@ -63,18 +63,9 @@ export class TreeRow extends UIElement {
         }
         this.onSelect?.()
       },
-    })
-    this.on("pointerenter", () => {
-      this.invalidateSelf({ pad: 2 })
-    })
-    this.on("pointerleave", () => {
-      this.invalidateSelf({ pad: 2 })
-    })
-    this.on("pointerdown", () => {
-      this.invalidateSelf({ pad: 2 })
-    })
-    this.on("pointerup", () => {
-      this.invalidateSelf({ pad: 2 })
+      onStateChange: () => {
+        this.invalidateSelf({ pad: 2 })
+      },
     })
     this.on("pointercancel", () => {
       this.invalidateSelf({ pad: 2 })

@@ -49,7 +49,16 @@ export class BuilderTreeSurface implements Surface {
 
   render(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, viewport: ViewportContext) {
     if (!this.node) return
-    this.engine.render(ctx as CanvasRenderingContext2D, { x: viewport.contentRect.w, y: viewport.contentRect.h }, this.node)
+    this.engine.render(
+      ctx as CanvasRenderingContext2D,
+      { x: viewport.contentRect.w, y: viewport.contentRect.h },
+      this.node,
+      {
+        frameId: 0,
+        dpr: viewport.dpr,
+        invalidateRect: () => this.invalidateSurface(),
+      },
+    )
   }
 
   hitTest(pSurface: Vec2) {

@@ -67,12 +67,9 @@ export class ControlElement extends UIElement {
     this.press = usePress(this, {
       enabled: () => this._active && !this._disabled,
       onActivate: () => this._onClick?.(),
-    })
-    this.on("pointerenter", () => {
-      this.invalidateSelf({ pad: 2 })
-    })
-    this.on("pointerleave", () => {
-      this.invalidateSelf({ pad: 2 })
+      onStateChange: () => {
+        this.invalidateSelf({ pad: 2 })
+      },
     })
     this.on("doubleclick", (e: PointerUIEvent) => {
       if (!this.hover) return
@@ -122,8 +119,8 @@ export class ControlElement extends UIElement {
       if (this._dragging) {
         this._dragging = false
         this._onPointerCancel?.("inactive")
+        this.invalidateSelf({ pad: 2 })
       }
-      this.invalidateSelf({ pad: 2 })
     }
   }
 

@@ -23,6 +23,7 @@ export function useDragHandle(
     shouldPress?: (event: PointerUIEvent) => boolean
     thresholdSq?: number
     cancelOnLeave?: boolean
+    onStateChange?: (phase: DragHandlePhase) => void
     onPress?: (gesture: DragGesture, event: PointerUIEvent) => void
     onDragStart?: (gesture: DragGesture) => void
     onDragMove?: (gesture: DragGesture) => void
@@ -42,6 +43,11 @@ export function useDragHandle(
   let phase: DragHandlePhase = "idle"
   let originPointer: Vec2 = { x: 0, y: 0 }
   let lastPointer: Vec2 = { x: 0, y: 0 }
+  const setPhase = (next: DragHandlePhase) => {
+    if (phase === next) return
+    phase = next
+    opts.onStateChange?.(phase)
+  }
 
   const gesture = () => ({ origin: originPointer, current: lastPointer })
 
@@ -53,7 +59,7 @@ export function useDragHandle(
     thresholdSq,
   }).subscribe((event) => {
     if (event.kind === "start") {
-      phase = "dragging"
+      setPhase("dragging")
       lastPointer = { x: event.current.x, y: event.current.y }
       opts.onDragStart?.(gesture())
       return
@@ -65,11 +71,11 @@ export function useDragHandle(
     }
     if (event.kind === "end") {
       lastPointer = { x: event.up.x as number, y: event.up.y as number }
-      phase = "idle"
+      setPhase("idle")
       opts.onDragEnd?.(gesture())
       return
     }
-    phase = "idle"
+    setPhase("idle")
     opts.onCancel?.(event.reason, gesture())
   })
 
@@ -83,7 +89,7 @@ export function useDragHandle(
     if (!enabled()) return
     if (e.button !== 0) return
     if (!shouldPress(e)) return
-    phase = "pressed"
+    setPhase("pressed")
     originPointer = { x: e.x, y: e.y }
     lastPointer = originPointer
     opts.onPress?.(gesture(), e)
@@ -103,7 +109,7 @@ export function useDragHandle(
     lastPointer = { x: e.x, y: e.y }
     upEvents.emit(e)
     if (wasDragging) return
-    phase = "idle"
+    setPhase("idle")
     opts.onPressRelease?.(gesture())
   })
 

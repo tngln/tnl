@@ -53,9 +53,8 @@ export class MenuBar extends UIElement {
       this.hoveredIndex = -1
       this.invalidateSelf({ pad: 8 })
     })
-    this.on("pointerdown", (e) => {
+    this.on("pointerdown", () => {
       this.syncOpen()
-      this.invalidateSelf({ pad: 8 })
     })
     this.on("pointermove", (e) => {
       this.syncOpen()

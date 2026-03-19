@@ -66,6 +66,7 @@ export class TabPanelSurface implements Surface {
   private readonly scrollbar: Scrollbar | null
   private lastSurface: Surface | null = null
   private readonly tabBarH = 24
+  private invalidateSurface: () => void = () => {}
 
   constructor(opts: { id: string; tabs: TabSpec[]; selectedId?: string; scrollbar?: boolean }) {
     this.id = opts.id
@@ -156,6 +157,10 @@ export class TabPanelSurface implements Surface {
     return true
   }
 
+  setInvalidator(fn: (() => void) | null) {
+    this.invalidateSurface = fn ?? (() => {})
+  }
+
   render(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, viewport: ViewportContext) {
     this.size = { x: viewport.contentRect.w, y: viewport.contentRect.h }
 
@@ -178,7 +183,11 @@ export class TabPanelSurface implements Surface {
     const maxY = this.maxScrollY()
     this.contentScroll.y = clamp(this.contentScroll.y, 0, maxY)
 
-    this.root.draw(ctx as any)
+    this.root.draw(ctx as any, {
+      frameId: 0,
+      dpr: viewport.dpr,
+      invalidateRect: () => this.invalidateSurface(),
+    })
   }
 
   hitTest(pSurface: Vec2) {
