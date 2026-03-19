@@ -1,8 +1,7 @@
 import { theme, neutral } from "@tnl/canvas-interface/theme"
 import { draw, RectOp, clamp } from "@tnl/canvas-interface/draw"
-import { createEventStream, pointerDragSession } from "@tnl/canvas-interface/ui"
 import { signal, type Signal } from "@tnl/canvas-interface/reactivity"
-import { CursorRegion, UIElement, type Rect, type Vec2, PointerUIEvent, pointInRect, ViewportElement, SurfaceRoot, type Surface, type ViewportContext } from "@tnl/canvas-interface/ui"
+import { CursorRegion, UIElement, type Rect, type Vec2, pointInRect, ViewportElement, SurfaceRoot, type Surface, type ViewportContext, useDragHandle } from "@tnl/canvas-interface/ui"
 
 type Axis = "x" | "y"
 type DividerHandleChrome = {
@@ -23,13 +22,23 @@ class DividerHandle extends UIElement {
   private readonly minB: () => number
   private readonly total: () => number
 
-  private down = false
   private startPos = 0
-  private readonly downEvents = createEventStream<PointerUIEvent>()
-  private readonly moveEvents = createEventStream<PointerUIEvent>()
-  private readonly upEvents = createEventStream<PointerUIEvent>()
-  private readonly cancelEvents = createEventStream<string>()
-  private gestureSub: { unsubscribe(): void } | null = null
+  private readonly drag = useDragHandle(this, {
+    thresholdSq: 0,
+    onDragStart: () => {
+      this.startPos = this.position.peek()
+    },
+    onDragMove: ({ origin, current }) => {
+      const start = this.axis === "x" ? origin.x : origin.y
+      const cur = this.axis === "x" ? current.x : current.y
+      const delta = cur - start
+      const total = this.total()
+      const minA = this.minA()
+      const minB = this.minB()
+      const next = clamp(this.startPos + delta, minA, Math.max(minA, total - minB))
+      this.position.set(next)
+    },
+  })
 
   constructor(opts: { rect: () => Rect; axis: Axis; position: Signal<number>; minA: () => number; minB: () => number; total: () => number }) {
     super()
@@ -46,26 +55,6 @@ class DividerHandle extends UIElement {
         cursor: this.axis === "x" ? "ew-resize" : "ns-resize",
       }),
     )
-    this.setupGestures()
-
-    this.on("pointerdown", (e) => {
-      if (e.button !== 0) return
-      this.down = true
-      this.downEvents.emit(e)
-      e.capture()
-    })
-    this.on("pointermove", (e) => {
-      if (!this.down) return
-      this.moveEvents.emit(e)
-    })
-    this.on("pointerup", (e) => {
-      this.upEvents.emit(e)
-      this.down = false
-    })
-    this.on("pointercancel", ({ reason }) => {
-      this.cancelEvents.emit(reason)
-      this.down = false
-    })
   }
 
   bounds(): Rect {
@@ -78,7 +67,7 @@ class DividerHandle extends UIElement {
 
   private chrome(): DividerHandleChrome {
     return {
-      fill: this.down ? neutral[500] : this.hover ? neutral[600] : neutral[700],
+      fill: this.drag.pressed() || this.drag.dragging() ? neutral[500] : this.hover ? neutral[600] : neutral[700],
       stroke: neutral[400],
       grip: neutral[200],
     }
@@ -130,38 +119,9 @@ class DividerHandle extends UIElement {
     )
   }
 
-  private setupGestures() {
-    this.gestureSub?.unsubscribe()
-    this.gestureSub = pointerDragSession({
-      down: this.downEvents.stream,
-      move: this.moveEvents.stream,
-      up: this.upEvents.stream,
-      cancel: this.cancelEvents.stream,
-      thresholdSq: 0,
-    }).subscribe((event) => {
-      if (event.kind === "start") {
-        this.startPos = this.position.peek()
-        return
-      }
-      if (event.kind === "end" || event.kind === "cancel") {
-        this.down = false
-        return
-      }
-      const start = this.axis === "x" ? event.down.x : event.down.y
-      const cur = this.axis === "x" ? event.current.x : event.current.y
-      const delta = cur - start
-      const total = this.total()
-      const minA = this.minA()
-      const minB = this.minB()
-      const next = clamp(this.startPos + delta, minA, Math.max(minA, total - minB))
-      this.position.set(next)
-    })
-  }
-
   captureCursor() {
     return this.axis === "x" ? "ew-resize" : "ns-resize"
   }
-
 }
 
 export class DividerSurface implements Surface {

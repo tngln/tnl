@@ -1,9 +1,7 @@
 import { font, theme, neutral, alpha } from "@tnl/canvas-interface/theme"
 import { draw, LineOp, RectOp, TextOp, measureTextWidth, clamp, inflateRect, ZERO_RECT } from "@tnl/canvas-interface/draw"
-import { createEventStream, map, pointerDragSession, type InteractionCancelReason } from "@tnl/canvas-interface/ui"
-import { createMachine, type Machine } from "@tnl/canvas-interface/ui"
 import { columnLayout, rowLayout } from "@tnl/canvas-interface/layout"
-import { CursorRegion, PointerUIEvent, UIElement, pointInRect, type Rect, type Vec2, SurfaceRoot, ViewportElement, type Surface, type ViewportContext, TopLayerController, invalidateAll, MenuBar, type MenuBarMenu, type MenuItem } from "@tnl/canvas-interface/ui"
+import { CursorRegion, UIElement, pointInRect, type Rect, type Vec2, SurfaceRoot, ViewportElement, type Surface, type ViewportContext, TopLayerController, invalidateAll, MenuBar, type MenuBarMenu, type MenuItem, useDragHandle } from "@tnl/canvas-interface/ui"
 import { clampRatio, type DockDropPlacement, type DockNode } from "./model"
 
 export type DockDropPreview = {
@@ -59,21 +57,6 @@ type DropCandidate = {
   score: number
 }
 
-type HandleState = "idle" | "pressed" | "dragging"
-type HandleContext = { originPointer: Vec2; lastPointer: Vec2 }
-type TabHandleEvent =
-  | { type: "PRESS"; point: Vec2 }
-  | { type: "DRAG_START"; point: Vec2 }
-  | { type: "DRAG_MOVE"; point: Vec2 }
-  | { type: "RELEASE"; point: Vec2 }
-  | { type: "CANCEL" }
-type SplitHandleEvent =
-  | { type: "PRESS"; point: Vec2 }
-  | { type: "DRAG_START"; point: Vec2 }
-  | { type: "DRAG_MOVE"; point: Vec2 }
-  | { type: "RELEASE"; point: Vec2 }
-  | { type: "CANCEL" }
-
 class DockTabHandle extends UIElement {
   private readonly rect: () => Rect
   private readonly title: () => string
@@ -83,13 +66,21 @@ class DockTabHandle extends UIElement {
   private readonly onDragMove: (pointer: Vec2) => void
   private readonly onDragEnd: (pointer: Vec2) => void
   private readonly toGlobal: (point: Vec2) => Vec2
-
-  private readonly downEvents = createEventStream<PointerUIEvent>()
-  private readonly moveEvents = createEventStream<PointerUIEvent>()
-  private readonly upEvents = createEventStream<PointerUIEvent>()
-  private readonly cancelEvents = createEventStream<void>()
-  private readonly machine: Machine<HandleState, TabHandleEvent, HandleContext>
-  private gestureSub: { unsubscribe(): void } | null = null
+  private readonly drag = useDragHandle(this, {
+    thresholdSq: 36,
+    onDragStart: ({ current }) => {
+      this.onDragStart(this.toGlobal(current))
+    },
+    onDragMove: ({ current }) => {
+      this.onDragMove(this.toGlobal(current))
+    },
+    onDragEnd: ({ current }) => {
+      this.onDragEnd(this.toGlobal(current))
+    },
+    onPressRelease: () => {
+      if (this.hover) this.onSelect()
+    },
+  })
 
   constructor(opts: {
     rect: () => Rect
@@ -111,92 +102,6 @@ class DockTabHandle extends UIElement {
     this.onDragEnd = opts.onDragEnd
     this.toGlobal = opts.toGlobal
     this.z = 20
-    this.machine = createMachine<HandleState, TabHandleEvent, HandleContext>({
-      initial: "idle",
-      context: { originPointer: { x: 0, y: 0 }, lastPointer: { x: 0, y: 0 } },
-      debug: { name: "tabHandle", scope: "ui.docking", hidden: true },
-      states: {
-        idle: {
-          on: {
-            PRESS: {
-              target: "pressed",
-              reduce: (_snapshot: { state: HandleState; context: HandleContext }, event: Extract<TabHandleEvent, { type: "PRESS" }>) => ({
-                originPointer: event.point,
-                lastPointer: event.point,
-              }),
-            },
-          },
-        },
-        pressed: {
-          on: {
-            DRAG_START: {
-              target: "dragging",
-              reduce: (_snapshot: { state: HandleState; context: HandleContext }, event: Extract<TabHandleEvent, { type: "DRAG_START" }>) => ({ lastPointer: event.point }),
-              effect: (_snapshot: { state: HandleState; context: HandleContext }, event: Extract<TabHandleEvent, { type: "DRAG_START" }>) => {
-                this.onDragStart(this.toGlobal(event.point))
-              },
-            },
-            RELEASE: {
-              target: "idle",
-              reduce: (_snapshot: { state: HandleState; context: HandleContext }, event: Extract<TabHandleEvent, { type: "RELEASE" }>) => ({ lastPointer: event.point }),
-            },
-            CANCEL: {
-              target: "idle",
-            },
-          },
-        },
-        dragging: {
-          on: {
-            DRAG_MOVE: {
-              reduce: (_snapshot: { state: HandleState; context: HandleContext }, event: Extract<TabHandleEvent, { type: "DRAG_MOVE" }>) => ({ lastPointer: event.point }),
-              effect: (_snapshot: { state: HandleState; context: HandleContext }, event: Extract<TabHandleEvent, { type: "DRAG_MOVE" }>) => {
-                this.onDragMove(this.toGlobal(event.point))
-              },
-            },
-            RELEASE: {
-              target: "idle",
-              reduce: (_snapshot: { state: HandleState; context: HandleContext }, event: Extract<TabHandleEvent, { type: "RELEASE" }>) => ({ lastPointer: event.point }),
-              effect: (_snapshot: { state: HandleState; context: HandleContext }, event: Extract<TabHandleEvent, { type: "RELEASE" }>) => {
-                this.onDragEnd(this.toGlobal(event.point))
-              },
-            },
-            CANCEL: {
-              target: "idle",
-            },
-          },
-        },
-      },
-    })
-    this.setupGestures()
-
-    this.on("pointerenter", () => {
-      this.hover = true
-    })
-    this.on("pointerleave", () => {
-      this.hover = false
-    })
-    this.on("pointerdown", (e) => {
-      if (e.button !== 0) return
-      this.machine.send({ type: "PRESS", point: { x: e.x, y: e.y } })
-      this.downEvents.emit(e)
-      e.capture()
-    })
-    this.on("pointermove", (e) => {
-      if (this.machine.matches("idle")) return
-      this.moveEvents.emit(e)
-    })
-    this.on("pointerup", (e) => {
-      const wasPressed = this.machine.matches("pressed")
-      const wasDragging = this.machine.matches("dragging")
-      if (!wasPressed && !wasDragging) return
-      this.upEvents.emit(e)
-      if (wasDragging) return
-      if (this.hover) this.onSelect()
-    })
-    this.on("pointercancel", () => {
-      this.hover = false
-      this.cancelEvents.emit()
-    })
   }
 
   bounds(): Rect {
@@ -213,7 +118,7 @@ class DockTabHandle extends UIElement {
     // If the pointer leaves the tab while pressed, we still want to allow a drag
     // to start (especially when dragging out of a window). Visual "pressed"
     // feedback should only remain while hovering; dragging stays active.
-    const active = this.machine.matches("dragging") || (this.hover && this.machine.matches("pressed"))
+    const active = this.drag.dragging() || (this.hover && this.drag.pressed())
     const bg = selected ? neutral[500] : active ? neutral[600] : this.hover ? neutral[700] : neutral[750]
     draw(
       ctx,
@@ -238,44 +143,18 @@ class DockTabHandle extends UIElement {
       }),
     )
   }
-
-  private setupGestures() {
-    this.gestureSub?.unsubscribe()
-    this.gestureSub = pointerDragSession({
-      down: this.downEvents.stream,
-      move: this.moveEvents.stream,
-      up: this.upEvents.stream,
-      cancel: this.cancelEvents.stream.pipe(map(() => "inactive" as InteractionCancelReason)),
-      thresholdSq: 36,
-    }).subscribe((event) => {
-      if (event.kind === "start") {
-        this.machine.send({ type: "DRAG_START", point: { x: event.current.x, y: event.current.y } })
-        return
-      }
-      if (event.kind === "move") {
-        this.machine.send({ type: "DRAG_MOVE", point: { x: event.current.x, y: event.current.y } })
-        return
-      }
-      if (event.kind === "end") {
-        this.machine.send({ type: "RELEASE", point: { x: event.up.x, y: event.up.y } })
-        return
-      }
-      this.machine.send({ type: "CANCEL" })
-    })
-  }
-
 }
 
 class DockSplitHandle extends UIElement {
   private readonly rect: () => Rect
   private readonly axis: () => "x" | "y"
   private readonly onDrag: (point: Vec2) => void
-  private readonly downEvents = createEventStream<PointerUIEvent>()
-  private readonly moveEvents = createEventStream<PointerUIEvent>()
-  private readonly upEvents = createEventStream<PointerUIEvent>()
-  private readonly cancelEvents = createEventStream<void>()
-  private readonly machine: Machine<HandleState, SplitHandleEvent, HandleContext>
-  private gestureSub: { unsubscribe(): void } | null = null
+  private readonly drag = useDragHandle(this, {
+    thresholdSq: 0,
+    onDragMove: ({ current }) => {
+      this.onDrag(current)
+    },
+  })
 
   constructor(opts: { rect: () => Rect; axis: () => "x" | "y"; onDrag: (point: Vec2) => void }) {
     super()
@@ -289,75 +168,6 @@ class DockSplitHandle extends UIElement {
         cursor: () => (this.axis() === "x" ? "ew-resize" : "ns-resize"),
       }),
     )
-    this.machine = createMachine<HandleState, SplitHandleEvent, HandleContext>({
-      initial: "idle",
-      context: { originPointer: { x: 0, y: 0 }, lastPointer: { x: 0, y: 0 } },
-      debug: { name: "splitHandle", scope: "ui.docking", hidden: true },
-      states: {
-        idle: {
-          on: {
-            PRESS: {
-              target: "pressed",
-              reduce: (_snapshot: { state: HandleState; context: HandleContext }, event: Extract<SplitHandleEvent, { type: "PRESS" }>) => ({
-                originPointer: event.point,
-                lastPointer: event.point,
-              }),
-            },
-          },
-        },
-        pressed: {
-          on: {
-            DRAG_START: {
-              target: "dragging",
-              reduce: (_snapshot: { state: HandleState; context: HandleContext }, event: Extract<SplitHandleEvent, { type: "DRAG_START" }>) => ({ lastPointer: event.point }),
-            },
-            RELEASE: {
-              target: "idle",
-              reduce: (_snapshot: { state: HandleState; context: HandleContext }, event: Extract<SplitHandleEvent, { type: "RELEASE" }>) => ({ lastPointer: event.point }),
-            },
-            CANCEL: {
-              target: "idle",
-            },
-          },
-        },
-        dragging: {
-          on: {
-            DRAG_MOVE: {
-              reduce: (_snapshot: { state: HandleState; context: HandleContext }, event: Extract<SplitHandleEvent, { type: "DRAG_MOVE" }>) => ({ lastPointer: event.point }),
-              effect: (_snapshot: { state: HandleState; context: HandleContext }, event: Extract<SplitHandleEvent, { type: "DRAG_MOVE" }>) => {
-                this.onDrag(event.point)
-              },
-            },
-            RELEASE: {
-              target: "idle",
-              reduce: (_snapshot: { state: HandleState; context: HandleContext }, event: Extract<SplitHandleEvent, { type: "RELEASE" }>) => ({ lastPointer: event.point }),
-            },
-            CANCEL: {
-              target: "idle",
-            },
-          },
-        },
-      },
-    })
-    this.setupGestures()
-
-    this.on("pointerdown", (e) => {
-      if (e.button !== 0) return
-      this.machine.send({ type: "PRESS", point: { x: e.x, y: e.y } })
-      this.downEvents.emit(e)
-      e.capture()
-    })
-    this.on("pointermove", (e) => {
-      if (this.machine.matches("idle")) return
-      this.moveEvents.emit(e)
-    })
-    this.on("pointerup", (e) => {
-      if (this.machine.matches("idle")) return
-      this.upEvents.emit(e)
-    })
-    this.on("pointercancel", () => {
-      this.cancelEvents.emit()
-    })
   }
 
   bounds(): Rect {
@@ -370,7 +180,7 @@ class DockSplitHandle extends UIElement {
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
     const r = this.rect()
-    const active = this.machine.matches("pressed") || this.machine.matches("dragging")
+    const active = this.drag.pressed() || this.drag.dragging()
     const bg = active ? neutral[500] : this.hover ? neutral[600] : neutral[700]
     const grip =
       this.axis() === "x"
@@ -391,32 +201,6 @@ class DockSplitHandle extends UIElement {
   captureCursor() {
     return this.axis() === "x" ? "ew-resize" : "ns-resize"
   }
-
-  private setupGestures() {
-    this.gestureSub?.unsubscribe()
-    this.gestureSub = pointerDragSession({
-      down: this.downEvents.stream,
-      move: this.moveEvents.stream,
-      up: this.upEvents.stream,
-      cancel: this.cancelEvents.stream.pipe(map(() => "inactive" as InteractionCancelReason)),
-      thresholdSq: 0,
-    }).subscribe((event) => {
-      if (event.kind === "start") {
-        this.machine.send({ type: "DRAG_START", point: { x: event.current.x, y: event.current.y } })
-        return
-      }
-      if (event.kind === "move") {
-        this.machine.send({ type: "DRAG_MOVE", point: { x: event.current.x, y: event.current.y } })
-        return
-      }
-      if (event.kind === "end") {
-        this.machine.send({ type: "RELEASE", point: { x: event.up.x, y: event.up.y } })
-        return
-      }
-      this.machine.send({ type: "CANCEL" })
-    })
-  }
-
 }
 
 function tabWidth(ctx: CanvasRenderingContext2D, title: string) {
