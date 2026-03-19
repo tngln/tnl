@@ -16,6 +16,36 @@ function pointer(x: number, y: number, buttons = 1) {
   })
 }
 
+function fakeCtx() {
+  const ctx: any = {
+    beginPath() {},
+    roundRect() {},
+    rect() {},
+    fill() {},
+    stroke() {},
+    save() {},
+    restore() {},
+    setLineDash() {},
+    moveTo() {},
+    lineTo() {},
+    fillRect() {},
+    strokeRect() {},
+    createLinearGradient() {
+      return { addColorStop() {} }
+    },
+    createRadialGradient() {
+      return { addColorStop() {} }
+    },
+    createPattern() {
+      return null
+    },
+    getTransform() {
+      return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }
+    },
+  }
+  return ctx as CanvasRenderingContext2D
+}
+
 describe("scrollbar", () => {
   it("tracks live getter values without requiring update()", () => {
     let rect = { x: 0, y: 0, w: 12, h: 0 }
@@ -115,5 +145,30 @@ describe("scrollbar", () => {
     scrollbar.emit("pointermove", pointer(6, 10))
 
     expect(value).toBe(finalValue)
+  })
+
+  it("requests invalidation when hover state changes", () => {
+    let invalidations = 0
+    const scrollbar = new Scrollbar({
+      rect: () => ({ x: 0, y: 0, w: 12, h: 100 }),
+      viewportSize: () => 100,
+      contentSize: () => 300,
+      value: () => 0,
+      onChange: () => {},
+      autoHide: false,
+    })
+
+    scrollbar.draw(fakeCtx(), {
+      frameId: 1,
+      dpr: 1,
+      invalidateRect: () => {
+        invalidations += 1
+      },
+    })
+
+    scrollbar.emit("pointerenter")
+    scrollbar.emit("pointerleave")
+
+    expect(invalidations).toBe(2)
   })
 })

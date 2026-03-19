@@ -194,4 +194,29 @@ describe("tree row", () => {
       h: TREE_ROW_DISCLOSURE_SLOT,
     })
   })
+
+  it("requests invalidation when hover state changes", () => {
+    let invalidations = 0
+    const row = new TreeRow()
+    row.set({
+      rect: { x: 0, y: 0, w: 180, h: TREE_ROW_HEIGHT },
+      depth: 0,
+      expandable: true,
+      expanded: false,
+      leftText: "Node",
+    })
+
+    row.draw(fakeCtx().ctx, {
+      frameId: 1,
+      dpr: 1,
+      invalidateRect: () => {
+        invalidations += 1
+      },
+    })
+
+    row.emit("pointerenter")
+    row.emit("pointerleave")
+
+    expect(invalidations).toBe(2)
+  })
 })

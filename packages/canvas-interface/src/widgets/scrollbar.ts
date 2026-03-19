@@ -63,6 +63,21 @@ export class Scrollbar extends UIElement {
     this.update(opts)
     this.setBounds(() => this.rectValue(), () => !this.hidden())
     this.z = 40
+    this.on("pointerenter", () => {
+      this.invalidateSelf({ pad: 2 })
+    })
+    this.on("pointerleave", () => {
+      this.invalidateSelf({ pad: 2 })
+    })
+    this.on("pointerdown", () => {
+      this.invalidateSelf({ pad: 2 })
+    })
+    this.on("pointerup", () => {
+      this.invalidateSelf({ pad: 2 })
+    })
+    this.on("pointercancel", () => {
+      this.invalidateSelf({ pad: 2 })
+    })
   }
 
   update(opts: {
