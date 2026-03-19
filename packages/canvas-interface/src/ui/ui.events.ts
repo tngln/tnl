@@ -1,5 +1,5 @@
-import type { InteractionCancelReason } from "./event_stream"
-import type { Vec2 } from "./draw"
+import type { InteractionCancelReason } from "../event_stream"
+import type { Vec2 } from "../draw"
 
 export type PointerLike = {
   pointerId: number

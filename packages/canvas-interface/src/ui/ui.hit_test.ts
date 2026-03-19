@@ -1,5 +1,5 @@
-import type { Shape, Circle, Rect, Vec2 } from "./draw"
-import { clamp } from "./draw"
+import type { Shape, Circle, Rect, Vec2 } from "../draw"
+import { clamp } from "../draw"
 
 export function pointInRect(p: Vec2, r: Rect) {
   return p.x >= r.x && p.y >= r.y && p.x <= r.x + r.w && p.y <= r.y + r.h

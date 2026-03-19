@@ -1,4 +1,4 @@
-import { clamp, type Rect } from "./rect"
+import { clamp, type Rect } from "../draw/rect"
 
 export type { Rect }
 

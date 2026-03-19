@@ -1,4 +1,4 @@
-import { draw, LineOp } from "./draw"
+import { draw, LineOp } from "../draw"
 
 export type Any2DContext = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 

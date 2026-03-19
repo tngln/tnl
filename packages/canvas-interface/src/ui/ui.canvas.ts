@@ -1,6 +1,6 @@
 import { theme, alpha, neutral } from "@/config/theme"
-import { classifySpatialClicks, createEventStream, type InteractionCancelReason } from "./event_stream"
-import { clampRect, inflateRect, intersects, mergeRectInto, normalizeRect, rectArea, unionRect, ZERO_RECT, type Rect, type Vec2 } from "./draw"
+import { classifySpatialClicks, createEventStream, type InteractionCancelReason } from "../event_stream"
+import { clampRect, inflateRect, intersects, mergeRectInto, normalizeRect, rectArea, unionRect, ZERO_RECT, type Rect, type Vec2 } from "../draw"
 import {
   addBrowserInteractionCancelListener,
   addLostPointerCaptureListener,
@@ -12,8 +12,8 @@ import {
   setElementCursor,
   setElementPointerCapture,
   type CursorKind,
-} from "./platform/web"
-import { Compositor } from "./compositor"
+} from "../platform/web"
+import { Compositor } from "../compositor"
 import { dispatchDoubleClickEvent, dispatchKeyEvent, dispatchPointerCancelEvent, dispatchPointerEvent, dispatchWheelEvent } from "./ui.dispatch"
 import { KeyUIEvent, type KeyLike, PointerUIEvent, WheelUIEvent } from "./ui.events"
 import { UIElement } from "./ui.element"

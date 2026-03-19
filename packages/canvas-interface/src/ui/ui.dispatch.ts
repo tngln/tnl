@@ -1,5 +1,5 @@
-import type { InteractionCancelReason } from "./event_stream"
-import type { Vec2 } from "./draw"
+import type { InteractionCancelReason } from "../event_stream"
+import type { Vec2 } from "../draw"
 import { KeyUIEvent, PointerUIEvent, WheelUIEvent, type PointerDispatchResult, type UIEventTargetNode } from "./ui.events"
 
 function buildEventPath(target: UIEventTargetNode | null) {
