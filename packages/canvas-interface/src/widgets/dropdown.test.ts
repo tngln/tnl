@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test"
 import { signal } from "@tnl/canvas-interface/reactivity"
 import { PointerUIEvent, TopLayerController } from "@tnl/canvas-interface/ui"
 import { Dropdown } from "@tnl/canvas-interface/widgets"
+import { fakeCtx } from "../builder/test_utils"
 
 function pointer(x: number, y: number, buttons = 1) {
   return new PointerUIEvent({
@@ -97,5 +98,25 @@ describe("dropdown", () => {
 
     dd.emit("blur")
     expect(topLayer.hasAny()).toBe(false)
+  })
+
+  it("draws the closed trigger through the shared visual layer", () => {
+    const selected = signal("B", { debugLabel: "test.dropdown.draw.selected" })
+    const topLayer = new TopLayerController({ rect: () => ({ x: -1e9, y: -1e9, w: 2e9, h: 2e9 }), invalidate: () => {}, z: 0 })
+    const dd = new Dropdown({
+      id: "draw",
+      rect: () => ({ x: 0, y: 0, w: 140, h: 28 }),
+      options: [
+        { value: "A", label: "Option A" },
+        { value: "B", label: "Option B" },
+      ],
+      selected,
+      topLayer,
+    })
+    const ctx = fakeCtx() as CanvasRenderingContext2D & { calls: Array<{ op: string; args: any[] }> }
+
+    dd.draw(ctx)
+
+    expect(ctx.calls.some((call) => call.op === "fillText" && call.args[0] === "Option B")).toBe(true)
   })
 })

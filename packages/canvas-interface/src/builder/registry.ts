@@ -223,7 +223,7 @@ const checkboxHandler = controlHandler<CheckboxNode>({
     }),
 })
 
-const dropdownHandler = widgetHandler<DropdownNode, { options: DropdownNode["options"]; selected: DropdownNode["selected"]; disabled?: boolean; topLayer: BuilderEngine["runtime"]["topLayer"] }>({
+const dropdownHandler = widgetHandler<DropdownNode, { options: DropdownNode["options"]; selected: DropdownNode["selected"]; disabled?: boolean; topLayer: BuilderEngine["runtime"]["topLayer"]; visualStyle?: DropdownNode["visualStyle"] }>({
   kind: "dropdown",
   widgetType: "dropdown",
   measure: (_engine, ctx, node, max) => {
@@ -237,7 +237,7 @@ const dropdownHandler = widgetHandler<DropdownNode, { options: DropdownNode["opt
     for (const opt of node.options) w = Math.max(w, measureTextWidth(ctx, opt.label, f))
     return { w: Math.min(max.w, Math.max(theme.ui.controls.minFieldWidth, w + 28)), h: theme.ui.controls.inputHeight }
   },
-  mountWidget: (engine, _ctx, node) => ({ options: node.options, selected: node.selected, disabled: node.disabled, topLayer: engine.runtime.topLayer }),
+  mountWidget: (engine, _ctx, node) => ({ options: node.options, selected: node.selected, disabled: node.disabled, topLayer: engine.runtime.topLayer, visualStyle: node.visualStyle }),
 })
 
 const radioHandler = controlHandler<RadioNode>({

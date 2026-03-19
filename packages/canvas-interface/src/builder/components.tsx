@@ -83,6 +83,7 @@ type CheckboxProps = JSXNodeProps & {
 type DropdownProps = Omit<JSXNodeProps, "children"> & {
   options: Array<{ value: string; label: string }>
   selected: Signal<string>
+  visualStyle?: VisualStyleInput
   disabled?: boolean
 }
 
@@ -97,6 +98,7 @@ type RadioProps = JSXNodeProps & {
 type TextBoxProps = Omit<JSXNodeProps, "children"> & {
   value: Signal<string>
   placeholder?: string
+  visualStyle?: VisualStyleInput
   disabled?: boolean
 }
 
@@ -322,7 +324,7 @@ export function Checkbox(props: CheckboxProps) {
 }
 
 export function Dropdown(props: DropdownProps) {
-  return dropdownNode(props.options, props.selected, { ...common(props), disabled: props.disabled })
+  return dropdownNode(props.options, props.selected, { ...common(props), visualStyle: props.visualStyle, disabled: props.disabled })
 }
 
 export function Radio(props: RadioProps) {
@@ -330,7 +332,7 @@ export function Radio(props: RadioProps) {
 }
 
 export function TextBox(props: TextBoxProps) {
-  return textBoxNode(props.value, { ...common(props), placeholder: props.placeholder, disabled: props.disabled })
+  return textBoxNode(props.value, { ...common(props), placeholder: props.placeholder, visualStyle: props.visualStyle, disabled: props.disabled })
 }
 
 export function RowItem(props: RowItemProps) {

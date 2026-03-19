@@ -1,11 +1,12 @@
-import { font, theme, neutral } from "../theme"
-import { draw, RectOp, TextOp, truncateToWidth, toGetter, type Rect, ZERO_RECT } from "../draw"
+import { type Rect, ZERO_RECT } from "../draw"
 import { signal, type Signal } from "../reactivity"
 import { PointerUIEvent } from "../ui_base"
 import type { TopLayerController } from "../top_layer"
 import { useClickOutsideHandler } from "../top_layer"
 import type { WidgetDescriptor } from "../builder/widget_registry"
-import { caretDownIcon, iconToShape } from "../icons"
+import { caretDownIcon } from "../icons"
+import { drawVisualNode, type VisualStyleInput } from "../builder/visual"
+import { textControlFrame } from "../builder/visual.presets"
 import { DropdownMenu, DROPDOWN_MENU_ROW_HEIGHT } from "./dropdown_menu"
 import { InteractiveElement } from "./interactive"
 
@@ -16,6 +17,7 @@ export class Dropdown extends InteractiveElement {
   private optionsValue: DropdownOption[] = []
   private selected: any
   private topLayer?: TopLayerController
+  private visualStyleValue: VisualStyleInput | undefined
 
   private menu: DropdownMenu | null = null
   private menuRectCache: Rect = ZERO_RECT
@@ -29,6 +31,7 @@ export class Dropdown extends InteractiveElement {
     topLayer?: TopLayerController
     active?: () => boolean
     disabled?: () => boolean
+    visualStyle?: VisualStyleInput
   }) {
     super(opts)
     this.selected = opts.selected
@@ -44,10 +47,11 @@ export class Dropdown extends InteractiveElement {
     })
   }
 
-  update(opts: { id: string; options: DropdownOption[] | (() => DropdownOption[]); selected: any; topLayer?: TopLayerController }) {
+  update(opts: { id: string; options: DropdownOption[] | (() => DropdownOption[]); selected: any; topLayer?: TopLayerController; visualStyle?: VisualStyleInput }) {
     this.idValue = opts.id
     this.optionsValue = typeof opts.options === "function" ? opts.options() : opts.options
     this.selected = opts.selected
+    this.visualStyleValue = opts.visualStyle
     if (opts.topLayer) this.topLayer = opts.topLayer
   }
 
@@ -111,50 +115,52 @@ export class Dropdown extends InteractiveElement {
     const r = this.mainRect()
     const disabled = this._disabled()
     const pressed = this.pressed()
-    const bg = disabled
-      ? theme.colors.disabled
-      : pressed
-        ? theme.colors.pressed
-        : this.hover
-          ? theme.colors.hover
-          : "transparent"
-    const stroke = disabled ? neutral[400] : theme.colors.border
-    const textColor = disabled ? theme.colors.textMuted : theme.colors.text
-    const f = font(theme, theme.typography.body)
 
     const options = this.optionsValue
     const current = options.find((o) => o.value === this.selected.peek())
     const label = current ? current.label : ""
-
-    ctx.save()
-    ctx.font = f
-    const labelMax = Math.max(0, r.w - 28)
-    const display = truncateToWidth(ctx, label, labelMax)
-    ctx.restore()
-
-    draw(
-      ctx,
-      RectOp(
-        { x: r.x, y: r.y, w: r.w, h: r.h },
-        { radius: theme.radii.sm, fill: { paint: bg }, stroke: { color: stroke, hairline: true } },
-      ),
-      TextOp({
-        x: r.x + theme.ui.controls.labelPadX,
-        y: r.y + r.h / 2 + 0.5,
-        text: display,
-        style: { color: textColor, font: f, baseline: "middle" },
-      }),
-      iconToShape(
-        caretDownIcon,
+    drawVisualNode(ctx, {
+      kind: "box",
+      style: {
+        ...(textControlFrame() as any),
+        ...((this.visualStyleValue as any) ?? {}),
+      },
+      children: [
         {
-          x: r.x + r.w - theme.ui.controls.caretPadX - 5,
-          y: r.y + r.h / 2 - 5,
-          w: 10,
-          h: 10,
+          kind: "box",
+          style: {
+            base: {
+              layout: { axis: "row", align: "center", justify: "between", grow: true },
+            },
+          },
+          children: [
+            {
+              kind: "text",
+              text: label,
+              style: {
+                base: {
+                  text: { baseline: "middle", truncate: true },
+                  layout: { grow: true, minH: r.h },
+                },
+              },
+            },
+            {
+              kind: "image",
+              source: { kind: "icon", icon: caretDownIcon },
+              style: {
+                base: {
+                  image: { color: "rgba(233,237,243,0.40)", width: 10, height: 10 },
+                  layout: { fixedW: 10, fixedH: 10 },
+                },
+              },
+            },
+          ],
         },
-        { paint: theme.colors.textMuted },
-      ),
-    )
+      ],
+    }, r, {
+      state: { hover: this.hover, pressed, dragging: false, disabled },
+      disabled,
+    })
 
     if (this.topLayer?.isOpen(this.menuId())) this.menuRectCache = this.computeMenuRect()
   }
@@ -168,7 +174,7 @@ type DropdownState = {
   disabled: boolean
 }
 
-export const dropdownDescriptor: WidgetDescriptor<DropdownState, { options: DropdownOption[]; selected: Signal<string>; disabled?: boolean; topLayer?: TopLayerController }> = {
+export const dropdownDescriptor: WidgetDescriptor<DropdownState, { options: DropdownOption[]; selected: Signal<string>; disabled?: boolean; topLayer?: TopLayerController; visualStyle?: VisualStyleInput }> = {
   id: "dropdown",
   retainedKind: "widget",
   create: (id) => {
@@ -180,6 +186,7 @@ export const dropdownDescriptor: WidgetDescriptor<DropdownState, { options: Drop
       selected: signal(""),
       active: () => state.active,
       disabled: () => state.disabled,
+      visualStyle: undefined,
     })
     return state
   },
@@ -193,6 +200,7 @@ export const dropdownDescriptor: WidgetDescriptor<DropdownState, { options: Drop
       options: props.options,
       selected: props.selected,
       topLayer: props.topLayer,
+      visualStyle: props.visualStyle,
     })
   },
 }

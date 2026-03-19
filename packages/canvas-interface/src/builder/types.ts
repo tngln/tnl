@@ -91,6 +91,7 @@ export type DropdownNode = NodeBase & {
   kind: "dropdown"
   options: Array<{ value: string; label: string }>
   selected: Signal<string>
+  visualStyle?: VisualStyleInput
   disabled?: boolean
 }
 
@@ -107,6 +108,7 @@ export type TextBoxNode = NodeBase & {
   kind: "textbox"
   value: Signal<string>
   placeholder?: string
+  visualStyle?: VisualStyleInput
   disabled?: boolean
 }
 

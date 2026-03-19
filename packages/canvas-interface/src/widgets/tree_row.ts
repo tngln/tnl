@@ -1,9 +1,10 @@
 import { theme } from "../theme"
-import { draw, RectOp, TextOp, truncateToWidth, ZERO_RECT, type Rect } from "../draw"
+import { ZERO_RECT, type Rect } from "../draw"
 import type { RowVariant } from "../builder/types"
+import { drawVisualNode, type VisualNode } from "../builder/visual"
+import { rowSurface } from "../builder/visual.presets"
 import { UIElement, pointInRect } from "../ui_base"
-import { chevronDownIcon, chevronRightIcon, iconToShape, type IconDef } from "../icons"
-import { resolveControlFill } from "../use/control_visual"
+import { chevronDownIcon, chevronRightIcon, type IconDef } from "../icons"
 import { usePress, type PressBinding } from "../use/use_press"
 import type { WidgetDescriptor } from "../builder/widget_registry"
 
@@ -27,6 +28,84 @@ export type TreeRowLayout = {
 
 export function treeRowDisclosureIcon(expanded: boolean): IconDef {
   return expanded ? chevronDownIcon : chevronRightIcon
+}
+
+export function buildTreeRowVisual(layout: TreeRowLayout, state: { hover: boolean; pressed: boolean }): VisualNode {
+  const disclosureRect = {
+    kind: "box" as const,
+    style: {
+      base: {
+        layout: { fixedW: TREE_ROW_DISCLOSURE_SLOT, fixedH: TREE_ROW_DISCLOSURE_SLOT },
+      },
+    },
+    children: layout.expandable
+      ? [{
+          kind: "image" as const,
+          source: { kind: "icon" as const, icon: treeRowDisclosureIcon(layout.expanded) },
+          style: {
+            base: {
+              image: { color: theme.colors.textMuted, width: Math.max(0, TREE_ROW_DISCLOSURE_SLOT - 4), height: Math.max(0, TREE_ROW_DISCLOSURE_SLOT - 4) },
+              layout: { fixedW: TREE_ROW_DISCLOSURE_SLOT, fixedH: TREE_ROW_DISCLOSURE_SLOT },
+            },
+          },
+        }]
+      : [],
+  }
+
+  return {
+    kind: "box",
+    style: {
+      ...rowSurface({ minH: TREE_ROW_HEIGHT }),
+      base: {
+        ...((rowSurface({ minH: TREE_ROW_HEIGHT }) as any).base ?? {}),
+        layout: {
+          ...((rowSurface({ minH: TREE_ROW_HEIGHT }) as any).base?.layout ?? {}),
+          padding: { left: TREE_ROW_LEFT_PAD + Math.max(0, layout.depth) * TREE_ROW_INDENT_STEP, right: TREE_ROW_RIGHT_PAD },
+          gap: TREE_ROW_DISCLOSURE_GAP,
+        },
+      },
+    },
+    children: [
+      disclosureRect,
+      {
+        kind: "text",
+        text: layout.leftText,
+        style: {
+          base: {
+            text: {
+              color: (layout.variant ?? "item") === "group" ? theme.colors.text : theme.colors.textMuted,
+              fontSize: Math.max(10, theme.typography.body.size - 1),
+              fontWeight: (layout.variant ?? "item") === "group" ? 600 : 500,
+              lineHeight: TREE_ROW_HEIGHT,
+              baseline: "middle",
+              truncate: true,
+            },
+            layout: { grow: true, minH: TREE_ROW_HEIGHT },
+          },
+        },
+      },
+      ...(layout.rightText
+        ? [{
+            kind: "text" as const,
+            text: layout.rightText,
+            style: {
+              base: {
+                text: {
+                  color: theme.colors.textMuted,
+                  fontSize: Math.max(10, theme.typography.body.size - 2),
+                  fontWeight: 400,
+                  lineHeight: TREE_ROW_HEIGHT,
+                  align: "end" as const,
+                  baseline: "middle" as const,
+                  truncate: true,
+                },
+                layout: { minH: TREE_ROW_HEIGHT },
+              },
+            },
+          }]
+        : []),
+    ],
+  }
 }
 
 export class TreeRow extends UIElement {
@@ -98,82 +177,10 @@ export class TreeRow extends UIElement {
     if (!this.activeValue) return
     const r = this.layout.rect
     if (r.w <= 0 || r.h <= 0) return
-    const pressed = this.press.pressed()
-    const resolvedBg = resolveControlFill(
-      { hover: this.hover, pressed, disabled: false, selected: !!this.layout.selected },
-      { disabled: theme.colors.disabled, pressed: theme.colors.pressed, hover: theme.colors.hover, selected: theme.colors.rowSelected, idle: "transparent" },
-    )
-    if (resolvedBg !== "transparent") draw(ctx, RectOp(r, { fill: { paint: resolvedBg } }))
-
-    const isGroup = (this.layout.variant ?? "item") === "group"
-    const leftColor = isGroup ? theme.colors.text : theme.colors.textMuted
-    const leftFont = `${isGroup ? 600 : 500} ${Math.max(10, theme.typography.body.size - 1)}px ${theme.typography.family}`
-    const rightFont = `${400} ${Math.max(10, theme.typography.body.size - 2)}px ${theme.typography.family}`
-    const disclosureRect = this.disclosureRect()
-    const textX = disclosureRect.x + TREE_ROW_DISCLOSURE_SLOT + TREE_ROW_DISCLOSURE_GAP
-    const contentW = Math.max(0, r.w - TREE_ROW_LEFT_PAD - TREE_ROW_RIGHT_PAD)
-
-    if (this.layout.expandable) {
-      const pad = 2
-      draw(
-        ctx,
-        iconToShape(
-          treeRowDisclosureIcon(this.layout.expanded),
-          {
-            x: disclosureRect.x + pad,
-            y: disclosureRect.y + pad,
-            w: Math.max(0, disclosureRect.w - pad * 2),
-            h: Math.max(0, disclosureRect.h - pad * 2),
-          },
-          { paint: theme.colors.textMuted },
-        ),
-      )
-    }
-
-    const right = this.layout.rightText
-    let rightText = ""
-    let rightW = 0
-    if (right) {
-      ctx.save()
-      ctx.font = rightFont
-      const rightMax = Math.max(0, Math.min(contentW * 0.45, contentW - (textX - r.x) - 24))
-      rightText = truncateToWidth(ctx, right, rightMax)
-      rightW = rightText ? ctx.measureText(rightText).width : 0
-      ctx.restore()
-    }
-
-    ctx.save()
-    ctx.font = leftFont
-    const leftMax = Math.max(0, r.w - (textX - r.x) - TREE_ROW_RIGHT_PAD - (rightText ? rightW + theme.ui.controls.treeRow.rightTextGap : 0))
-    const leftText = truncateToWidth(ctx, this.layout.leftText, leftMax)
-    ctx.restore()
-
-    draw(
-      ctx,
-      TextOp({
-        x: textX,
-        y: r.y + r.h / 2 + 0.5,
-        text: leftText,
-        style: { color: leftColor, font: leftFont, baseline: "middle" },
-      }),
-    )
-
-    if (rightText) {
-      draw(
-        ctx,
-        TextOp({
-          x: r.x + r.w - TREE_ROW_RIGHT_PAD,
-          y: r.y + r.h / 2 + 0.5,
-          text: rightText,
-          style: {
-            color: theme.colors.textMuted,
-            font: rightFont,
-            baseline: "middle",
-            align: "end",
-          },
-        }),
-      )
-    }
+    drawVisualNode(ctx, buildTreeRowVisual(this.layout, { hover: this.hover, pressed: this.press.pressed() }), r, {
+      state: { hover: this.hover, pressed: this.press.pressed(), dragging: false, disabled: false },
+      selected: this.layout.selected,
+    })
   }
 
 }

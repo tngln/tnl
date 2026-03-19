@@ -1,8 +1,10 @@
 import { font, theme } from "../theme"
-import { draw, RectOp, TextOp, measureTextWidth, toGetter, ZERO_RECT, type Rect } from "../draw"
+import { measureTextWidth, ZERO_RECT, type Rect } from "../draw"
 import { signal, type Signal } from "../reactivity"
 import { getTextInputBridge, type TextInputBridge, type TextInputSyncState } from "../platform/web/text_input"
 import { createMeasureContext } from "../platform/web/canvas"
+import { drawVisualNode, type VisualStyleInput } from "../builder/visual"
+import { textControlFrame } from "../builder/visual.presets"
 import { CursorRegion, KeyUIEvent, UIElement, type DebugRuntimeStateSnapshot } from "../ui_base"
 import type { WidgetDescriptor } from "../builder/widget_registry"
 
@@ -29,6 +31,7 @@ export class TextBox extends UIElement {
   private placeholderValue: string = ""
   private activeValue: boolean = true
   private disabledValue: boolean = false
+  private visualStyleValue: VisualStyleInput | undefined
   private inputBridge: TextInputBridge
   private readonly sessionId = `${SESSION_PREFIX}.${nextSessionId++}`
 
@@ -48,6 +51,7 @@ export class TextBox extends UIElement {
     placeholder?: string | (() => string)
     active?: () => boolean
     disabled?: () => boolean
+    visualStyle?: VisualStyleInput
     inputBridge?: TextInputBridge
   }) {
     super()
@@ -179,6 +183,7 @@ export class TextBox extends UIElement {
     placeholder?: string | (() => string)
     active?: () => boolean
     disabled?: () => boolean
+    visualStyle?: VisualStyleInput
     inputBridge?: TextInputBridge
   }) {
     this.rectValue = opts.rect()
@@ -186,6 +191,7 @@ export class TextBox extends UIElement {
     this.placeholderValue = typeof opts.placeholder === "function" ? opts.placeholder() : (opts.placeholder ?? "")
     this.activeValue = opts.active ? opts.active() : true
     this.disabledValue = opts.disabled ? opts.disabled() : false
+    this.visualStyleValue = opts.visualStyle
     if (opts.inputBridge) this.inputBridge = opts.inputBridge
   }
 
@@ -200,8 +206,6 @@ export class TextBox extends UIElement {
     const rect = this.rectValue
     const disabled = this.disabledValue
     const focused = this.focused && !disabled
-    const bg = disabled ? theme.colors.disabled : theme.colors.inputBg
-    const stroke = focused ? theme.colors.borderFocus : theme.colors.border
     const textValue = this.value.get()
     const placeholder = this.placeholderValue
     const display = textValue || placeholder
@@ -214,13 +218,17 @@ export class TextBox extends UIElement {
 
     this.ensureCaretVisible(ctx, innerW)
 
-    draw(
-      ctx,
-      RectOp(
-        { x: rect.x, y: rect.y, w: rect.w, h: rect.h },
-        { radius: theme.radii.sm, fill: { paint: bg }, stroke: { color: stroke, hairline: true } },
-      ),
-    )
+    drawVisualNode(ctx, {
+      kind: "box",
+      style: {
+        ...(textControlFrame() as any),
+        ...((this.visualStyleValue as any) ?? {}),
+        ...(focused ? { base: { border: { color: theme.colors.borderFocus, radius: theme.radii.sm } } } : {}),
+      },
+    }, rect, {
+      state: { hover: this.hover, pressed: false, dragging: this.dragAnchor !== null, disabled },
+      disabled,
+    })
 
     ctx.save()
     ctx.beginPath()
@@ -234,19 +242,25 @@ export class TextBox extends UIElement {
       ctx.fillRect(selectionX, rect.y + 4, selectionW, rect.h - 8)
     }
 
-    draw(
-      ctx,
-      TextOp({
-        x: innerX - this.scrollX,
-        y: innerY,
-        text: display,
-        style: {
-          color: isPlaceholder ? theme.colors.textMuted : theme.colors.text,
-          font: fontSpec,
-          baseline: "middle",
+    drawVisualNode(ctx, {
+      kind: "text",
+      text: display,
+      style: {
+        base: {
+          text: {
+            color: isPlaceholder ? theme.colors.textMuted : theme.colors.text,
+            fontFamily: theme.typography.family,
+            fontSize: theme.typography.body.size,
+            fontWeight: theme.typography.body.weight,
+            lineHeight: theme.spacing.lg,
+            baseline: "middle",
+          },
         },
-      }),
-    )
+      },
+    }, { x: innerX - this.scrollX, y: rect.y, w: innerW + this.scrollX, h: rect.h }, {
+      state: { hover: this.hover, pressed: false, dragging: this.dragAnchor !== null, disabled },
+      disabled,
+    })
 
     if (focused && this.caretVisible && selection.selectionStart === selection.selectionEnd) {
       const caretX = innerX + this.measurePrefix(ctx, this.selectionEnd) - this.scrollX
@@ -456,7 +470,7 @@ type TextBoxState = {
   disabled: boolean
 }
 
-export const textBoxDescriptor: WidgetDescriptor<TextBoxState, { value: Signal<string>; placeholder?: string; disabled?: boolean }> = {
+export const textBoxDescriptor: WidgetDescriptor<TextBoxState, { value: Signal<string>; placeholder?: string; disabled?: boolean; visualStyle?: VisualStyleInput }> = {
   id: "textbox",
   retainedKind: "widget",
   create: () => {
@@ -466,11 +480,12 @@ export const textBoxDescriptor: WidgetDescriptor<TextBoxState, { value: Signal<s
       value: signal(""),
       active: () => state.active,
       disabled: () => state.disabled,
+      visualStyle: undefined,
     })
     return state
   },
   getWidget: (state) => state.widget,
-  mount: (state, props, rect, active) => {
+  mount: (state, props: { value: Signal<string>; placeholder?: string; disabled?: boolean; visualStyle?: VisualStyleInput }, rect, active) => {
     state.rect = rect
     state.active = active
     state.disabled = props.disabled ?? false
@@ -480,6 +495,7 @@ export const textBoxDescriptor: WidgetDescriptor<TextBoxState, { value: Signal<s
       placeholder: props.placeholder,
       active: () => state.active,
       disabled: () => state.disabled,
+      visualStyle: props.visualStyle,
     })
   },
 }

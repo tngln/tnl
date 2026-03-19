@@ -1,6 +1,7 @@
 import type { IconDef } from "../icons"
 import type { Rect } from "../draw"
 import type { ControlState } from "./control"
+import { choiceIndicator, controlFrame, iconLabelContent, rowSurface } from "./visual.presets"
 import { drawVisualNode, normalizeImageSource, styled, type VisualContext, type VisualImageSource, type VisualNode, type VisualStyleInput } from "./visual"
 
 type VisualControlCtx = {
@@ -24,23 +25,7 @@ function renderControlVisual(ctx: CanvasRenderingContext2D, rect: Rect, node: Vi
 }
 
 function buttonBaseStyle(): VisualStyleInput {
-  return {
-    base: {
-      layout: { padding: { left: 10, right: 10, top: 6, bottom: 6 }, minH: 32 },
-      border: { color: "rgba(255,255,255,0.16)", radius: 6 },
-      paint: { fill: "transparent" },
-      text: { color: "#e9edf3", fontSize: 12, fontWeight: 400, lineHeight: 18, align: "center" as const, baseline: "middle" as const, truncate: true },
-      image: { color: "#e9edf3", width: 14, height: 14 },
-    },
-    hover: { paint: { fill: "rgba(233,237,243,0.08)" } },
-    pressed: { paint: { fill: "rgba(233,237,243,0.12)" } },
-    disabled: {
-      paint: { fill: "rgba(233,237,243,0.03)" },
-      border: { color: "#7b8ca3" },
-      text: { color: "rgba(233,237,243,0.40)" },
-      image: { color: "rgba(233,237,243,0.40)" },
-    },
-  }
+  return controlFrame()
 }
 
 function tooltipStyle(): VisualStyleInput {
@@ -114,11 +99,7 @@ export function buildButtonVisual(props: {
     children: [
       {
         kind: "box",
-        style: {
-          base: {
-            layout: { axis: "row", align: "center", justify: "center", gap: 6, grow: true },
-          },
-        },
+        style: iconLabelContent(),
         children: contentChildren,
       },
       ...(title && state.hover && !state.pressed && title !== props.text
@@ -145,28 +126,14 @@ export function drawButton(
 function choiceRootStyle(visualStyle?: VisualStyleInput, visualCtx?: VisualContext): VisualStyleInput | undefined {
   return styled({
     visualStyle: {
-      base: {
-        layout: { axis: "row", align: "center", gap: 8 },
-      },
+      ...iconLabelContent({ gap: 8, justify: "start" }),
       ...(visualStyle as any ?? {}),
     },
   }, visualCtx ?? { state: { hover: false, pressed: false, dragging: false, disabled: false } })
 }
 
 function indicatorStyle(checkedFill = false): VisualStyleInput {
-  return {
-    base: {
-      layout: { fixedW: 16, fixedH: 16 },
-      border: { color: "rgba(255,255,255,0.16)", radius: checkedFill ? 999 : 4 },
-      paint: { fill: "transparent" },
-    },
-    hover: { paint: { fill: "rgba(233,237,243,0.08)" } },
-    pressed: { paint: { fill: "rgba(233,237,243,0.12)" } },
-    disabled: {
-      border: { color: "#7b8ca3" },
-      paint: { fill: "rgba(233,237,243,0.03)" },
-    },
-  }
+  return choiceIndicator({ radius: checkedFill ? 999 : 4 })
 }
 
 export function buildCheckboxVisual(props: { label: string; checked: boolean; visualStyle?: VisualStyleInput }, visualCtx: VisualContext): VisualNode {
@@ -260,14 +227,12 @@ export function buildListRowVisual(props: ListRowDrawProps, visualCtx: VisualCon
     kind: "box",
     style: styled({
       visualStyle: {
+        ...rowSurface({ minH: 22, selectedFill: "rgba(255,255,255,0.055)" }),
         base: {
-          layout: { axis: "row", align: "center", justify: "between", padding: { left: 8 + Math.max(0, props.indent ?? 0), right: 8 }, minH: 22 },
+          ...(rowSurface({ minH: 22, selectedFill: "rgba(255,255,255,0.055)" }) as any).base,
+          layout: { ...((rowSurface({ minH: 22, selectedFill: "rgba(255,255,255,0.055)" }) as any).base.layout), padding: { left: 8 + Math.max(0, props.indent ?? 0), right: 8 } },
           text: { color: props.variant === "group" ? "#e9edf3" : "rgba(233,237,243,0.40)", baseline: "middle" as const },
-          paint: { fill: "transparent" },
         },
-        hover: { paint: { fill: "rgba(233,237,243,0.08)" } },
-        pressed: { paint: { fill: "rgba(233,237,243,0.12)" } },
-        selected: { paint: { fill: "rgba(255,255,255,0.055)" } },
       },
     }, visualCtx),
     children: [

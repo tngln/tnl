@@ -205,7 +205,21 @@ export const ControlsSurface = defineSurface({
             key="controls.input"
             label="Input"
             labelWidth={64}
-            field={<TextBox key="controls.input.box" value={input} placeholder="Type here" style={{ fill: true }} />}
+            field={
+              <TextBox
+                key="controls.input.box"
+                value={input}
+                placeholder="Type here"
+                style={{ fill: true }}
+                visualStyle={{
+                  base: {
+                    paint: { fill: "#121825" },
+                    border: { color: "rgba(233,237,243,0.16)", radius: 10 },
+                    effects: { shadow: { color: "rgba(0,0,0,0.16)", blur: 6, offsetY: 2 } },
+                  },
+                }}
+              />
+            }
           />
           <FormRow
             key="controls.label"
@@ -222,6 +236,16 @@ export const ControlsSurface = defineSurface({
                 key="controls.dropdown.field"
                 style={{ fixed: 220 }}
                 selected={dropdown}
+                visualStyle={{
+                  base: {
+                    paint: { fill: "#1a2233" },
+                    border: { color: "rgba(140,190,255,0.40)", radius: 10 },
+                    text: { color: "#e9edf3" },
+                    image: { color: "#94a3b8", width: 10, height: 10 },
+                  },
+                  hover: { paint: { fill: "#1e293b" } },
+                  pressed: { paint: { fill: "#263245" } },
+                }}
                 options={[
                   { value: "A", label: "Option A" },
                   { value: "B", label: "Option B" },

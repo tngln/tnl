@@ -3,7 +3,7 @@ import { signal } from "@tnl/canvas-interface/reactivity"
 import { KeyUIEvent, PointerUIEvent } from "@tnl/canvas-interface/ui"
 import { TextBox } from "@tnl/canvas-interface/widgets"
 import type { OnePxTextboxBridge, OnePxTextboxSession, OnePxTextboxSyncState } from "./../platform/web/1px_textbox"
-import { withFakeDocument } from "../builder/test_utils"
+import { fakeCtx, withFakeDocument } from "../builder/test_utils"
 
 class MockBridge implements OnePxTextboxBridge {
   session: OnePxTextboxSession | null = null
@@ -176,5 +176,21 @@ describe("textbox", () => {
         { label: "bridge", value: "focused" },
       ]),
     )
+  })
+
+  it("draws placeholder text through the shared visual layer", () => {
+    const value = signal("", { debugLabel: "test.textbox.draw.value" })
+    const bridge = new MockBridge()
+    const textbox = new TextBox({
+      rect: () => ({ x: 0, y: 0, w: 120, h: 28 }),
+      value,
+      placeholder: "Type here",
+      inputBridge: bridge,
+    })
+    const ctx = fakeCtx() as CanvasRenderingContext2D & { calls: Array<{ op: string; args: any[] }> }
+
+    textbox.draw(ctx)
+
+    expect(ctx.calls.some((call) => call.op === "fillText" && call.args[0] === "Type here")).toBe(true)
   })
 })
