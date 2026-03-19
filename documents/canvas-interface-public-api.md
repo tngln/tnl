@@ -38,6 +38,7 @@
 - `@tnl/canvas-interface/window`
 - `@tnl/canvas-interface/window_manager`
 - `@tnl/canvas-interface/icons`
+- `@tnl/canvas-interface/async_state`
 - `@tnl/canvas-interface/util`
 - `@tnl/canvas-interface/invalidate`
 

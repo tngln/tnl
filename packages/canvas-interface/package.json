@@ -24,9 +24,12 @@
     "./icons": "./src/icons/index.ts",
     "./widgets": "./src/widgets/index.ts",
     "./builder": "./src/builder/index.ts",
+    "./builder/components": "./src/builder/components.tsx",
+    "./builder/surface_builder": "./src/builder/surface_builder.ts",
     "./browser": "./src/browser/index.ts",
     "./theme": "./src/theme/index.ts",
     "./jsx": "./src/jsx/index.ts",
+    "./async_state": "./src/async_state.ts",
     "./util": "./src/util.ts",
     "./docking": "./src/docking/index.ts",
     "./surfaces": "./src/surfaces/index.ts"

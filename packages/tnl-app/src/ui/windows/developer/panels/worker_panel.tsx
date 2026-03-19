@@ -1,5 +1,6 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
-import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
+import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, VStack } from "@tnl/canvas-interface/builder/components"
+import { defineSurface, mountSurface } from "@tnl/canvas-interface/builder/surface_builder"
 import { invalidateAll } from "@tnl/canvas-interface/invalidate"
 import { theme } from "@tnl/canvas-interface/theme"
 import type { DeveloperContext, DeveloperPanelSpec, DeveloperWorkerEntry } from "@tnl/canvas-interface/developer"

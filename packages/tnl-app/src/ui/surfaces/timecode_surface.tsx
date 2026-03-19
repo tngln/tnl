@@ -1,6 +1,7 @@
 import { font, theme, neutral } from "@tnl/canvas-interface/theme"
 import { draw, TextOp as DrawTextOp } from "@tnl/canvas-interface/draw"
-import { Paint, Stack, Text, VStack, defineSurface, mountSurface, type SurfaceDefinition } from "@tnl/canvas-interface/builder"
+import { Paint, Stack, Text, VStack } from "@tnl/canvas-interface/builder/components"
+import { defineSurface, mountSurface, type SurfaceDefinition } from "@tnl/canvas-interface/builder/surface_builder"
 import { createElement } from "@tnl/canvas-interface/jsx"
 import { getPlaybackSession } from "@tnl/app/playback"
 import { formatTimecode } from "@tnl/app/playback"
