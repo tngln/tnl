@@ -142,10 +142,24 @@ const panels = [...defaultDeveloperPanels(), ...tnlAppDeveloperPanels()]
 
 ## 当前仍值得继续做的事
 
-- 补 `canvas-interface` 的最小 demo / example
 - 继续收紧公共导出面
 - 继续抽象通用交互 helper
 - 继续减少对全局 `invalidateAll()` 的依赖
+
+## Demo
+
+仓库现在包含一个最小 demo：
+
+- `packages/canvas-interface/demo/index.html`
+- `packages/canvas-interface/demo/main.tsx`
+
+它展示的是 framework 自身的最小组合：
+
+- `CanvasUI`
+- `WindowManager`
+- `SurfaceWindow`
+- Builder surface
+- Developer 基础面板
 
 ## 与 `tnl-app` 的分工
 
