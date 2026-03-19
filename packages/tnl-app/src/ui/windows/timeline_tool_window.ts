@@ -9,7 +9,7 @@ export const TIMELINE_TOOL_WINDOW_ID = "Timeline.Tool"
 export function createTimelineToolSurface(): Surface {
   const session = getPlaybackSession()
   session.ensureInitialized()
-  return new TimelineCompositeSurface({
+  const timeline = new TimelineCompositeSurface({
     id: "Timeline.Real",
     view: session.timelineView(),
     unitAdapter: createFrameUnitAdapter(1),
@@ -17,6 +17,10 @@ export function createTimelineToolSurface(): Surface {
     minPxPerUnit: 1,
     maxPxPerUnit: 28,
   })
+  session.subscribe(() => {
+    timeline.invalidate()
+  })
+  return timeline
 }
 
 export function createTimelineToolWindow() {

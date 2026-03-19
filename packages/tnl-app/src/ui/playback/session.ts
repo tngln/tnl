@@ -6,7 +6,6 @@ import { describeError, toAppError, toErrorInfo } from "@tnl/canvas-interface/er
 import { baseNameOr } from "@tnl/canvas-interface/util"
 import { theme } from "@tnl/canvas-interface/theme"
 import type { TimelineTrackModel, TimelineViewModel } from "@/ui/timeline/model"
-import { invalidateAll } from "@tnl/canvas-interface/invalidate"
 
 const DEFAULT_SOURCE_PATH = "media/bbb.mp4"
 const DEFAULT_FPS = 30
@@ -260,7 +259,6 @@ export class PlaybackSession {
   }
 
   private notify() {
-    invalidateAll()
     for (const listener of this.listeners) listener()
   }
 }

@@ -1,6 +1,7 @@
 import { theme, neutral, font } from "@tnl/canvas-interface/theme"
 import { draw, RectOp, TextOp as DrawTextOp } from "@tnl/canvas-interface/draw"
 import { getDebugLevel, listDebugEntries, setDebugLevel, type DebugEntry, type DebugLevel } from "@tnl/canvas-interface/debug"
+import { signal } from "@tnl/canvas-interface/reactivity"
 import { baseNameOr } from "@tnl/canvas-interface/util"
 import { Button, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, SliderField, Spacer, Text, VStack } from "@tnl/canvas-interface/builder/components"
 import { defineSurface } from "@tnl/canvas-interface/builder/surface_builder"
@@ -42,12 +43,21 @@ export const PlaybackSurface = defineSurface({
   id: "Playback.Surface",
   setup: () => {
     const session = getPlaybackSession()
+    const rerenderTick = signal(0, { debugLabel: "playback_surface.rerender" })
     let initialized = false
+    let subscribed = false
 
     return () => {
+      rerenderTick.get()
       if (!initialized) {
         initialized = true
         session.ensureInitialized()
+      }
+      if (!subscribed) {
+        subscribed = true
+        session.subscribe(() => {
+          rerenderTick.set((value) => value + 1)
+        })
       }
 
       const state = session.snapshot()

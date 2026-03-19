@@ -264,6 +264,7 @@ export class TimelineCompositeSurface implements Surface {
   private readonly viewModel: TimelineViewModel
   private readonly defaultTrackHeight: number
   private readonly trackGap: number
+  private invalidateSurface: () => void = () => {}
 
   constructor(opts: {
     id: string
@@ -389,6 +390,14 @@ export class TimelineCompositeSurface implements Surface {
 
   contentSize() {
     return this.contentPixelSize()
+  }
+
+  setInvalidator(fn: (() => void) | null) {
+    this.invalidateSurface = fn ?? (() => {})
+  }
+
+  invalidate() {
+    this.invalidateSurface()
   }
 
   private contentPixelSize() {

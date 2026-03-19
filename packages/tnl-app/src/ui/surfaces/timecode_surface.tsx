@@ -3,6 +3,7 @@ import { draw, TextOp as DrawTextOp } from "@tnl/canvas-interface/draw"
 import { Paint, Stack, Text, VStack } from "@tnl/canvas-interface/builder/components"
 import { defineSurface, mountSurface, type SurfaceDefinition } from "@tnl/canvas-interface/builder/surface_builder"
 import { createElement } from "@tnl/canvas-interface/jsx"
+import { signal } from "@tnl/canvas-interface/reactivity"
 import { getPlaybackSession } from "@tnl/app/playback"
 import { formatTimecode } from "@tnl/app/playback"
 
@@ -17,12 +18,21 @@ export const TimecodeSurfaceDefinition: SurfaceDefinition<TimecodeSurfaceProps> 
   displayName: "TimecodeSurface",
   setup: () => {
     const session = getPlaybackSession()
+    const rerenderTick = signal(0, { debugLabel: "timecode_surface.rerender" })
     let initialized = false
+    let subscribed = false
 
     return () => {
+      rerenderTick.get()
       if (!initialized) {
         initialized = true
         session.ensureInitialized()
+      }
+      if (!subscribed) {
+        subscribed = true
+        session.subscribe(() => {
+          rerenderTick.set((value) => value + 1)
+        })
       }
 
       const snap = session.snapshot()
