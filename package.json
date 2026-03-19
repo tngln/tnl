@@ -13,6 +13,7 @@
     "check:tnl-app": "tsc -p packages/tnl-app/tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "@types/bun": "^1.3.11",
     "typescript": "^5.9.3"
   }
 }
