@@ -1,5 +1,6 @@
 import { createElement, Fragment } from "../../jsx"
 import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack, defineSurface, mountSurface } from "../../builder"
+import { dockIcon, focusIcon, maximizeIcon, minimizeIcon, powerIcon, restoreIcon } from "../../icons"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 
 export function createWmPanel(): DeveloperPanelSpec {
@@ -50,12 +51,12 @@ const WmPanelSurface = defineSurface({
             key="wm.actions"
             compact
             actions={[
-              { key: "focus", icon: "F", text: "Focus", title: "Focus", onClick: selected ? () => ctx.wm?.focus(selected.id) : undefined, disabled: !selected || !selected.open || selected.minimized },
-              { key: "toggle", icon: "T", text: "Toggle", title: "Toggle Open", onClick: selected ? () => ctx.wm?.toggle(selected.id) : undefined, disabled: !selected },
-              { key: "min", icon: "M", text: "Min", title: "Minimize", onClick: selected ? () => ctx.wm?.minimize(selected.id) : undefined, disabled: !selected || !selected.open || selected.minimized },
-              { key: "restore", icon: "R", text: "Restore", title: "Restore", onClick: selected ? () => ctx.wm?.restore(selected.id) : undefined, disabled: !selected || !selected.minimized },
-              { key: "max", icon: "X", text: "Max", title: "Toggle Maximize", onClick: selected ? () => ctx.wm?.toggleMaximize(selected.id) : undefined, disabled: !selected || !selected.open || selected.minimized || !selected.resizable },
-              { key: "dock", icon: "+", text: "Dock", title: "Create Docking Container", onClick: createContainer ? () => createContainer() : undefined, disabled: !createContainer },
+              { key: "focus", icon: focusIcon, text: "Focus", title: "Focus", onClick: selected ? () => ctx.wm?.focus(selected.id) : undefined, disabled: !selected || !selected.open || selected.minimized },
+              { key: "toggle", icon: powerIcon, text: "Toggle", title: "Toggle Open", onClick: selected ? () => ctx.wm?.toggle(selected.id) : undefined, disabled: !selected },
+              { key: "min", icon: minimizeIcon, text: "Min", title: "Minimize", onClick: selected ? () => ctx.wm?.minimize(selected.id) : undefined, disabled: !selected || !selected.open || selected.minimized },
+              { key: "restore", icon: restoreIcon, text: "Restore", title: "Restore", onClick: selected ? () => ctx.wm?.restore(selected.id) : undefined, disabled: !selected || !selected.minimized },
+              { key: "max", icon: maximizeIcon, text: "Max", title: "Toggle Maximize", onClick: selected ? () => ctx.wm?.toggleMaximize(selected.id) : undefined, disabled: !selected || !selected.open || selected.minimized || !selected.resizable },
+              { key: "dock", icon: dockIcon, text: "Dock", title: "Create Docking Container", onClick: createContainer ? () => createContainer() : undefined, disabled: !createContainer },
             ]}
           />
           <PanelScroll key="wm.list">

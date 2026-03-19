@@ -1,5 +1,6 @@
 import { createElement, Fragment } from "../../jsx"
 import { PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, TreeView, VStack, defineSurface, mountSurface, treeItem, type TreeItem } from "../../builder"
+import { pickerIcon, xMarkIcon } from "../../icons"
 import { signal } from "../../reactivity"
 import { collectIds } from "../../util"
 import type { DebugTreeNodeSnapshot } from "../../ui"
@@ -78,7 +79,7 @@ const InspectorPanelSurface = defineSurface({
             actions={[
               {
                 key: "pick",
-                icon: picking ? "P" : "p",
+                icon: pickerIcon,
                 text: picking ? "Picking" : "Pick",
                 title: picking ? "Cancel element picker" : "Pick an element from the canvas",
                 onClick: picking
@@ -110,7 +111,7 @@ const InspectorPanelSurface = defineSurface({
               },
               {
                 key: "clear",
-                icon: "X",
+                icon: xMarkIcon,
                 text: "Clear",
                 title: "Clear selection and overlay",
                 onClick: () => {

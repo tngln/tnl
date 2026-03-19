@@ -2,6 +2,7 @@ import { theme } from "../../theme"
 import { openOpfs, type OpfsEntryV1, showAlert, showConfirm, showPrompt, downloadBlob, pickFiles } from "../../browser"
 import { createElement } from "../../jsx"
 import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack, defineSurface, mountSurface } from "../../builder"
+import { downloadIcon, filterIcon, pencilIcon, refreshIcon, trashIcon, uploadIcon } from "../../icons"
 import { signal } from "../../reactivity"
 import { formatBytes } from "../../util"
 import type { DeveloperPanelSpec } from "../index"
@@ -178,12 +179,12 @@ export const StoragePanelSurface = defineSurface({
             key="storage.actions"
             compact
             actions={[
-              { key: "refresh", icon: "R", text: busy ? "Refreshing" : "Refresh", title: busy ? "Refreshing" : "Refresh", onClick: () => void refresh() },
-              { key: "upload", icon: "U", text: "Upload", title: "Upload", onClick: () => void upload() },
-              { key: "download", icon: "D", text: "Download", title: "Download", onClick: () => void downloadSelected(), disabled: !selected },
-              { key: "delete", icon: "X", text: "Delete", title: "Delete", onClick: () => void deleteSelected(), disabled: !selected },
-              { key: "edit", icon: "M", text: "Edit Meta", title: "Edit Meta", onClick: () => void editSelectedMeta(), disabled: !selected },
-              { key: "prefix", icon: "P", text: prefix ? "Prefix*" : "Prefix", title: prefix ? `Prefix: ${prefix}` : "Set Prefix", onClick: () => void setPrefix() },
+              { key: "refresh", icon: refreshIcon, text: busy ? "Refreshing" : "Refresh", title: busy ? "Refreshing" : "Refresh", onClick: () => void refresh() },
+              { key: "upload", icon: uploadIcon, text: "Upload", title: "Upload", onClick: () => void upload() },
+              { key: "download", icon: downloadIcon, text: "Download", title: "Download", onClick: () => void downloadSelected(), disabled: !selected },
+              { key: "delete", icon: trashIcon, text: "Delete", title: "Delete", onClick: () => void deleteSelected(), disabled: !selected },
+              { key: "edit", icon: pencilIcon, text: "Edit Meta", title: "Edit Meta", onClick: () => void editSelectedMeta(), disabled: !selected },
+              { key: "prefix", icon: filterIcon, text: prefix ? "Prefix*" : "Prefix", title: prefix ? `Prefix: ${prefix}` : "Set Prefix", onClick: () => void setPrefix() },
             ]}
           />
           <PanelScroll key="storage.list">

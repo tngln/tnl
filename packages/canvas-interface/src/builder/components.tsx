@@ -152,7 +152,7 @@ type PanelContainerProps = JSXNodeProps
 export type PanelAction = {
   key?: string
   text: string
-  icon?: string
+  icon?: VisualImageSource | IconDef | string
   title?: string
   onClick?: () => void
   disabled?: boolean
@@ -449,8 +449,9 @@ export function PanelActionRow(props: PanelActionRowProps) {
       ...props.actions.map((action, index) => (
         Button({
           key: action.key ?? `action.${index}`,
-          text: action.icon ? (compact ? action.icon : `${action.icon} ${action.text}`) : action.text,
+          text: compact ? "" : action.text,
           title: action.title ?? action.text,
+          leadingIcon: action.icon,
           onClick: action.onClick,
           disabled: action.disabled,
           style: { fixed: action.width ?? (compact ? 32 : 78) },

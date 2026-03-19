@@ -1,5 +1,6 @@
 import { createElement, Fragment } from "../jsx"
 import { Button, Checkbox, Dropdown, FormRow, PanelColumn, PanelSection, Radio, RichText, Row, Spacer, Text, TextBox, defineSurface } from "../builder"
+import { alertIcon, arrowRightIcon, checkCircleIcon, circleIcon, documentIcon, plusIcon, sparklesIcon, xMarkIcon } from "../icons"
 import { signal } from "../reactivity"
 
 export const ControlsSurface = defineSurface({
@@ -68,7 +69,7 @@ export const ControlsSurface = defineSurface({
                   key="controls.button.count"
                   text={`Count (${clicks.get()})`}
                   style={{ fixed: 140 }}
-                  leadingIcon="+"
+                  leadingIcon={plusIcon}
                   visualStyle={{
                     base: {
                       layout: { padding: { left: 10, right: 10, top: 6, bottom: 6 }, minH: 32 },
@@ -86,7 +87,7 @@ export const ControlsSurface = defineSurface({
                   key="controls.button.toggle"
                   text={checked.get() ? "Disable Flag" : "Enable Flag"}
                   style={{ fixed: 132 }}
-                  leadingIcon={checked.get() ? "!" : "o"}
+                  leadingIcon={checked.get() ? checkCircleIcon : circleIcon}
                   visualStyle={{
                     base: {
                       layout: { padding: { left: 10, right: 10, top: 6, bottom: 6 }, minH: 32 },
@@ -105,7 +106,7 @@ export const ControlsSurface = defineSurface({
                   key="controls.button.cycle"
                   text={`Cycle ${dropdown.get()}`}
                   style={{ fixed: 112 }}
-                  trailingIcon=">"
+                  trailingIcon={arrowRightIcon}
                   visualStyle={{
                     base: {
                       layout: { padding: { left: 10, right: 10, top: 6, bottom: 6 }, minH: 32 },
@@ -145,7 +146,7 @@ export const ControlsSurface = defineSurface({
                   key="controls.button.preset"
                   text={`Preset ${palette.get() + 1}`}
                   style={{ fixed: 104 }}
-                  leadingIcon="*"
+                  leadingIcon={sparklesIcon}
                   visualStyle={{
                     base: {
                       layout: { padding: { left: palette.get() === 2 ? 12 : 8, right: palette.get() === 2 ? 12 : 8, top: palette.get() === 2 ? 6 : 4, bottom: palette.get() === 2 ? 6 : 4 }, minH: 28 },
@@ -162,7 +163,7 @@ export const ControlsSurface = defineSurface({
                   key="controls.button.fill"
                   text="Fill Input"
                   style={{ fixed: 96 }}
-                  leadingIcon=">"
+                  leadingIcon={arrowRightIcon}
                   visualStyle={{
                     base: {
                       layout: { padding: { left: 8, right: 8, top: 4, bottom: 4 }, minH: 28 },
@@ -180,7 +181,7 @@ export const ControlsSurface = defineSurface({
                   key="controls.button.clear"
                   text="Clear"
                   style={{ fixed: 80 }}
-                  trailingIcon="x"
+                  trailingIcon={xMarkIcon}
                   visualStyle={{
                     base: {
                       layout: { padding: { left: 6, right: 6, top: 2, bottom: 2 }, minH: 24 },
@@ -243,7 +244,7 @@ export const ControlsSurface = defineSurface({
               key="controls.visual.accent"
               text={`Launch ${clicks.get()}`}
               title="Structured style with accent fill, custom image tint, and state variants."
-              leadingIcon=">"
+              leadingIcon={arrowRightIcon}
               style={{ fixed: 136 }}
               visualStyle={{
                 base: {
@@ -275,7 +276,7 @@ export const ControlsSurface = defineSurface({
               key="controls.visual.ghost"
               text={checked.get() ? "Flag On" : "Flag Off"}
               title="Ghost button with outline emphasis and pill shape."
-              trailingIcon={checked.get() ? "!" : "o"}
+              trailingIcon={checked.get() ? checkCircleIcon : circleIcon}
               style={{ fixed: 124 }}
               visualStyle={{
                 base: {
@@ -294,7 +295,7 @@ export const ControlsSurface = defineSurface({
               key="controls.visual.load"
               text="Load Draft"
               title="Dense utility button with inset panel styling."
-              leadingIcon="*"
+              leadingIcon={documentIcon}
               style={{ fixed: 108 }}
               visualStyle={{
                 base: {
@@ -316,7 +317,7 @@ export const ControlsSurface = defineSurface({
               key="controls.visual.cycle"
               text={`Cycle ${dropdown.get()}`}
               title="Compact square button emphasizing border, not fill."
-              trailingIcon=">"
+              trailingIcon={arrowRightIcon}
               style={{ fixed: 108 }}
               visualStyle={{
                 base: {
@@ -335,7 +336,7 @@ export const ControlsSurface = defineSurface({
               key="controls.visual.arm"
               text="Arm Danger"
               title="Danger action with solid fill and aggressive shadow."
-              leadingIcon="!"
+              leadingIcon={alertIcon}
               style={{ fixed: 120 }}
               visualStyle={{
                 base: {
@@ -355,7 +356,7 @@ export const ControlsSurface = defineSurface({
               key="controls.visual.clear"
               text="Clear"
               title="Minimal pill using only border + state overlays."
-              trailingIcon="x"
+              trailingIcon={xMarkIcon}
               style={{ fixed: 88 }}
               visualStyle={{
                 base: {
