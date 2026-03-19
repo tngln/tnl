@@ -12,11 +12,11 @@
 
 这套思路现在已经落在：
 
-- `src/ui/base/viewport.ts`
-- `src/ui/window/window.ts`
-- `src/ui/surfaces/tab_panel_surface.ts`
-- `src/ui/surfaces/timeline_surface.ts`
-- `src/ui/docking/workspace_surface.ts`
+- `packages/canvas-interface/src/viewport`
+- `packages/canvas-interface/src/window`
+- `packages/canvas-interface/src/surfaces/tab_panel_surface.ts`
+- `packages/tnl-app/src/ui/surfaces/timeline_surface.ts`
+- `packages/canvas-interface/src/docking/workspace_surface.ts`
 
 ## 2. 当前真实映射
 
@@ -30,7 +30,7 @@
 - 可选处理 pointer / wheel
 - 可选接入 `Compositor`
 
-当前 `Surface` 不承担通用页面布局职责。普通页面布局主要已经由 Builder + `core/layout.ts` 负责。
+当前 `Surface` 不承担通用页面布局职责。普通页面布局主要已经由 Builder + `@tnl/canvas-interface/layout` 负责。
 
 ### 2.2 `ViewportElement`
 
@@ -77,7 +77,7 @@
 
 最初设想里，Surface 会承担更多内部布局工作。现在实际走通的路线是：
 
-- 普通页面：Builder + `core/layout.ts`
+- 普通页面：Builder + `@tnl/canvas-interface/layout`
 - 复杂画布控件：类式 `Surface`
 
 这比“所有内容都走同一种 surface 布局协议”更实用。
