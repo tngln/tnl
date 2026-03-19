@@ -2,10 +2,10 @@ import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { Button, ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, VStack } from "@tnl/canvas-interface/builder/components"
 import { defineSurface, mountSurface } from "@tnl/canvas-interface/builder/surface_builder"
 import { getDebugLevel } from "@tnl/canvas-interface/debug"
+import { signal } from "@tnl/canvas-interface/reactivity"
 import { theme } from "@tnl/canvas-interface/theme"
 import { getWebNavigatorInfo, getWebRuntimeFlags } from "@tnl/canvas-interface/browser"
 import { probeCodecConfig } from "@tnl/app/platform"
-import { invalidateAll } from "@tnl/canvas-interface/invalidate"
 import type { DeveloperCodecEntry, DeveloperContext, DeveloperPanelSpec } from "@tnl/canvas-interface/developer"
 import { createAsyncJobState } from "@tnl/canvas-interface/async_state"
 
@@ -182,10 +182,12 @@ const CodecPanelSurface = defineSurface({
   id: "Developer.Codecs.Surface",
   setup: (_props: { ctx: DeveloperContext }) => {
     const startedAtMs = Date.now()
+    const rerenderTick = signal(0, { debugLabel: "developer.codec.rerender" })
+    const requestRender = () => rerenderTick.set((value) => value + 1)
     let initialized = false
     let lastUpdated = ""
     let results: CodecProbeResult[] = []
-    const asyncState = createAsyncJobState({ invalidate: invalidateAll })
+    const asyncState = createAsyncJobState({ invalidate: requestRender })
 
     const refresh = async () => {
       if (asyncState.busy()) return
@@ -196,6 +198,7 @@ const CodecPanelSurface = defineSurface({
     }
 
     return ({ ctx }: { ctx: DeveloperContext }) => {
+      rerenderTick.get()
       if (!initialized) {
         initialized = true
         void refresh()

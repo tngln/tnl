@@ -56,4 +56,28 @@ describe("button", () => {
 
     expect(clicks).toBe(1)
   })
+
+  it("requests invalidation when hover state changes", () => {
+    let invalidations = 0
+    const button = new ControlElement()
+    button.update({
+      rect: { x: 0, y: 0, w: 80, h: 24 },
+      active: true,
+      disabled: false,
+      draw: () => {},
+    })
+
+    button.draw({} as CanvasRenderingContext2D, {
+      frameId: 1,
+      dpr: 1,
+      invalidateRect: () => {
+        invalidations += 1
+      },
+    })
+
+    button.emit("pointerenter")
+    button.emit("pointerleave")
+
+    expect(invalidations).toBe(2)
+  })
 })

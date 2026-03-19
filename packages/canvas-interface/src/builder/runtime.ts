@@ -31,6 +31,7 @@ export class BuilderRuntime {
 
   setInvalidator(fn: (() => void) | null) {
     this.invalidateSurface = fn ?? invalidateAll
+    this.topLayer.setInvalidator(fn)
   }
 
   private updateWidgetActive(widget: UIElement, previous: boolean, next: boolean) {

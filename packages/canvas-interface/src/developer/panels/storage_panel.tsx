@@ -2,7 +2,7 @@ import { theme } from "../../theme"
 import { openOpfs, type OpfsEntryV1, showAlert, showConfirm, showPrompt, downloadBlob, pickFiles } from "../../browser"
 import { createElement } from "../../jsx"
 import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack, defineSurface, mountSurface } from "../../builder"
-import { invalidateAll } from "../../ui"
+import { signal } from "../../reactivity"
 import { formatBytes } from "../../util"
 import type { DeveloperPanelSpec } from "../index"
 import { createAsyncJobState } from "../../async_state"
@@ -39,12 +39,14 @@ export const StoragePanelSurface = defineSurface({
   setup: () => {
     let fsPromise: ReturnType<typeof openOpfs> | null = null
     let initialized = false
+    const rerenderTick = signal(0, { debugLabel: "developer.storage.rerender" })
+    const requestRender = () => rerenderTick.set((value) => value + 1)
 
     let entries: OpfsEntryV1[] = []
     let usage: { entries: number; bytes: number; quota?: number; usage?: number } = { entries: 0, bytes: 0 }
     let prefix: string | null = null
-    let selectedPath: string | null = null
-    const asyncState = createAsyncJobState({ invalidate: invalidateAll })
+    const selectedPath = signal<string | null>(null, { debugLabel: "developer.storage.selectedPath" })
+    const asyncState = createAsyncJobState({ invalidate: requestRender })
 
     const ensureFs = async () => {
       if (!fsPromise) fsPromise = openOpfs()
@@ -65,12 +67,12 @@ export const StoragePanelSurface = defineSurface({
     const applySnapshot = (snapshot: StorageSnapshot) => {
       entries = snapshot.entries
       usage = snapshot.usage
-      selectedPath = snapshot.selectedPath
+      selectedPath.set(snapshot.selectedPath)
     }
 
     const refresh = async () => {
       await asyncState.runLatest(async (run) => {
-        const snapshot = await loadSnapshot(prefix, selectedPath)
+        const snapshot = await loadSnapshot(prefix, selectedPath.peek())
         run.commit(() => applySnapshot(snapshot))
       })
     }
@@ -84,23 +86,23 @@ export const StoragePanelSurface = defineSurface({
         for (const file of files) {
           await fs.writeFile(`${nextPrefix}/${file.name}`, file, { type: file.type || "application/octet-stream" })
         }
-        const snapshot = await loadSnapshot(prefix, selectedPath)
+        const snapshot = await loadSnapshot(prefix, selectedPath.peek())
         run.commit(() => applySnapshot(snapshot))
       })
     }
 
     const downloadSelected = async () => {
-      const path = selectedPath
-      if (!path) return
+      const currentPath = selectedPath.peek()
+      if (!currentPath) return
       await asyncState.run(async () => {
         const fs = await ensureFs()
-        const blob = await fs.readFile(path)
-        downloadBlob(blob, path.split("/").pop() ?? "download")
+        const blob = await fs.readFile(currentPath)
+        downloadBlob(blob, currentPath.split("/").pop() ?? "download")
       })
     }
 
     const deleteSelected = async () => {
-      const path = selectedPath
+      const path = selectedPath.peek()
       if (!path) return
       if (!showConfirm(`Delete ${path}?`)) return
       await asyncState.runLatest(async (run) => {
@@ -112,7 +114,7 @@ export const StoragePanelSurface = defineSurface({
     }
 
     const editSelectedMeta = async () => {
-      const path = selectedPath
+      const path = selectedPath.peek()
       if (!path) return
       const current = entries.find((entry) => entry.path === path)
       const type = showPrompt("type (mime)", current?.type ?? "application/octet-stream")
@@ -153,6 +155,7 @@ export const StoragePanelSurface = defineSurface({
     }
 
     return () => {
+      rerenderTick.get()
       if (!initialized) {
         initialized = true
         void refresh()
@@ -160,10 +163,11 @@ export const StoragePanelSurface = defineSurface({
 
       const busy = asyncState.busy()
       const error = asyncState.error()
-      const selected = selectedPath !== null
+      const selectedPathValue = selectedPath.get()
+      const selected = selectedPathValue !== null
       const statusText = busy ? "Working..." : error ? error : formatUsageText(usage)
       const statusColor = error ? theme.colors.danger : theme.colors.textMuted
-      const selectionMeta = selectedPath ? selectedPath : prefix ? `prefix: ${prefix}` : "root"
+      const selectionMeta = selectedPathValue ? selectedPathValue : prefix ? `prefix: ${prefix}` : "root"
 
       return (
         <PanelColumn>
@@ -190,10 +194,10 @@ export const StoragePanelSurface = defineSurface({
                   leftText={entry.path}
                   rightText={`${formatBytes(entry.size)} · ${entry.type}`}
                   variant="item"
-                  selected={entry.path === selectedPath}
+                  selected={entry.path === selectedPathValue}
                   onClick={() => {
-                    selectedPath = entry.path
-                    invalidateAll()
+                    selectedPath.set(entry.path)
+                    requestRender()
                   }}
                 />
               ))}

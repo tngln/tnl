@@ -7,7 +7,6 @@ import { baseName, dirName, formatBytes, formatLocalTime } from "@tnl/canvas-int
 import type { Surface } from "@tnl/canvas-interface/viewport"
 import { Button, ClickArea, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelToolbar, Spacer, Stack, Text, TextBox, VStack } from "@tnl/canvas-interface/builder/components"
 import { defineSurface, mountSurface } from "@tnl/canvas-interface/builder/surface_builder"
-import { invalidateAll } from "@tnl/canvas-interface/invalidate"
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { createAsyncJobState } from "@tnl/canvas-interface/async_state"
 
@@ -387,12 +386,14 @@ export const ExplorerSurface = defineSurface({
   setup: () => {
     let fsPromise: ReturnType<typeof openOpfs> | null = null
     let initialized = false
+    const rerenderTick = signal(0, { debugLabel: "explorer.rerender" })
+    const requestRender = () => rerenderTick.set((value) => value + 1)
 
     let cwdPrefix: string | null = null
     let entriesAll: OpfsEntryV1[] = []
     let items: ExplorerItem[] = []
     let selected: ExplorerItem | null = null
-    const asyncState = createAsyncJobState({ invalidate: invalidateAll })
+    const asyncState = createAsyncJobState({ invalidate: requestRender })
 
     const viewMode = signal<"list" | "thumbs">("list", { debugLabel: "explorer.viewMode" })
     const address = signal("", { debugLabel: "explorer.address" })
@@ -614,7 +615,7 @@ export const ExplorerSurface = defineSurface({
       if (!thumbQueue.includes(id)) thumbQueue.push(id)
       thumbLastEvent = `retry:${id}`
       void runThumbWorker()
-      invalidateAll()
+      requestRender()
     }
 
     const runThumbWorker = async () => {
@@ -632,7 +633,7 @@ export const ExplorerSurface = defineSurface({
           }
           thumbById.set(id, { state: "loading" })
           thumbLastEvent = `build:${id}`
-          invalidateAll()
+          requestRender()
           try {
             const fs = await ensureFs()
             thumbLog("[ExplorerThumb] worker:fsReady", { id, path: entry.path })
@@ -694,7 +695,7 @@ export const ExplorerSurface = defineSurface({
             thumbLastEvent = `error:${id}`
             thumbLog("[ExplorerThumb] worker:error", { id, error: e })
           } finally {
-            invalidateAll()
+            requestRender()
           }
         }
       } finally {
@@ -705,6 +706,7 @@ export const ExplorerSurface = defineSurface({
     }
 
     return () => {
+      rerenderTick.get()
       if (!initialized) {
         initialized = true
         void refresh()
@@ -761,7 +763,7 @@ export const ExplorerSurface = defineSurface({
                     selected={selected?.kind === "dir" && selected.path === item.path}
                     onClick={() => {
                       selected = item
-                      invalidateAll()
+                      requestRender()
                     }}
                     onDoubleClick={() => {
                       selected = item
@@ -780,11 +782,11 @@ export const ExplorerSurface = defineSurface({
                   selected={selected?.kind === "file" && selected.path === e.path}
                   onClick={() => {
                     selected = item
-                    invalidateAll()
+                    requestRender()
                   }}
                   onDoubleClick={() => {
                     selected = item
-                    invalidateAll()
+                    requestRender()
                   }}
                 />
               )
@@ -832,7 +834,7 @@ export const ExplorerSurface = defineSurface({
                           style={{ fill: true }}
                           onClick={() => {
                             selected = item
-                            invalidateAll()
+                            requestRender()
                           }}
                         />
                       </Stack>
@@ -924,7 +926,6 @@ export const ExplorerSurface = defineSurface({
               disabled={busy || currentViewMode === "list"}
               onClick={() => {
                 viewMode.set("list")
-                invalidateAll()
               }}
             />
             <Button
@@ -934,7 +935,6 @@ export const ExplorerSurface = defineSurface({
               disabled={busy || currentViewMode === "thumbs"}
               onClick={() => {
                 viewMode.set("thumbs")
-                invalidateAll()
               }}
             />
           </PanelToolbar>

@@ -28,13 +28,17 @@ export class TopLayerController {
   readonly host: UIElement
   private readonly entries = new Map<string, UIElement>()
   private readonly entryOptions = new Map<string, EntryOptions>()
-  private readonly invalidate: () => void
+  private invalidate: () => void
 
   constructor(opts: { rect: () => Rect; invalidate: () => void; z?: number }) {
     this.invalidate = opts.invalidate
     const h = new TopLayerHost(opts.rect)
     h.z = opts.z ?? 8_000_000
     this.host = h
+  }
+
+  setInvalidator(invalidate: (() => void) | null) {
+    this.invalidate = invalidate ?? (() => {})
   }
 
   isOpen(id: string) {

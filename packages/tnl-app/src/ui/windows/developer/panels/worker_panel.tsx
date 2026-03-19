@@ -1,7 +1,7 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, VStack } from "@tnl/canvas-interface/builder/components"
 import { defineSurface, mountSurface } from "@tnl/canvas-interface/builder/surface_builder"
-import { invalidateAll } from "@tnl/canvas-interface/invalidate"
+import { signal } from "@tnl/canvas-interface/reactivity"
 import { theme } from "@tnl/canvas-interface/theme"
 import type { DeveloperContext, DeveloperPanelSpec, DeveloperWorkerEntry } from "@tnl/canvas-interface/developer"
 
@@ -46,14 +46,18 @@ export function createWorkerPanel(): DeveloperPanelSpec {
 const WorkerPanelSurface = defineSurface({
   id: "Developer.Worker.Surface",
   setup: (_props: { ctx: DeveloperContext }) => {
-    let selectedId: string | null = null
+    const selectedId = signal<string | null>(null, { debugLabel: "developer.worker.selectedId" })
+    const refreshTick = signal(0, { debugLabel: "developer.worker.refreshTick" })
 
     return ({ ctx }: { ctx: DeveloperContext }) => {
+      refreshTick.get()
       const workers = ctx.workers?.list?.() ?? []
-      if (selectedId && !workers.some((w) => w.id === selectedId)) selectedId = null
-      if (!selectedId && workers.length) selectedId = workers[0].id
+      const currentSelectedId = selectedId.get()
+      if (currentSelectedId && !workers.some((w) => w.id === currentSelectedId)) selectedId.set(null)
+      if (!selectedId.get() && workers.length) selectedId.set(workers[0].id)
 
-      const selected = selectedId ? workers.find((w) => w.id === selectedId) ?? null : null
+      const nextSelectedId = selectedId.get()
+      const selected = nextSelectedId ? workers.find((w) => w.id === nextSelectedId) ?? null : null
       const running = workers.filter((w) => w.status === "running").length
       const stopped = workers.filter((w) => w.status === "stopped").length
       const error = workers.filter((w) => w.status === "error").length
@@ -70,7 +74,7 @@ const WorkerPanelSurface = defineSurface({
             key="worker.actions"
             compact
             actions={[
-              { key: "refresh", icon: "R", text: "Refresh", title: "Refresh", onClick: () => invalidateAll() },
+              { key: "refresh", icon: "R", text: "Refresh", title: "Refresh", onClick: () => refreshTick.set((value) => value + 1) },
             ]}
           />
           <PanelScroll key="worker.scroll">
@@ -92,10 +96,9 @@ const WorkerPanelSurface = defineSurface({
                         key={`worker.row.${w.id}`}
                         leftText={`${w.name} (${w.kind})`}
                         rightText={workerRightText(w)}
-                        selected={w.id === selectedId}
+                        selected={w.id === nextSelectedId}
                         onClick={() => {
-                          selectedId = w.id
-                          invalidateAll()
+                          selectedId.set(w.id)
                         }}
                       />
                     ))}
