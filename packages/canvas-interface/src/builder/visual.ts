@@ -1,9 +1,7 @@
 import { LineOp, RectOp, TextOp, draw, measureTextWidth, truncateToWidth, type FillStyle, type Paint, type Rect, type ShadowStyle, type StrokeStyle } from "../draw"
 import { iconToShape, type IconDef } from "../icons"
-import { alpha, font, neutral, theme } from "../theme"
+import { font, theme } from "../theme"
 import type { ControlState } from "./control"
-
-export type VisualAppearance = string | string[]
 
 export type VisualContext = {
   state: ControlState
@@ -150,11 +148,6 @@ type MeasureResult = {
   h: number
 }
 
-function toAppearanceList(appearance: VisualAppearance | undefined) {
-  if (!appearance) return []
-  return Array.isArray(appearance) ? appearance : appearance.split(/\s+/).filter(Boolean)
-}
-
 function asInsets(padding: number | EdgeInsets | undefined): Required<EdgeInsets> {
   if (typeof padding === "number") return { top: padding, right: padding, bottom: padding, left: padding }
   return {
@@ -212,196 +205,6 @@ function isVariantStyle(style: VisualStyleInput | undefined): style is VisualSty
   return "base" in style || "hover" in style || "pressed" in style || "disabled" in style || "selected" in style || "checked" in style
 }
 
-function resolvePaintToken(token: string, ctx: VisualContext): Paint | undefined {
-  switch (token) {
-    case "bg-control":
-      return ctx.disabled
-        ? theme.colors.disabled
-        : ctx.state.pressed
-          ? theme.colors.pressed
-          : ctx.state.hover
-            ? theme.colors.hover
-            : ctx.selected
-              ? theme.colors.rowSelected
-              : "transparent"
-    case "bg-selected":
-      return ctx.selected ? theme.colors.rowSelected : "transparent"
-    case "bg-subtle":
-      return alpha(neutral[100], 0.04)
-    case "bg-panel":
-      return neutral[800]
-    case "bg-panel-strong":
-      return neutral[750]
-    case "bg-panel-inset":
-      return neutral[875]
-    case "bg-accent-soft":
-      return alpha(theme.colors.accent, ctx.state.pressed ? 0.36 : ctx.state.hover ? 0.28 : 0.18)
-    case "bg-accent-solid":
-      return ctx.disabled ? alpha(theme.colors.accent, 0.28) : theme.colors.accent
-    case "bg-accent-gradient":
-      return {
-        kind: "linear",
-        x0: 0,
-        y0: 0,
-        x1: 1,
-        y1: 1,
-        stops: [
-          { offset: 0, color: "#61b8ff" },
-          { offset: 1, color: "#3f78ff" },
-        ],
-      }
-    case "bg-danger-soft":
-      return alpha(theme.colors.danger, ctx.state.pressed ? 0.28 : 0.16)
-    case "bg-danger-solid":
-      return theme.colors.closeBg
-    case "bg-warning-soft":
-      return alpha(theme.colors.warning, ctx.state.pressed ? 0.28 : 0.16)
-    case "bg-success-soft":
-      return alpha("#46d198", ctx.state.pressed ? 0.28 : 0.16)
-    case "bg-success-solid":
-      return "#2d9f76"
-    case "bg-tooltip":
-      return neutral[900]
-    default:
-      return undefined
-  }
-}
-
-function resolveColorToken(token: string, ctx: VisualContext) {
-  switch (token) {
-    case "text-default":
-      return ctx.disabled ? theme.colors.textMuted : theme.colors.text
-    case "text-dim":
-      return theme.colors.textDim
-    case "text-muted":
-      return theme.colors.textMuted
-    case "text-strong":
-      return neutral[50]
-    case "text-on-accent":
-      return "#f8fbff"
-    case "text-on-danger":
-      return "#fff5f5"
-    case "text-on-success":
-      return "#f4fffb"
-    case "text-accent":
-      return theme.colors.accent
-    case "text-danger":
-      return theme.colors.danger
-    case "text-warning":
-      return theme.colors.warning
-    case "text-group":
-      return theme.colors.text
-    case "text-item":
-      return theme.colors.textMuted
-    case "stroke-default":
-      return ctx.disabled ? neutral[400] : theme.colors.border
-    case "stroke-subtle":
-      return alpha(neutral[100], 0.08)
-    case "stroke-strong":
-      return alpha(neutral[50], 0.24)
-    case "stroke-accent":
-      return alpha(theme.colors.accent, 0.7)
-    case "stroke-danger":
-      return alpha(theme.colors.danger, 0.7)
-    case "stroke-warning":
-      return alpha(theme.colors.warning, 0.7)
-    case "stroke-success":
-      return alpha("#46d198", 0.72)
-    case "stroke-tooltip":
-      return neutral[400]
-    case "stroke-thumb":
-      return ctx.disabled ? neutral[400] : neutral[700]
-    case "stroke-none":
-      return null
-    case "stroke-track":
-      return ctx.disabled
-        ? neutral[500]
-        : ctx.state.dragging
-          ? neutral[200]
-          : ctx.state.hover
-            ? neutral[300]
-            : neutral[400]
-    case "line-track":
-      return ctx.disabled
-        ? neutral[500]
-        : ctx.state.dragging
-          ? neutral[200]
-          : ctx.state.hover
-            ? neutral[300]
-            : neutral[400]
-    case "line-slider-fill":
-      return ctx.disabled ? theme.colors.sliderDim : theme.colors.slider
-    default:
-      return undefined
-  }
-}
-
-function compileAppearanceLayer(tokens: string[], ctx: VisualContext): VisualStyleLayer {
-  const layer: VisualStyleLayer = {}
-  for (const token of tokens) {
-    if (token === "rounded-none") layer.border = { ...(layer.border ?? {}), radius: 0 }
-    else if (token === "rounded-sm") layer.border = { ...(layer.border ?? {}), radius: theme.radii.sm }
-    else if (token === "rounded-md") layer.border = { ...(layer.border ?? {}), radius: 10 }
-    else if (token === "rounded-lg") layer.border = { ...(layer.border ?? {}), radius: 14 }
-    else if (token === "rounded-full") layer.border = { ...(layer.border ?? {}), radius: 999 }
-    else if (token === "px-4") layer.layout = { ...(layer.layout ?? {}), padding: { ...(asInsets(layer.layout?.padding)), left: 4, right: 4 } }
-    else if (token === "px-6") layer.layout = { ...(layer.layout ?? {}), padding: { ...(asInsets(layer.layout?.padding)), left: 6, right: 6 } }
-    else if (token === "px-8") layer.layout = { ...(layer.layout ?? {}), padding: { ...(asInsets(layer.layout?.padding)), left: 8, right: 8 } }
-    else if (token === "px-10") layer.layout = { ...(layer.layout ?? {}), padding: { ...(asInsets(layer.layout?.padding)), left: 10, right: 10 } }
-    else if (token === "px-12") layer.layout = { ...(layer.layout ?? {}), padding: { ...(asInsets(layer.layout?.padding)), left: 12, right: 12 } }
-    else if (token === "py-1") layer.layout = { ...(layer.layout ?? {}), padding: { ...(asInsets(layer.layout?.padding)), top: 1, bottom: 1 } }
-    else if (token === "py-2") layer.layout = { ...(layer.layout ?? {}), padding: { ...(asInsets(layer.layout?.padding)), top: 2, bottom: 2 } }
-    else if (token === "py-4") layer.layout = { ...(layer.layout ?? {}), padding: { ...(asInsets(layer.layout?.padding)), top: 4, bottom: 4 } }
-    else if (token === "py-6") layer.layout = { ...(layer.layout ?? {}), padding: { ...(asInsets(layer.layout?.padding)), top: 6, bottom: 6 } }
-    else if (token === "py-8") layer.layout = { ...(layer.layout ?? {}), padding: { ...(asInsets(layer.layout?.padding)), top: 8, bottom: 8 } }
-    else if (token === "gap-2") layer.layout = { ...(layer.layout ?? {}), gap: 2 }
-    else if (token === "gap-4") layer.layout = { ...(layer.layout ?? {}), gap: 4 }
-    else if (token === "gap-6") layer.layout = { ...(layer.layout ?? {}), gap: 6 }
-    else if (token === "gap-8") layer.layout = { ...(layer.layout ?? {}), gap: 8 }
-    else if (token === "gap-10") layer.layout = { ...(layer.layout ?? {}), gap: 10 }
-    else if (token === "items-center") layer.layout = { ...(layer.layout ?? {}), align: "center" }
-    else if (token === "items-end") layer.layout = { ...(layer.layout ?? {}), align: "end" }
-    else if (token === "justify-center") layer.layout = { ...(layer.layout ?? {}), justify: "center" }
-    else if (token === "justify-end") layer.layout = { ...(layer.layout ?? {}), justify: "end" }
-    else if (token === "justify-between") layer.layout = { ...(layer.layout ?? {}), justify: "between" }
-    else if (token === "font-body") layer.text = { ...(layer.text ?? {}), fontSize: theme.typography.body.size, fontWeight: theme.typography.body.weight, lineHeight: theme.spacing.lg }
-    else if (token === "font-title") layer.text = { ...(layer.text ?? {}), fontSize: theme.typography.title.size, fontWeight: theme.typography.title.weight, lineHeight: Math.max(theme.spacing.lg, theme.typography.title.size + 4) }
-    else if (token === "font-headline") layer.text = { ...(layer.text ?? {}), fontSize: theme.typography.headline.size, fontWeight: theme.typography.headline.weight, lineHeight: theme.typography.headline.size + 4 }
-    else if (token === "font-label") layer.text = { ...(layer.text ?? {}), fontSize: Math.max(10, theme.typography.body.size - 1), fontWeight: 500, lineHeight: theme.ui.controls.rowHeight }
-    else if (token === "font-group") layer.text = { ...(layer.text ?? {}), fontSize: Math.max(10, theme.typography.body.size - 1), fontWeight: 600, lineHeight: theme.ui.controls.rowHeight }
-    else if (token === "font-meta") layer.text = { ...(layer.text ?? {}), fontSize: Math.max(10, theme.typography.body.size - 2), fontWeight: 400, lineHeight: theme.ui.controls.rowHeight }
-    else if (token === "text-center") layer.text = { ...(layer.text ?? {}), align: "center" }
-    else if (token === "text-end") layer.text = { ...(layer.text ?? {}), align: "end" }
-    else if (token === "baseline-middle") layer.text = { ...(layer.text ?? {}), baseline: "middle" }
-    else if (token === "icon-12") layer.image = { ...(layer.image ?? {}), width: 12, height: 12 }
-    else if (token === "icon-14") layer.image = { ...(layer.image ?? {}), width: 14, height: 14 }
-    else if (token === "icon-16") layer.image = { ...(layer.image ?? {}), width: 16, height: 16 }
-    else if (token === "icon-18") layer.image = { ...(layer.image ?? {}), width: 18, height: 18 }
-    else if (token === "shadow-window") layer.effects = { ...(layer.effects ?? {}), shadow: theme.shadows.window }
-    else if (token === "shadow-soft") layer.effects = { ...(layer.effects ?? {}), shadow: { color: "rgba(0,0,0,0.24)", blur: 10, offsetY: 3 } }
-    else if (token === "shadow-tight") layer.effects = { ...(layer.effects ?? {}), shadow: { color: "rgba(0,0,0,0.30)", blur: 6, offsetY: 2 } }
-    else if (token === "shadow-glow-accent") layer.effects = { ...(layer.effects ?? {}), shadow: { color: alpha(theme.colors.accent, 0.32), blur: 14, offsetY: 0 } }
-    else if (token === "shadow-glow-danger") layer.effects = { ...(layer.effects ?? {}), shadow: { color: alpha(theme.colors.danger, 0.28), blur: 14, offsetY: 0 } }
-    else {
-      const paint = resolvePaintToken(token, ctx)
-      const color = resolveColorToken(token, ctx)
-      if (token.startsWith("bg-") && paint !== undefined) layer.paint = { ...(layer.paint ?? {}), fill: paint }
-      else if (token.startsWith("stroke-")) layer.border = { ...(layer.border ?? {}), color }
-      else if (token.startsWith("text-")) {
-        layer.text = { ...(layer.text ?? {}), color: color ?? layer.text?.color }
-        layer.image = { ...(layer.image ?? {}), color: color ?? layer.image?.color }
-      } else if (token.startsWith("line-")) {
-        layer.line = { ...(layer.line ?? {}), color: color ?? layer.line?.color }
-      }
-    }
-  }
-  return layer
-}
-
-export function appearanceToVisualStyle(appearance: VisualAppearance | undefined, ctx: VisualContext = { state: { hover: false, pressed: false, dragging: false, disabled: false } }) {
-  const tokens = toAppearanceList(appearance)
-  return compileAppearanceLayer(tokens, ctx)
-}
 
 function resolveStyle(style: VisualStyleInput | undefined, ctx: VisualContext): ResolvedVisualStyle {
   const variantStyle = isVariantStyle(style) ? style : { base: style }
@@ -470,19 +273,6 @@ function resolveStyle(style: VisualStyleInput | undefined, ctx: VisualContext): 
       clip: merged.effects?.clip,
     },
   }
-}
-
-function withAppearance(style: VisualStyleInput | undefined, appearance: VisualAppearance | undefined, ctx: VisualContext): VisualStyleInput | undefined {
-  if (!appearance) return style
-  const compiled = appearanceToVisualStyle(appearance, ctx)
-  if (!style) return compiled
-  if (isVariantStyle(style)) {
-    return {
-      ...style,
-      base: mergeLayer(compiled, style.base),
-    }
-  }
-  return mergeLayer(compiled, style)
 }
 
 function textFontSpec(style: ResolvedVisualStyle["text"]) {
@@ -738,13 +528,8 @@ export function normalizeImageSource(source: VisualImageSource | IconDef | strin
   return iconImage(source)
 }
 
-export function controlClasses(...parts: Array<VisualAppearance | false | null | undefined>) {
-  return parts.flatMap((part) => toAppearanceList(part || undefined))
-}
-
 export function styled(input: {
-  appearance?: VisualAppearance
   visualStyle?: VisualStyleInput
-}, ctx: VisualContext): VisualStyleInput | undefined {
-  return withAppearance(input.visualStyle, input.appearance, ctx)
+}, _ctx: VisualContext): VisualStyleInput | undefined {
+  return input.visualStyle
 }

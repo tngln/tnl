@@ -61,7 +61,6 @@ type RichTextProps = Omit<JSXNodeProps, "children"> & {
 type ButtonProps = JSXNodeProps & {
   text?: string
   title?: string
-  appearance?: string | string[]
   visualStyle?: VisualStyleInput
   leadingIcon?: VisualImageSource | IconDef | string
   trailingIcon?: VisualImageSource | IconDef | string
@@ -77,7 +76,6 @@ type ClickAreaProps = JSXNodeProps & {
 type CheckboxProps = JSXNodeProps & {
   label?: string
   checked: Signal<boolean>
-  appearance?: string | string[]
   visualStyle?: VisualStyleInput
   disabled?: boolean
 }
@@ -92,7 +90,6 @@ type RadioProps = JSXNodeProps & {
   label?: string
   value: string
   selected: Signal<string>
-  appearance?: string | string[]
   visualStyle?: VisualStyleInput
   disabled?: boolean
 }
@@ -109,7 +106,6 @@ type RowItemProps = JSXNodeProps & {
   indent?: number
   variant?: RowVariant
   selected?: boolean
-  appearance?: string | string[]
   visualStyle?: VisualStyleInput
   onClick?: () => void
   onDoubleClick?: () => void
@@ -126,7 +122,6 @@ type SliderProps = Omit<JSXNodeProps, "children"> & {
   min: number
   max: number
   value: number
-  appearance?: string | string[]
   visualStyle?: VisualStyleInput
   onChange?: (next: number) => void
   disabled?: boolean
@@ -310,7 +305,6 @@ export function Button(props: ButtonProps) {
   return buttonNode(props.text ?? resolveTextContent(props), {
     ...common(props),
     title: props.title,
-    appearance: props.appearance,
     visualStyle: props.visualStyle,
     leadingIcon: props.leadingIcon,
     trailingIcon: props.trailingIcon,
@@ -324,7 +318,7 @@ export function ClickArea(props: ClickAreaProps) {
 }
 
 export function Checkbox(props: CheckboxProps) {
-  return checkboxNode(props.label ?? resolveTextContent(props), props.checked, { ...common(props), appearance: props.appearance, visualStyle: props.visualStyle, disabled: props.disabled })
+  return checkboxNode(props.label ?? resolveTextContent(props), props.checked, { ...common(props), visualStyle: props.visualStyle, disabled: props.disabled })
 }
 
 export function Dropdown(props: DropdownProps) {
@@ -332,7 +326,7 @@ export function Dropdown(props: DropdownProps) {
 }
 
 export function Radio(props: RadioProps) {
-  return radioNode(props.label ?? resolveTextContent(props), props.value, props.selected, { ...common(props), appearance: props.appearance, visualStyle: props.visualStyle, disabled: props.disabled })
+  return radioNode(props.label ?? resolveTextContent(props), props.value, props.selected, { ...common(props), visualStyle: props.visualStyle, disabled: props.disabled })
 }
 
 export function TextBox(props: TextBoxProps) {
@@ -347,7 +341,6 @@ export function RowItem(props: RowItemProps) {
     indent: props.indent,
     variant: props.variant,
     selected: props.selected,
-    appearance: props.appearance,
     visualStyle: props.visualStyle,
     onClick: props.onClick,
     onDoubleClick: props.onDoubleClick,
@@ -378,7 +371,6 @@ export function SliderField(props: SliderProps) {
     min: props.min,
     max: props.max,
     value: props.value,
-    appearance: props.appearance,
     visualStyle: props.visualStyle,
     onChange: props.onChange,
     disabled: props.disabled,

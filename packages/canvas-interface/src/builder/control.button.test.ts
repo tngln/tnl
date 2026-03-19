@@ -83,12 +83,21 @@ describe("button", () => {
     expect(invalidations).toBe(2)
   })
 
-  it("renders button appearance tokens and leading icon through visual fragments", () => {
+  it("renders button visualStyle and leading icon through visual fragments", () => {
     const ctx = fakeCtx() as CanvasRenderingContext2D & { calls: Array<{ op: string; args: any[] }> }
     drawButton(
       ctx,
       { x: 0, y: 0, w: 120, h: 32 },
-      { text: "Run", appearance: ["stroke-none", "shadow-window"], leadingIcon: "+" },
+      {
+        text: "Run",
+        leadingIcon: "+",
+        visualStyle: {
+          base: {
+            border: { color: null, radius: 10 },
+            effects: { shadow: { color: "rgba(0,0,0,0.30)", blur: 6, offsetY: 2 } },
+          },
+        },
+      },
       { hover: false, pressed: false, dragging: false, disabled: false },
     )
 

@@ -1,7 +1,7 @@
 import { clamp, type Rect, type Vec2 } from "../draw"
 import type { ControlState } from "./control"
 import { drawSliderVisual } from "./draw_controls"
-import type { VisualAppearance, VisualStyleInput } from "./visual"
+import type { VisualStyleInput } from "./visual"
 
 export type SliderAxis = "x" | "y"
 
@@ -12,7 +12,6 @@ export type SliderControlProps = {
   value: number
   thumbSize?: number
   trackThickness?: number
-  appearance?: VisualAppearance
   visualStyle?: VisualStyleInput
 }
 

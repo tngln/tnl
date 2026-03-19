@@ -1,7 +1,7 @@
 import type { IconDef } from "../icons"
 import type { Rect } from "../draw"
 import type { ControlState } from "./control"
-import { drawVisualNode, normalizeImageSource, styled, type VisualAppearance, type VisualContext, type VisualImageSource, type VisualNode, type VisualStyleInput } from "./visual"
+import { drawVisualNode, normalizeImageSource, styled, type VisualContext, type VisualImageSource, type VisualNode, type VisualStyleInput } from "./visual"
 
 type VisualControlCtx = {
   state: ControlState
@@ -61,7 +61,6 @@ function tooltipStyle(): VisualStyleInput {
 export function buildButtonVisual(props: {
   text: string
   title?: string
-  appearance?: VisualAppearance
   visualStyle?: VisualStyleInput
   leadingIcon?: VisualImageSource | IconDef | string
   trailingIcon?: VisualImageSource | IconDef | string
@@ -98,7 +97,6 @@ export function buildButtonVisual(props: {
   return {
     kind: "box",
     style: styled({
-      appearance: props.appearance,
       visualStyle: {
         ...baseStyle,
         ...props.visualStyle as any,
@@ -137,16 +135,15 @@ export function buildButtonVisual(props: {
 export function drawButton(
   ctx: CanvasRenderingContext2D,
   r: Rect,
-  props: { text: string; title?: string; appearance?: VisualAppearance; visualStyle?: VisualStyleInput; leadingIcon?: VisualImageSource | IconDef | string; trailingIcon?: VisualImageSource | IconDef | string },
+  props: { text: string; title?: string; visualStyle?: VisualStyleInput; leadingIcon?: VisualImageSource | IconDef | string; trailingIcon?: VisualImageSource | IconDef | string },
   state: ControlState,
   disabled = false,
 ) {
   renderControlVisual(ctx, r, buildButtonVisual(props, state, disabled), { state, disabled })
 }
 
-function choiceRootStyle(visualStyle?: VisualStyleInput, appearance?: VisualAppearance, visualCtx?: VisualContext): VisualStyleInput | undefined {
+function choiceRootStyle(visualStyle?: VisualStyleInput, visualCtx?: VisualContext): VisualStyleInput | undefined {
   return styled({
-    appearance,
     visualStyle: {
       base: {
         layout: { axis: "row", align: "center", gap: 8 },
@@ -172,10 +169,10 @@ function indicatorStyle(checkedFill = false): VisualStyleInput {
   }
 }
 
-export function buildCheckboxVisual(props: { label: string; checked: boolean; appearance?: VisualAppearance; visualStyle?: VisualStyleInput }, visualCtx: VisualContext): VisualNode {
+export function buildCheckboxVisual(props: { label: string; checked: boolean; visualStyle?: VisualStyleInput }, visualCtx: VisualContext): VisualNode {
   return {
     kind: "box",
-    style: choiceRootStyle(props.visualStyle, props.appearance, visualCtx),
+    style: choiceRootStyle(props.visualStyle, visualCtx),
     children: [
       {
         kind: "box",
@@ -196,16 +193,16 @@ export function buildCheckboxVisual(props: { label: string; checked: boolean; ap
   }
 }
 
-export function drawCheckbox(ctx: CanvasRenderingContext2D, r: Rect, props: { label: string; checked: boolean; appearance?: VisualAppearance; visualStyle?: VisualStyleInput }, state: ControlState, disabled = false) {
+export function drawCheckbox(ctx: CanvasRenderingContext2D, r: Rect, props: { label: string; checked: boolean; visualStyle?: VisualStyleInput }, state: ControlState, disabled = false) {
   const visualCtx = asVisualContext({ state, disabled, checked: props.checked })
   renderControlVisual(ctx, r, buildCheckboxVisual(props, visualCtx), { state, disabled, checked: props.checked })
 }
 
-export function buildRadioVisual(props: { label: string; value: string; selected: string; appearance?: VisualAppearance; visualStyle?: VisualStyleInput }, visualCtx: VisualContext): VisualNode {
+export function buildRadioVisual(props: { label: string; value: string; selected: string; visualStyle?: VisualStyleInput }, visualCtx: VisualContext): VisualNode {
   const checked = props.selected === props.value
   return {
     kind: "box",
-    style: choiceRootStyle(props.visualStyle, props.appearance, visualCtx),
+    style: choiceRootStyle(props.visualStyle, visualCtx),
     children: [
       {
         kind: "box",
@@ -241,7 +238,7 @@ export function buildRadioVisual(props: { label: string; value: string; selected
 export function drawRadio(
   ctx: CanvasRenderingContext2D,
   r: Rect,
-  props: { label: string; value: string; selected: string; appearance?: VisualAppearance; visualStyle?: VisualStyleInput },
+  props: { label: string; value: string; selected: string; visualStyle?: VisualStyleInput },
   state: ControlState,
   disabled = false,
 ) {
@@ -255,7 +252,6 @@ export type ListRowDrawProps = {
   indent?: number
   variant?: "group" | "item"
   selected?: boolean
-  appearance?: VisualAppearance
   visualStyle?: VisualStyleInput
 }
 
@@ -263,7 +259,6 @@ export function buildListRowVisual(props: ListRowDrawProps, visualCtx: VisualCon
   return {
     kind: "box",
     style: styled({
-      appearance: props.appearance,
       visualStyle: {
         base: {
           layout: { axis: "row", align: "center", justify: "between", padding: { left: 8 + Math.max(0, props.indent ?? 0), right: 8 }, minH: 22 },
@@ -329,7 +324,6 @@ type SliderVisualProps = {
   axis?: "x" | "y"
   thumbSize?: number
   trackThickness?: number
-  appearance?: VisualAppearance
   visualStyle?: VisualStyleInput
 }
 
@@ -363,7 +357,6 @@ export function drawSliderVisual(
     },
   }
   const thumbStyle: VisualStyleInput = styled({
-    appearance: props.appearance,
     visualStyle: {
       base: {
         layout: { fixedW: thumbSize, fixedH: thumbSize, overlay: { anchor: "content", x: axis === "x" ? normalized * Math.max(0, rect.w - thumbSize) : (rect.w - thumbSize) / 2, y: axis === "y" ? (1 - normalized) * Math.max(0, rect.h - thumbSize) : (rect.h - thumbSize) / 2 } },
