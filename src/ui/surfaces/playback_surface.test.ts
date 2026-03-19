@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import { createTimecodeToolSurface, buildPlaybackStateLabel } from "./timecode_surface"
 import { formatPlaybackTime } from "./playback_surface"
-import { formatTimecode } from "../playback/timecode"
+import { formatTimecode } from "@tnl/app/playback"
 
 describe("playback surface helpers", () => {
   it("formats playback time for mm:ss and hh:mm:ss", () => {

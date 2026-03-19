@@ -1,7 +1,7 @@
 import { font, theme } from "../theme"
 import { draw, RectOp, TextOp, measureTextWidth, toGetter, ZERO_RECT, type Rect } from "../draw"
 import { signal, type Signal } from "../reactivity"
-import { getTextInputBridge, type TextInputBridge } from "../../../../src/platform/web"
+import { getTextInputBridge, type TextInputBridge, type TextInputSyncState } from "@tnl/canvas-interface/browser"
 import { createMeasureContext } from "../../../../src/platform/web/canvas"
 import { CursorRegion, KeyUIEvent, UIElement } from "../ui_base"
 import type { WidgetDescriptor } from "../builder/widget_registry"
@@ -347,7 +347,7 @@ export class TextBox extends UIElement {
     this.inputBridge.focus(
       {
         id: this.sessionId,
-        onStateChange: (next) => {
+        onStateChange: (next: TextInputSyncState) => {
           this.value.set(next.value)
           this.setSelection(next.selectionStart, next.selectionEnd)
           this.resetCaretBlink()

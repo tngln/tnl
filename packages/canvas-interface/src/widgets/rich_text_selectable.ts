@@ -1,7 +1,6 @@
 import { theme } from "../theme"
 import { draw, RectOp, measureTextWidth, type Any2DContext, type RichTextBlock, type RichTextLayout, type RichTextLine, type RichTextRun, ZERO_RECT, type Rect, type Vec2 } from "../draw"
-import { get1pxTextareaBridge } from "../../../../src/platform/web/1px_textarea"
-import { writeTextToClipboard } from "../../../../src/platform/web/clipboard"
+import { get1pxTextareaBridge, writeTextToClipboard } from "@tnl/app/platform"
 import { createMeasureContext } from "../../../../src/platform/web/canvas"
 import { UIElement } from "../ui_base"
 import type { TopLayerController } from "../top_layer"

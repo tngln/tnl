@@ -1,4 +1,4 @@
-import { scheduleAnimationFrame } from "./animation"
+import { scheduleAnimationFrame } from "../../../../../src/platform/web/animation"
 import { createLogger } from "@tnl/canvas-interface/debug"
 import { AppError, describeError, toAppError, toErrorInfo } from "@tnl/canvas-interface/errors"
 import { getSeekableEnd, probeVideoDuration, resolvePlaybackDuration, type PlaybackDurationInfo, type PlaybackDurationSource } from "./video_duration"
