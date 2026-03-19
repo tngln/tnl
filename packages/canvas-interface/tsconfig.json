@@ -3,7 +3,7 @@
   "compilerOptions": {
     "baseUrl": "../../",
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["packages/tnl-app/src/*"],
       "@tnl/canvas-interface": ["packages/canvas-interface/src/index.ts"],
       "@tnl/canvas-interface/*": ["packages/canvas-interface/src/*"],
       "@tnl/app": ["packages/tnl-app/src/index.ts"],
@@ -14,7 +14,7 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.d.ts",
-    "../../src/ui/jsx.d.ts",
-    "../../src/richtext-intrinsics.d.ts"
+    "src/types/jsx.d.ts",
+    "src/types/richtext-intrinsics.d.ts"
   ]
 }

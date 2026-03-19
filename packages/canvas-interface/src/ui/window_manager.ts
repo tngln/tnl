@@ -1,4 +1,4 @@
-import { theme, alpha } from "@/config/theme"
+import { theme, alpha } from "../theme"
 import { draw, RectOp, ZERO_RECT, type Rect as BoundsRect, type Vec2 } from "../draw"
 import { invariant } from "../errors"
 import { UIElement } from "./ui_base"

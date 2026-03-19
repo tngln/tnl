@@ -1,4 +1,4 @@
-import { font, theme, neutral, alpha } from "@/config/theme"
+import { font, theme, neutral, alpha } from "../theme"
 import { draw, LineOp, RectOp, TextOp, clamp, ZERO_RECT, type Rect as BoundsRect, type Vec2 } from "../draw"
 import type { InteractionCancelReason } from "../event_stream"
 import { batch, signal, type Signal } from "../reactivity"

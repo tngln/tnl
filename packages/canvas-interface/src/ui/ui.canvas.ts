@@ -1,4 +1,4 @@
-import { theme, alpha, neutral } from "@/config/theme"
+import { theme, alpha, neutral } from "../theme"
 import { classifySpatialClicks, createEventStream, type InteractionCancelReason } from "../event_stream"
 import { clampRect, inflateRect, intersects, mergeRectInto, normalizeRect, rectArea, unionRect, ZERO_RECT, type Rect, type Vec2 } from "../draw"
 import {

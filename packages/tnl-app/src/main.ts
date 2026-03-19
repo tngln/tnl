@@ -336,5 +336,5 @@ const removeUnhandledRejectionListener = addWindowUnhandledRejectionListener((ev
 }
 
 addWindowLoadListener(() => {
-  void registerServiceWorker("./sw.js", "./").catch(() => {})
+  void registerServiceWorker("../sw.js", "../").catch(() => {})
 })

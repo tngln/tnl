@@ -6,7 +6,7 @@ import { createTimecodeToolSurface, TIMECODE_TOOL_WINDOW_ID } from "../windows/t
 import { createTimelineToolSurface, TIMELINE_TOOL_WINDOW_ID } from "../windows/timeline_tool_window"
 import { createToolsSurface, TOOLS_DIALOG_ID } from "../windows/tools_dialog"
 import type { DockablePaneInit, DockDropPlacement } from "@tnl/canvas-interface/docking"
-import { theme, neutral } from "../../config/theme"
+import { theme, neutral } from "@tnl/canvas-interface/theme"
 import { createLayerCanvas, getCanvas2DContext } from "@tnl/canvas-interface/browser"
 import type { DragImageSpec } from "@tnl/canvas-interface/drag_drop"
 

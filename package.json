@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "bun src/index.html",
+    "dev": "bun packages/tnl-app/index.html",
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "bun test",
     "check:canvas-interface": "tsc -p packages/canvas-interface/tsconfig.json --noEmit",
