@@ -9,16 +9,10 @@ import { ShortcutManager, type ShortcutContextResolver, type ShortcutExecutionCo
 import { createCodecRegistry } from "./core/codecs"
 import { workerRegistry } from "./core/workers"
 import { ABOUT_DIALOG_ID, createAboutDialog } from "./ui/windows/about_dialog"
-import { DEVELOPER_WINDOW_ID } from "./ui/windows/developer/developer_tools_window"
-import { EXPLORER_WINDOW_ID } from "./ui/windows/explorer_window"
-import { PLAYBACK_TOOL_WINDOW_ID } from "./ui/windows/playback_tool_window"
-import { TIMECODE_TOOL_WINDOW_ID } from "./ui/windows/timecode_tool_window"
-import { TOOLS_DIALOG_ID } from "./ui/windows/tools_dialog"
-import { TIMELINE_TOOL_WINDOW_ID } from "./ui/windows/timeline_tool_window"
 import { addBrowserInteractionCancelListener, addWindowErrorListener, addWindowKeyDownListener, addWindowKeyUpListener, addWindowLoadListener, addWindowResizeListener, addWindowUnhandledRejectionListener, applyDocumentTheme, getRootCanvas, registerServiceWorker, scheduleAnimationFrame } from "./platform/web"
 import { DockingManager } from "./ui/docking/manager"
-import { createDefaultDockablePanes } from "./ui/docking/default_panes"
-import { findLeafByPane, firstLeaf } from "./ui/docking/model"
+import { createDefaultDockablePaneSpecs, type DefaultDockablePaneSpec } from "./ui/docking/default_panes"
+import { findLeafByPane } from "./ui/docking/model"
 
 const canvas = getRootCanvas("#app")
 invariant(canvas, {
@@ -95,10 +89,26 @@ type AppShortcutContext = ShortcutExecutionContext & {
   ui: CanvasUI
 }
 
+type AppShortcutSpec = {
+  id: string
+  key: string
+  run(ctx: AppShortcutContext): void
+}
+
 function targetContextId(target: unknown) {
   if (!target || typeof target !== "object") return null
   const value = (target as { id?: unknown }).id
   return typeof value === "string" && value.length ? value : null
+}
+
+function registerGlobalShortcuts(shortcuts: ShortcutManager<AppShortcutContext>, specs: AppShortcutSpec[]) {
+  for (const spec of specs) {
+    shortcuts.registerCommand({
+      id: spec.id,
+      run: spec.run,
+    })
+    shortcuts.registerBinding({ command: spec.id, context: "global", trigger: { kind: "key-down", code: spec.key } })
+  }
 }
 
 const shortcutResolver: ShortcutContextResolver<AppShortcutContext> = {
@@ -138,83 +148,60 @@ const shortcuts = new ShortcutManager<AppShortcutContext>({
   }),
 })
 
-shortcuts.registerCommand({
-  id: "app.toggleAbout",
-  run(ctx) {
-    ctx.wm.toggle(ABOUT_DIALOG_ID)
-    const snap = ctx.wm.listWindows().find((entry) => entry.id === ABOUT_DIALOG_ID)
-    if (snap?.open && !snap.minimized) ctx.wm.focus(ABOUT_DIALOG_ID)
-    ctx.ui.invalidate()
+function resolveStartupTargetLeafId(workspaceId: string, paneId: string) {
+  const leaf = findLeafByPane(docking.getRoot(workspaceId), paneId)
+  invariant(leaf, {
+    domain: "app",
+    code: "DefaultPaneTargetNotFound",
+    message: `Default workspace pane target not found: ${paneId}`,
+    details: { workspaceId, paneId },
+  })
+  return leaf.id
+}
+
+function initializeDefaultWorkspace(panes: DefaultDockablePaneSpec[]) {
+  const workspaceId = docking.createContainer()
+  for (const pane of panes) {
+    if (pane.startup.kind === "float") {
+      docking.floatPane(pane.id, pane.floatingRect)
+      continue
+    }
+    const targetLeafId = pane.startup.targetPaneId ? resolveStartupTargetLeafId(workspaceId, pane.startup.targetPaneId) : null
+    docking.dockPane(pane.id, workspaceId, targetLeafId, pane.startup.placement)
+  }
+}
+
+const paneSpecs = createDefaultDockablePaneSpecs(developerContext)
+for (const pane of paneSpecs) docking.registerPane(pane)
+
+const paneShortcutSpecs: AppShortcutSpec[] = paneSpecs.flatMap((pane) =>
+  pane.activation
+    ? [{
+        id: pane.activation.command,
+        key: pane.activation.key,
+        run(ctx) {
+          ctx.docking.activatePane(pane.id)
+          ctx.ui.invalidate()
+        },
+      }]
+    : [],
+)
+
+registerGlobalShortcuts(shortcuts, [
+  {
+    id: "app.toggleAbout",
+    key: "F1",
+    run(ctx) {
+      ctx.wm.toggle(ABOUT_DIALOG_ID)
+      const snap = ctx.wm.listWindows().find((entry) => entry.id === ABOUT_DIALOG_ID)
+      if (snap?.open && !snap.minimized) ctx.wm.focus(ABOUT_DIALOG_ID)
+      ctx.ui.invalidate()
+    },
   },
-})
+  ...paneShortcutSpecs,
+])
 
-shortcuts.registerCommand({
-  id: "workspace.activateDeveloper",
-  run(ctx) {
-    ctx.docking.activatePane(DEVELOPER_WINDOW_ID)
-    ctx.ui.invalidate()
-  },
-})
-
-shortcuts.registerCommand({
-  id: "workspace.activateExplorer",
-  run(ctx) {
-    ctx.docking.activatePane(EXPLORER_WINDOW_ID)
-    ctx.ui.invalidate()
-  },
-})
-
-shortcuts.registerCommand({
-  id: "workspace.activateTools",
-  run(ctx) {
-    ctx.docking.activatePane(TOOLS_DIALOG_ID)
-    ctx.ui.invalidate()
-  },
-})
-
-shortcuts.registerCommand({
-  id: "workspace.activateTimeline",
-  run(ctx) {
-    ctx.docking.activatePane(TIMELINE_TOOL_WINDOW_ID)
-    ctx.ui.invalidate()
-  },
-})
-
-shortcuts.registerCommand({
-  id: "workspace.activatePlayback",
-  run(ctx) {
-    ctx.docking.activatePane(PLAYBACK_TOOL_WINDOW_ID)
-    ctx.ui.invalidate()
-  },
-})
-
-shortcuts.registerCommand({
-  id: "workspace.activateTimecode",
-  run(ctx) {
-    ctx.docking.activatePane(TIMECODE_TOOL_WINDOW_ID)
-    ctx.ui.invalidate()
-  },
-})
-
-shortcuts.registerBinding({ command: "app.toggleAbout", context: "global", trigger: { kind: "key-down", code: "F1" } })
-shortcuts.registerBinding({ command: "workspace.activateDeveloper", context: "global", trigger: { kind: "key-down", code: "F2" } })
-shortcuts.registerBinding({ command: "workspace.activateExplorer", context: "global", trigger: { kind: "key-down", code: "F7" } })
-shortcuts.registerBinding({ command: "workspace.activateTools", context: "global", trigger: { kind: "key-down", code: "F3" } })
-shortcuts.registerBinding({ command: "workspace.activateTimeline", context: "global", trigger: { kind: "key-down", code: "F4" } })
-shortcuts.registerBinding({ command: "workspace.activatePlayback", context: "global", trigger: { kind: "key-down", code: "F5" } })
-shortcuts.registerBinding({ command: "workspace.activateTimecode", context: "global", trigger: { kind: "key-down", code: "F6" } })
-
-for (const pane of createDefaultDockablePanes(developerContext)) docking.registerPane(pane)
-const workspaceId = docking.createContainer()
-const firstPaneId = DEVELOPER_WINDOW_ID
-docking.dockPane(firstPaneId, workspaceId, null, "center")
-const leftLeafId = firstLeaf(docking.getRoot(workspaceId))?.id ?? null
-if (leftLeafId) docking.dockPane(TOOLS_DIALOG_ID, workspaceId, leftLeafId, "center")
-if (leftLeafId) docking.dockPane(EXPLORER_WINDOW_ID, workspaceId, leftLeafId, "center")
-if (leftLeafId) docking.dockPane(TIMELINE_TOOL_WINDOW_ID, workspaceId, leftLeafId, "right")
-const timelineLeafId = findLeafByPane(docking.getRoot(workspaceId), TIMELINE_TOOL_WINDOW_ID)?.id ?? null
-if (timelineLeafId) docking.dockPane(PLAYBACK_TOOL_WINDOW_ID, workspaceId, timelineLeafId, "bottom")
-docking.floatPane(TIMECODE_TOOL_WINDOW_ID, { x: 980, y: 48, w: 320, h: 150 })
+initializeDefaultWorkspace(paneSpecs)
 
 windows.setCanvasSize(ui.sizeCss)
 ;(globalThis as any).__TNL_DEVTOOLS__ ??= {}
