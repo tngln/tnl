@@ -22,6 +22,7 @@ export function useDragHandle(
     enabled?: () => boolean
     thresholdSq?: number
     cancelOnLeave?: boolean
+    onPress?: (gesture: DragGesture, event: PointerUIEvent) => void
     onDragStart?: (gesture: DragGesture) => void
     onDragMove?: (gesture: DragGesture) => void
     onDragEnd?: (gesture: DragGesture) => void
@@ -82,6 +83,7 @@ export function useDragHandle(
     phase = "pressed"
     originPointer = { x: e.x, y: e.y }
     lastPointer = originPointer
+    opts.onPress?.(gesture(), e)
     downEvents.emit(e)
     e.capture()
   })
