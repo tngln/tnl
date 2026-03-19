@@ -20,6 +20,7 @@ export class BuilderTreeSurface implements Surface {
 
   setNode(node: BuilderNode | null) {
     this.node = node
+    if (!node) this.engine.clearDebugTree()
   }
 
   setWheelFallback(fn: ((e: WheelUIEvent) => void) | null) {
@@ -74,13 +75,45 @@ export class BuilderTreeSurface implements Surface {
   }
 
   debugSnapshot(): DebugTreeNodeSnapshot {
+    const builderTree = this.engine.debugBuilderSnapshot()
+    const builderCounts = this.engine.debugBuilderCounts()
+    const runtimeCounts = this.engine.debugCounts()
     return {
       kind: "surface",
       type: "BuilderTreeSurface",
       label: this.id,
       id: this.id,
       visible: true,
-      children: [this.engine.runtime.root.debugSnapshot()],
+      children: [
+        ...(builderTree
+          ? [{
+              kind: "element" as const,
+              type: "BuilderDeclarationTree",
+              label: "Builder Tree",
+              meta: builderCounts ? `p${builderCounts.primitive} c${builderCounts.control} w${builderCounts.widget}` : (builderTree.meta ?? "primitive"),
+              runtime: {
+                title: "Builder Snapshot",
+                fields: [
+                  { label: "total", value: String(builderCounts?.total ?? 0) },
+                  { label: "primitive", value: String(builderCounts?.primitive ?? 0) },
+                  { label: "control", value: String(builderCounts?.control ?? 0) },
+                  { label: "widget", value: String(builderCounts?.widget ?? 0) },
+                  { label: "retained", value: String(runtimeCounts.retained) },
+                  { label: "controls", value: String(runtimeCounts.controls) },
+                  { label: "widgets", value: String(runtimeCounts.statefulWidgets) },
+                ],
+              },
+              children: [builderTree],
+            }]
+          : []),
+        {
+          kind: "element" as const,
+          type: "BuilderRetainedTree",
+          label: "Retained Runtime",
+          meta: `${runtimeCounts.retained} retained`,
+          children: [this.engine.runtime.root.debugSnapshot()],
+        },
+      ],
     }
   }
 }

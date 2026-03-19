@@ -1,6 +1,6 @@
 import type { Rect } from "../draw"
 import type { InteractionCancelReason } from "../event_stream"
-import { UIElement, type DebugEventListenerSnapshot } from "../ui_base"
+import { UIElement, type DebugEventListenerSnapshot, type DebugRuntimeStateSnapshot } from "../ui_base"
 import { usePress, type PressBinding } from "../use/use_press"
 
 /**
@@ -24,11 +24,11 @@ export class InteractiveElement extends UIElement {
       enabled: () => this._active() && !this._disabled(),
       onActivate: () => this.onActivate(),
       onStateChange: () => {
-        this.invalidateSelf({ pad: 2 })
+        this.invalidateSelf({ source: "interactive.press" })
       },
     })
     this.on("pointercancel", () => {
-      this.invalidateSelf({ pad: 2 })
+      this.invalidateSelf({ source: "interactive.pointerCancel" })
     })
   }
 
@@ -42,6 +42,22 @@ export class InteractiveElement extends UIElement {
 
   /** Override this to handle the "click" action when the pointer is released over the widget. */
   protected onActivate() {}
+
+  protected invalidationOutset() {
+    return 2
+  }
+
+  protected debugRuntimeState(): DebugRuntimeStateSnapshot | null {
+    return {
+      title: "Interactive Runtime",
+      fields: [
+        { label: "active", value: String(this._active()) },
+        { label: "disabled", value: String(this._disabled()) },
+        { label: "hover", value: String(this.hover) },
+        { label: "pressed", value: String(this.press.pressed()) },
+      ],
+    }
+  }
 
   protected debugListeners(): DebugEventListenerSnapshot[] | null {
     return [{ id: "click", label: "Click" }]

@@ -170,6 +170,7 @@ type DropdownState = {
 
 export const dropdownDescriptor: WidgetDescriptor<DropdownState, { options: DropdownOption[]; selected: Signal<string>; disabled?: boolean; topLayer?: TopLayerController }> = {
   id: "dropdown",
+  retainedKind: "widget",
   create: (id) => {
     const state = { id, rect: ZERO_RECT, active: false, disabled: false } as DropdownState
     state.widget = new Dropdown({

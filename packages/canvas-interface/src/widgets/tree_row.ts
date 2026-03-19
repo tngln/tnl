@@ -95,6 +95,7 @@ export class TreeRow extends UIElement {
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
+    if (!this.activeValue) return
     const r = this.layout.rect
     if (r.w <= 0 || r.h <= 0) return
     const pressed = this.press.pressed()
@@ -200,6 +201,7 @@ export const treeRowDescriptor: WidgetDescriptor<TreeRowState, {
   onDoubleClick?: () => void
 }> = {
   id: "treeRow",
+  retainedKind: "widget",
   initialZIndex: 10,
   create: () => {
     const state = {
@@ -237,6 +239,16 @@ export const treeRowDescriptor: WidgetDescriptor<TreeRowState, {
   },
   unmount: (state) => {
     state.active = false
+    state.onSelect = undefined
+    state.onToggle = undefined
+    state.onDoubleClick = undefined
+    state.layout = {
+      rect: ZERO_RECT,
+      depth: 0,
+      expandable: false,
+      expanded: false,
+      leftText: "",
+    }
     state.widget.set(state.layout, undefined, false)
   },
 }

@@ -1,11 +1,12 @@
 import type { Rect } from "../draw"
-import type { DebugBlitInfo, DebugLayerInfo, DebugTreeNodeSnapshot, Surface, WindowControlApi } from "../ui"
+import type { DebugBlitInfo, DebugCanvasRuntimeSnapshot, DebugLayerInfo, DebugTreeNodeSnapshot, Surface, WindowControlApi } from "../ui"
 import { createControlPanel } from "./panels/control_panel"
 import { createDataPanel } from "./panels/data_panel"
 import { ControlsSurface } from "./controls_surface"
 import { createDeveloperToolsSurface, createDeveloperToolsWindow, DEVELOPER_WINDOW_ID } from "./developer_tools_window"
 import { createInfoPanel } from "./panels/info_panel"
 import { createInspectorPanel } from "./panels/inspector_panel"
+import { createRuntimePanel } from "./panels/runtime_panel"
 import { createStoragePanel } from "./panels/storage_panel"
 import { createSurfacePanel } from "./panels/surface_panel"
 import { createWmPanel } from "./panels/wm_panel"
@@ -41,6 +42,15 @@ export type DeveloperDockingApi = {
   createContainer?(): string
 }
 
+export type DeveloperInspectorPickHit = {
+  path: string
+  label: string
+  type: string
+  id?: string
+  meta?: string
+  bounds?: Rect
+}
+
 export type DeveloperContext = {
   reactivity?: { list?: () => unknown }
   wm?: WindowControlApi
@@ -52,8 +62,17 @@ export type DeveloperContext = {
     setOverlay?: (rect: Rect | null) => void
     setPaintFlash?: (on: boolean) => void
     getPaintFlash?: () => boolean
+    getRuntime?: () => DebugCanvasRuntimeSnapshot
   }
-  inspector?: { tree?: () => DebugTreeNodeSnapshot; eval?: (code: string) => unknown }
+  inspector?: {
+    tree?: () => DebugTreeNodeSnapshot
+    eval?: (code: string) => unknown
+    beginPick?: (opts: {
+      onHover?: (hit: DeveloperInspectorPickHit | null) => void
+      onPick?: (hit: DeveloperInspectorPickHit | null) => void
+      onCancel?: () => void
+    }) => () => void
+  }
   docking?: DeveloperDockingApi
 }
 
@@ -70,6 +89,7 @@ export function defaultDeveloperPanels(): DeveloperPanelSpec[] {
     createControlPanel(),
     createWmPanel(),
     createSurfacePanel(),
+    createRuntimePanel(),
     createInspectorPanel(),
   ]
 }
@@ -82,6 +102,7 @@ export {
   createDeveloperToolsWindow,
   createInfoPanel,
   createInspectorPanel,
+  createRuntimePanel,
   createStoragePanel,
   createSurfacePanel,
   createWmPanel,

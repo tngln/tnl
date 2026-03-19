@@ -53,18 +53,94 @@ export type Surface = {
 }
 
 export function surfaceDebugSnapshot(surface: Surface, viewport: ViewportContext): DebugTreeNodeSnapshot {
-  return (
-    surface.debugSnapshot?.(viewport) ?? {
-      kind: "surface",
-      type: (surface as object).constructor?.name || "Surface",
-      label: surface.id,
-      id: surface.id,
-      bounds: viewport.rect,
-      visible: true,
-      meta: `${Math.round(viewport.contentRect.w)}x${Math.round(viewport.contentRect.h)}`,
-      children: [],
-    }
-  )
+  const local = surface.debugSnapshot?.(viewport) ?? {
+    kind: "surface",
+    type: (surface as object).constructor?.name || "Surface",
+    label: surface.id,
+    id: surface.id,
+    bounds: { x: 0, y: 0, w: viewport.contentRect.w, h: viewport.contentRect.h },
+    visible: true,
+    meta: `${Math.round(viewport.contentRect.w)}x${Math.round(viewport.contentRect.h)}`,
+    children: [],
+  }
+  const rooted = local.bounds
+    ? local
+    : {
+        ...local,
+        bounds: { x: 0, y: 0, w: viewport.contentRect.w, h: viewport.contentRect.h },
+      }
+  return translateDebugSnapshot(rooted, {
+    x: viewport.contentRect.x - viewport.scroll.x,
+    y: viewport.contentRect.y - viewport.scroll.y,
+  })
+}
+
+function translateDebugSnapshot(node: DebugTreeNodeSnapshot, offset: Vec2): DebugTreeNodeSnapshot {
+  return {
+    ...node,
+    bounds: node.bounds
+      ? {
+          x: node.bounds.x + offset.x,
+          y: node.bounds.y + offset.y,
+          w: node.bounds.w,
+          h: node.bounds.h,
+        }
+      : undefined,
+    children: node.children.map((child) => translateDebugSnapshot(child, offset)),
+  }
+}
+
+function translateDebugRef(
+  ref: { type: string; label: string; id?: string; bounds?: BoundsRect },
+  offset: Vec2,
+) {
+  return {
+    ...ref,
+    bounds: ref.bounds
+      ? {
+          x: ref.bounds.x + offset.x,
+          y: ref.bounds.y + offset.y,
+          w: ref.bounds.w,
+          h: ref.bounds.h,
+        }
+      : undefined,
+  }
+}
+
+function debugSnapshotMatchesRef(
+  node: DebugTreeNodeSnapshot,
+  ref: { type: string; label: string; id?: string; bounds?: BoundsRect },
+) {
+  if (node.type !== ref.type) return false
+  if (node.label !== ref.label) return false
+  if ((node.id ?? undefined) !== (ref.id ?? undefined)) return false
+  if (!node.bounds && !ref.bounds) return true
+  if (!node.bounds || !ref.bounds) return false
+  return node.bounds.x === ref.bounds.x
+    && node.bounds.y === ref.bounds.y
+    && node.bounds.w === ref.bounds.w
+    && node.bounds.h === ref.bounds.h
+}
+
+function findDebugSnapshotByRef(
+  node: DebugTreeNodeSnapshot,
+  ref: { type: string; label: string; id?: string; bounds?: BoundsRect },
+): DebugTreeNodeSnapshot | null {
+  if (debugSnapshotMatchesRef(node, ref)) return node
+  for (let i = node.children.length - 1; i >= 0; i--) {
+    const hit = findDebugSnapshotByRef(node.children[i]!, ref)
+    if (hit) return hit
+  }
+  return null
+}
+
+function findDeepestDebugSnapshotAtPoint(node: DebugTreeNodeSnapshot, point: Vec2): DebugTreeNodeSnapshot | null {
+  if (node.bounds && !pointInRect(point, node.bounds)) return null
+  for (let i = node.children.length - 1; i >= 0; i--) {
+    const hit = findDeepestDebugSnapshotAtPoint(node.children[i]!, point)
+    if (hit) return hit
+  }
+  return node.bounds ? node : null
 }
 
 function toLocalEvent(e: PointerUIEvent, p: Vec2) {
@@ -274,6 +350,23 @@ export class ViewportElement extends UIElement {
     return this.viewportCtx()
   }
 
+  debugPickSnapshot(pViewport: Vec2): DebugTreeNodeSnapshot | null {
+    if (!this.active() || !this.target) return null
+    if (!pointInRect(pViewport, this.rect())) return null
+    const vp = this.viewportCtx()
+    const snapshot = surfaceDebugSnapshot(this.target, vp)
+    const local = vp.toSurface(pViewport)
+    const hit = this.target.hitTest?.(local, vp) ?? null
+    if (hit instanceof UIElement) {
+      const ref = translateDebugRef(hit.debugRef(), {
+        x: vp.contentRect.x - vp.scroll.x,
+        y: vp.contentRect.y - vp.scroll.y,
+      })
+      return findDebugSnapshotByRef(snapshot, ref) ?? findDeepestDebugSnapshotAtPoint(snapshot, pViewport) ?? snapshot
+    }
+    return findDeepestDebugSnapshotAtPoint(snapshot, pViewport) ?? snapshot
+  }
+
   protected onDraw(ctx: CanvasRenderingContext2D) {
     if (!this.active()) return
     const s = this.target
@@ -282,7 +375,7 @@ export class ViewportElement extends UIElement {
     const rt = this.renderRuntime()
     const comp = rt?.compositor
     const nextInvalidator = rt?.invalidateRect
-      ? () => rt.invalidateRect!(vp.rect, { pad: 24 })
+      ? () => rt.invalidateRect!(vp.rect, { pad: 24, source: `viewport:${s.id}` })
       : () => invalidateAll()
     if (this.surfaceInvalidator !== nextInvalidator) {
       this.surfaceInvalidator = nextInvalidator

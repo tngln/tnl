@@ -13,7 +13,8 @@ import { drawButton, drawCheckbox, drawListRow, drawRadio } from "./draw_control
 import { drawSlider, resolveSliderValueFromPointer } from "./slider_control"
 import { inheritedTextToRichTextStyle, resolveTextColor, resolveTextEmphasis, resolveTextStyle } from "./styles"
 import type { BuilderEngine } from "./engine"
-import type { AstNode, BuilderNode, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, DropdownNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, SpacerNode, TextBoxNode, TextNode, TreeViewNode } from "./types"
+import type { ControlMountOpts } from "./runtime"
+import type { AstNode, BuilderNode, BuilderNodeRuntimeKind, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, DropdownNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, SpacerNode, TextBoxNode, TextNode, TreeViewNode } from "./types"
 import { flattenTreeItems } from "./runtime"
 import { widgetRegistry } from "./widget_registry"
 
@@ -26,8 +27,11 @@ widgetRegistry.register(treeRowDescriptor)
 
 export type MeasureSize = { w: number; h: number }
 
+type RuntimeKindResolver<TNode extends BuilderNode> = BuilderNodeRuntimeKind | ((node: TNode) => BuilderNodeRuntimeKind)
+
 export type BuilderNodeHandler<TNode extends BuilderNode = BuilderNode> = {
   kind: TNode["kind"]
+  runtimeKind: RuntimeKindResolver<TNode>
   getChildren?: (node: TNode) => BuilderNode[] | undefined
   getStyle?: (node: TNode) => LayoutStyle | undefined
   measure?: (engine: BuilderEngine, ctx: CanvasRenderingContext2D, node: TNode, max: MeasureSize, path: string, ast: AstNode) => MeasureSize
@@ -53,6 +57,62 @@ export class BuilderNodeRegistry {
     }
     return handler
   }
+
+  runtimeKind(node: BuilderNode): BuilderNodeRuntimeKind {
+    return resolveBuilderNodeRuntimeKind(this.get(node.kind) as BuilderNodeHandler<typeof node>, node)
+  }
+}
+
+export function resolveBuilderNodeRuntimeKind<TNode extends BuilderNode>(handler: BuilderNodeHandler<TNode>, node: TNode): BuilderNodeRuntimeKind {
+  return typeof handler.runtimeKind === "function" ? handler.runtimeKind(node) : handler.runtimeKind
+}
+
+type BaseHandlerOpts<TNode extends BuilderNode> = {
+  kind: TNode["kind"]
+  getChildren?: (node: TNode) => BuilderNode[] | undefined
+  getStyle?: (node: TNode) => LayoutStyle | undefined
+  measure?: (engine: BuilderEngine, ctx: CanvasRenderingContext2D, node: TNode, max: MeasureSize, path: string, ast: AstNode) => MeasureSize
+}
+
+type PrimitiveHandlerOpts<TNode extends BuilderNode> = BaseHandlerOpts<TNode> & {
+  runtimeKind?: RuntimeKindResolver<TNode>
+  mount?: (engine: BuilderEngine, ctx: CanvasRenderingContext2D, node: TNode, ast: AstNode, path: string, active: boolean) => void
+}
+
+type ControlHandlerOpts<TNode extends BuilderNode> = BaseHandlerOpts<TNode> & {
+  mountControl: (engine: BuilderEngine, ctx: CanvasRenderingContext2D, node: TNode, ast: AstNode, path: string, active: boolean) => ControlMountOpts
+}
+
+type WidgetHandlerOpts<TNode extends BuilderNode, TProps> = BaseHandlerOpts<TNode> & {
+  widgetType: string
+  mountWidget: (engine: BuilderEngine, ctx: CanvasRenderingContext2D, node: TNode, ast: AstNode, path: string, active: boolean) => TProps
+}
+
+function primitiveHandler<TNode extends BuilderNode>(opts: PrimitiveHandlerOpts<TNode>): BuilderNodeHandler<TNode> {
+  return {
+    ...opts,
+    runtimeKind: opts.runtimeKind ?? "primitive",
+  }
+}
+
+function controlHandler<TNode extends BuilderNode>(opts: ControlHandlerOpts<TNode>): BuilderNodeHandler<TNode> {
+  return {
+    ...opts,
+    runtimeKind: "control",
+    mount: (engine, ctx, node, ast, path, active) => {
+      engine.runtime.mountControl(path, ast.rect ?? ZERO_RECT, active, opts.mountControl(engine, ctx, node, ast, path, active))
+    },
+  }
+}
+
+function widgetHandler<TNode extends BuilderNode, TProps>(opts: WidgetHandlerOpts<TNode, TProps>): BuilderNodeHandler<TNode> {
+  return {
+    ...opts,
+    runtimeKind: "widget",
+    mount: (engine, ctx, node, ast, path, active) => {
+      engine.runtime.mountWidget(opts.widgetType, path, ast.rect ?? ZERO_RECT, opts.mountWidget(engine, ctx, node, ast, path, active), active)
+    },
+  }
 }
 
 function containerStyle(node: ContainerNode) {
@@ -61,13 +121,13 @@ function containerStyle(node: ContainerNode) {
   return { ...node.style, axis }
 }
 
-const containerHandler: BuilderNodeHandler<ContainerNode> = {
+const containerHandler = primitiveHandler<ContainerNode>({
   kind: "flex",
   getChildren: (node) => node.children,
   getStyle: containerStyle,
-}
+})
 
-const textHandler: BuilderNodeHandler<TextNode> = {
+const textHandler = primitiveHandler<TextNode>({
   kind: "text",
   measure: (_engine, ctx, node, max, _path, ast) => {
     const style = resolveTextStyle(ast.resolved, node)
@@ -94,10 +154,11 @@ const textHandler: BuilderNodeHandler<TextNode> = {
       )
     })
   },
-}
+})
 
-const richTextHandler: BuilderNodeHandler<RichTextNode> = {
+const richTextHandler = primitiveHandler<RichTextNode>({
   kind: "richText",
+  runtimeKind: (node) => (node.selectable ? "widget" : "primitive"),
   measure: (engine, ctx, node, max, path, ast) => {
     const block = engine.runtime.ensureRichBlock(path, node.spans, node.textStyle ?? inheritedTextToRichTextStyle(ast.resolved.text), node.align)
     return block.measure(ctx, Math.max(0, max.w))
@@ -116,9 +177,9 @@ const richTextHandler: BuilderNodeHandler<RichTextNode> = {
       block.draw(canvas, { x: rect.x, y: rect.y })
     })
   },
-}
+})
 
-const buttonHandler: BuilderNodeHandler<ButtonNode> = {
+const buttonHandler = controlHandler<ButtonNode>({
   kind: "button",
   measure: (_engine, ctx, node, max) => {
     const w = measureTextWidth(ctx, node.text, textFont({
@@ -129,28 +190,24 @@ const buttonHandler: BuilderNodeHandler<ButtonNode> = {
     }))
     return { w: Math.min(max.w, w + 28), h: theme.ui.controls.buttonHeight }
   },
-  mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountControl(path, ast.rect ?? ZERO_RECT, active, {
+  mountControl: (_engine, _ctx, node) => ({
       disabled: node.disabled ?? false,
       draw: (ctx, r, state) => drawButton(ctx, r, { text: node.text, title: node.title }, state),
       onClick: node.onClick,
-    })
-  },
-}
+    }),
+})
 
-const clickAreaHandler: BuilderNodeHandler<ClickAreaNode> = {
+const clickAreaHandler = controlHandler<ClickAreaNode>({
   kind: "clickArea",
   measure: () => ({ w: 0, h: 0 }),
-  mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountControl(path, ast.rect ?? ZERO_RECT, active, {
+  mountControl: (_engine, _ctx, node) => ({
       disabled: node.disabled ?? false,
       draw: () => {},
       onClick: node.onClick,
-    })
-  },
-}
+    }),
+})
 
-const checkboxHandler: BuilderNodeHandler<CheckboxNode> = {
+const checkboxHandler = controlHandler<CheckboxNode>({
   kind: "checkbox",
   measure: (_engine, ctx, node, max) => {
     const w = measureTextWidth(ctx, node.label, textFont({
@@ -161,17 +218,16 @@ const checkboxHandler: BuilderNodeHandler<CheckboxNode> = {
     }))
     return { w: Math.min(max.w, w + 28), h: theme.ui.controls.choiceHeight }
   },
-  mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountControl(path, ast.rect ?? ZERO_RECT, active, {
+  mountControl: (_engine, _ctx, node) => ({
       disabled: node.disabled ?? false,
       draw: (ctx, r, state) => drawCheckbox(ctx, r, { label: node.label, checked: node.checked.peek() }, state),
       onClick: () => node.checked.set((v) => !v),
-    })
-  },
-}
+    }),
+})
 
-const dropdownHandler: BuilderNodeHandler<DropdownNode> = {
+const dropdownHandler = widgetHandler<DropdownNode, { options: DropdownNode["options"]; selected: DropdownNode["selected"]; disabled?: boolean; topLayer: BuilderEngine["runtime"]["topLayer"] }>({
   kind: "dropdown",
+  widgetType: "dropdown",
   measure: (_engine, ctx, node, max) => {
     const f = textFont({
       fontFamily: theme.typography.family,
@@ -183,18 +239,10 @@ const dropdownHandler: BuilderNodeHandler<DropdownNode> = {
     for (const opt of node.options) w = Math.max(w, measureTextWidth(ctx, opt.label, f))
     return { w: Math.min(max.w, Math.max(theme.ui.controls.minFieldWidth, w + 28)), h: theme.ui.controls.inputHeight }
   },
-  mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountWidget(
-      "dropdown",
-      path,
-      ast.rect ?? ZERO_RECT,
-      { options: node.options, selected: node.selected, disabled: node.disabled, topLayer: engine.runtime.topLayer },
-      active,
-    )
-  },
-}
+  mountWidget: (engine, _ctx, node) => ({ options: node.options, selected: node.selected, disabled: node.disabled, topLayer: engine.runtime.topLayer }),
+})
 
-const radioHandler: BuilderNodeHandler<RadioNode> = {
+const radioHandler = controlHandler<RadioNode>({
   kind: "radio",
   measure: (_engine, ctx, node, max) => {
     const w = measureTextWidth(ctx, node.label, textFont({
@@ -205,17 +253,16 @@ const radioHandler: BuilderNodeHandler<RadioNode> = {
     }))
     return { w: Math.min(max.w, w + 28), h: theme.ui.controls.choiceHeight }
   },
-  mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountControl(path, ast.rect ?? ZERO_RECT, active, {
+  mountControl: (_engine, _ctx, node) => ({
       disabled: node.disabled ?? false,
       draw: (ctx, r, state) => drawRadio(ctx, r, { label: node.label, value: node.value, selected: node.selected.peek() }, state),
       onClick: () => node.selected.set(node.value),
-    })
-  },
-}
+    }),
+})
 
-const textBoxHandler: BuilderNodeHandler<TextBoxNode> = {
+const textBoxHandler = widgetHandler<TextBoxNode, TextBoxNode>({
   kind: "textbox",
+  widgetType: "textbox",
   measure: (_engine, ctx, node, max) => {
     const basis = node.placeholder && !node.value.peek() ? node.placeholder : node.value.peek()
     const w = measureTextWidth(ctx, basis || " ", textFont({
@@ -226,25 +273,22 @@ const textBoxHandler: BuilderNodeHandler<TextBoxNode> = {
     }))
     return { w: Math.min(max.w, Math.max(theme.ui.controls.minFieldWidth, w + 16)), h: theme.ui.controls.inputHeight }
   },
-  mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountWidget("textbox", path, ast.rect ?? ZERO_RECT, node, active)
-  },
-}
+  mountWidget: (_engine, _ctx, node) => node,
+})
 
-const rowItemHandler: BuilderNodeHandler<RowNode> = {
+const rowItemHandler = controlHandler<RowNode>({
   kind: "listRow",
   measure: (_engine, _ctx, _node, max) => ({ w: max.w, h: theme.ui.controls.rowHeight }),
-  mount: (engine, _ctx, node, ast, path, active) => {
-    engine.runtime.mountControl(path, ast.rect ?? ZERO_RECT, active, {
+  mountControl: (_engine, _ctx, node) => ({
       draw: (ctx, r, state) => drawListRow(ctx, r, { leftText: node.leftText, rightText: node.rightText, indent: node.indent, variant: node.variant, selected: node.selected }, state),
       onClick: node.onClick,
       onDoubleClick: node.onDoubleClick,
-    })
-  },
-}
+    }),
+})
 
-const treeViewHandler: BuilderNodeHandler<TreeViewNode> = {
+const treeViewHandler = primitiveHandler<TreeViewNode>({
   kind: "treeView",
+  runtimeKind: "widget",
   measure: (_engine, _ctx, node, max) => {
     const rows = flattenTreeItems(node.items, node.expanded)
     return { w: max.w, h: rows.length * TREE_ROW_HEIGHT }
@@ -252,27 +296,20 @@ const treeViewHandler: BuilderNodeHandler<TreeViewNode> = {
   mount: (engine, _ctx, node, ast, path, active) => {
     engine.runtime.mountTreeView(path, ast.rect ?? ZERO_RECT, node, active)
   },
-}
+})
 
-const scrollAreaHandler: BuilderNodeHandler<ScrollAreaNode> = {
+const scrollAreaHandler = widgetHandler<ScrollAreaNode, { child: BuilderNode; createTreeSurface: ReturnType<BuilderEngine["runtime"]["treeSurfaceFactory"]>; measureCtx?: CanvasRenderingContext2D }>({
   kind: "scrollArea",
+  widgetType: "scrollArea",
   measure: (engine, ctx, node, max, path, ast) => {
     const childAst = engine.toAst(node.child, ctx, `${path}/content`, ast.inherited)
     const child = measureLayout(childAst, { w: max.w, h: Number.POSITIVE_INFINITY })
     return { w: max.w, h: Math.min(max.h, child.h) }
   },
-  mount: (engine, ctx, node, ast, path, active) => {
-    engine.runtime.mountWidget(
-      "scrollArea",
-      path,
-      ast.rect ?? ZERO_RECT,
-      { child: node.child, createTreeSurface: engine.runtime.treeSurfaceFactory(), measureCtx: ctx },
-      active,
-    )
-  },
-}
+  mountWidget: (engine, ctx, node) => ({ child: node.child, createTreeSurface: engine.runtime.treeSurfaceFactory(), measureCtx: ctx }),
+})
 
-const paintHandler: BuilderNodeHandler<PaintNode> = {
+const paintHandler = primitiveHandler<PaintNode>({
   kind: "paint",
   measure: (_engine, _ctx, node, max) => node.measure?.(max) ?? { w: max.w, h: 0 },
   mount: (engine, _ctx, node, ast, _path, active) => {
@@ -281,14 +318,14 @@ const paintHandler: BuilderNodeHandler<PaintNode> = {
       node.draw(canvas, rect, active)
     })
   },
-}
+})
 
-const sliderHandler: BuilderNodeHandler<SliderNode> = {
+const sliderHandler = controlHandler<SliderNode>({
   kind: "slider",
   measure: (_engine, _ctx, _node, max) => ({ w: max.w, h: 20 }),
-  mount: (engine, _ctx, node, ast, path, active) => {
+  mountControl: (_engine, _ctx, node, ast) => {
     const rect = ast.rect ?? ZERO_RECT
-    engine.runtime.mountControl(path, rect, active, {
+    return {
       disabled: node.disabled ?? false,
       draw: (ctx, nextRect, state) => drawSlider(ctx, nextRect, { min: node.min, max: node.max, value: node.value }, state),
       onPointerDown: (e) => {
@@ -307,14 +344,14 @@ const sliderHandler: BuilderNodeHandler<SliderNode> = {
         node.onChange(resolveSliderValueFromPointer(rect, { min: node.min, max: node.max, value: node.value }, { x: e.x, y: e.y }))
         e.handle()
       },
-    })
+    }
   },
-}
+})
 
-const spacerHandler: BuilderNodeHandler<SpacerNode> = {
+const spacerHandler = primitiveHandler<SpacerNode>({
   kind: "spacer",
   measure: () => ({ w: 0, h: 0 }),
-}
+})
 
 export function createDefaultBuilderRegistry() {
   const registry = new BuilderNodeRegistry()

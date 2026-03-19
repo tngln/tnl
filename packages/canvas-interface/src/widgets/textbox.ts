@@ -3,7 +3,7 @@ import { draw, RectOp, TextOp, measureTextWidth, toGetter, ZERO_RECT, type Rect 
 import { signal, type Signal } from "../reactivity"
 import { getTextInputBridge, type TextInputBridge, type TextInputSyncState } from "../platform/web/text_input"
 import { createMeasureContext } from "../platform/web/canvas"
-import { CursorRegion, KeyUIEvent, UIElement } from "../ui_base"
+import { CursorRegion, KeyUIEvent, UIElement, type DebugRuntimeStateSnapshot } from "../ui_base"
 import type { WidgetDescriptor } from "../builder/widget_registry"
 
 const TEXTBOX_HEIGHT = theme.ui.controls.inputHeight
@@ -71,7 +71,7 @@ export class TextBox extends UIElement {
       this.selectionEnd = caret
       this.resetCaretBlink()
       this.syncBridge()
-      this.invalidateSelf({ pad: 6 })
+      this.invalidateSelf({ source: "textbox.focus" })
     })
     this.on("blur", () => {
       const caret = this.selectionEnd
@@ -81,7 +81,7 @@ export class TextBox extends UIElement {
       this.selectionEnd = caret
       this.stopCaretBlink()
       this.inputBridge.blur(this.sessionId)
-      this.invalidateSelf({ pad: 6 })
+      this.invalidateSelf({ source: "textbox.blur" })
     })
     this.on("pointerdown", (e) => {
       if (!this.interactive() || e.button !== 0) return
@@ -95,7 +95,7 @@ export class TextBox extends UIElement {
       this.setSelection(index, index)
       this.syncBridge()
       e.capture()
-      this.invalidateSelf({ pad: 6 })
+      this.invalidateSelf({ source: "textbox.pointerDown" })
     })
     this.on("pointermove", (e) => {
       if (!this.interactive() || this.dragAnchor === null || (e.buttons & 1) === 0) return
@@ -103,7 +103,7 @@ export class TextBox extends UIElement {
       this.setSelection(this.dragAnchor, index)
       this.resetCaretBlink()
       this.syncBridge()
-      this.invalidateSelf({ pad: 6 })
+      this.invalidateSelf({ source: "textbox.pointerMove" })
     })
     this.on("pointerup", (e) => {
       if (!this.interactive() || this.dragAnchor === null) return
@@ -112,7 +112,7 @@ export class TextBox extends UIElement {
       this.dragAnchor = null
       this.resetCaretBlink()
       this.syncBridge()
-      this.invalidateSelf({ pad: 6 })
+      this.invalidateSelf({ source: "textbox.pointerUp" })
     })
     this.on("pointercancel", () => {
       this.dragAnchor = null
@@ -351,12 +351,12 @@ export class TextBox extends UIElement {
           this.value.set(next.value)
           this.setSelection(next.selectionStart, next.selectionEnd)
           this.resetCaretBlink()
-          this.invalidateSelf({ pad: 6 })
+          this.invalidateSelf({ source: "textbox.bridge" })
         },
         onBlur: () => {
           this.focused = false
           this.stopCaretBlink()
-          this.invalidateSelf({ pad: 6 })
+          this.invalidateSelf({ source: "textbox.bridgeBlur" })
         },
       },
       state,
@@ -416,7 +416,26 @@ export class TextBox extends UIElement {
       : Math.floor((now - this.caretBlinkHoldUntil) / CARET_BLINK_MS) % 2 === 1
     if (this.caretVisible === nextVisible) return
     this.caretVisible = nextVisible
-    this.invalidateSelf({ pad: 6 })
+    this.invalidateSelf({ source: "textbox.caret" })
+  }
+
+  protected invalidationOutset() {
+    return 6
+  }
+
+  protected debugRuntimeState(): DebugRuntimeStateSnapshot | null {
+    const selection = this.normalizedSelection()
+    return {
+      title: "Text Input",
+      fields: [
+        { label: "active", value: String(this.activeValue) },
+        { label: "disabled", value: String(this.disabledValue) },
+        { label: "focused", value: String(this.focused) },
+        { label: "selection", value: `${selection.selectionStart}-${selection.selectionEnd}` },
+        { label: "scrollX", value: `${Math.round(this.scrollX)}` },
+        { label: "bridge", value: this.inputBridge.isFocused(this.sessionId) ? "focused" : "idle" },
+      ],
+    }
   }
 
   onRuntimeDeactivate() {
@@ -439,6 +458,7 @@ type TextBoxState = {
 
 export const textBoxDescriptor: WidgetDescriptor<TextBoxState, { value: Signal<string>; placeholder?: string; disabled?: boolean }> = {
   id: "textbox",
+  retainedKind: "widget",
   create: () => {
     const state = { rect: ZERO_RECT, active: false, disabled: false } as TextBoxState
     state.widget = new TextBox({

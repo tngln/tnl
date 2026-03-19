@@ -1,15 +1,19 @@
-import { AppError } from "../errors"
 import type { Rect } from "../draw"
 import type { UIElement } from "../ui_base"
 
+export type RetainedNodeKind = "control" | "widget"
+
 /**
- * Interface for a widget descriptor that defines the lifecycle of a widget.
- * TState: The type of the widget instance/state object.
- * TProps: The type of the properties passed from the builder node.
+ * Descriptor for a retained builder node.
+ * `widget` means a stateful widget with its own retained element implementation.
+ * `control` means a generic interactive retained node backed by ControlElement.
  */
 export interface WidgetDescriptor<TState = unknown, TProps = unknown> {
   /** Unique identifier for the widget type (e.g., "button", "textbox") */
   id: string
+
+  /** Runtime category used by BuilderRuntime for pooling and debug stats. */
+  retainedKind?: RetainedNodeKind
 
   /** Create a new instance of the widget state */
   create: (id: string) => TState

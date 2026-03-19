@@ -112,6 +112,7 @@ export const scrollAreaDescriptor: WidgetDescriptor<
   { child: BuilderNode; createTreeSurface: (id: string) => BuilderTreeSurfaceLike; measureCtx?: CanvasRenderingContext2D }
 > = {
   id: "scrollArea",
+  retainedKind: "widget",
   initialZIndex: 5,
   create: (id) => ({ widget: new ScrollArea(id) }),
   getWidget: (state) => state.widget,

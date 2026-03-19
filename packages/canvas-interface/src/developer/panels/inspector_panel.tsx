@@ -1,5 +1,6 @@
 import { createElement, Fragment } from "../../jsx"
 import { PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, TreeView, VStack, defineSurface, mountSurface, treeItem, type TreeItem } from "../../builder"
+import { signal } from "../../reactivity"
 import { collectIds } from "../../util"
 import type { DebugTreeNodeSnapshot } from "../../ui"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
@@ -15,10 +16,13 @@ export function createInspectorPanel(): DeveloperPanelSpec {
 const InspectorPanelSurface = defineSurface({
   id: "Developer.Inspector.Surface",
   setup: (_props: { ctx: DeveloperContext }) => {
-    let selectedId: string | null = null
+    const selectedId = signal<string | null>(null, { debugLabel: "developer.inspector.selectedId" })
+    const pickActive = signal(false, { debugLabel: "developer.inspector.pickActive" })
+    const pickHover = signal<string | null>(null, { debugLabel: "developer.inspector.pickHover" })
     let expanded = new Set<string>()
     let didSeedExpansion = false
     let lastOverlayRect: { x: number; y: number; w: number; h: number } | null = null
+    let stopPick: (() => void) | null = null
 
     const rectEqual = (a: { x: number; y: number; w: number; h: number } | null, b: { x: number; y: number; w: number; h: number } | null) => {
       if (!a && !b) return true
@@ -34,45 +38,87 @@ const InspectorPanelSurface = defineSurface({
       lastOverlayRect = rect ? { ...rect } : null
     }
 
+    const stopPicking = () => {
+      stopPick?.()
+      stopPick = null
+      pickActive.set(false)
+      pickHover.set(null)
+    }
+
     return ({ ctx }: { ctx: DeveloperContext }) => {
       const tree = ctx.inspector?.tree?.() ?? null
       const items = tree ? [toTreeItem(tree, "0")] : []
       const ids = new Set<string>()
       collectIds(items, ids)
       pruneExpanded(expanded, ids)
-      if (selectedId && !ids.has(selectedId)) selectedId = null
+      if (selectedId.peek() && !ids.has(selectedId.peek()!)) selectedId.set(null)
       if (tree && !didSeedExpansion) {
         seedDefaultExpansion(tree, expanded)
         didSeedExpansion = true
       }
       if (!tree) didSeedExpansion = false
 
-      const selected = tree && selectedId ? findNode(tree, selectedId, "0") : null
+      const selected = tree && selectedId.peek() ? findNode(tree, selectedId.peek()!, "0") : null
       applyOverlay(ctx, selected)
       const nodeCount = countNodes(items)
       const headerMeta = selected ? describeBounds(selected) : nodeCount ? `${nodeCount} nodes` : "No data"
       const selectionMeta = selected ? [selected.kind, selected.type, selected.id].filter(Boolean).join(" · ") : tree ? "No selection" : "Waiting for runtime tree"
       const overlayActive = !!lastOverlayRect
+      const picking = pickActive.get()
+      const pickingMeta = pickHover.get()
 
       return (
         <PanelColumn>
           <PanelHeader title="Inspector Tree" meta={headerMeta}>
-            <Text tone="muted" size="meta">{selectionMeta}</Text>
+            <Text tone="muted" size="meta">{picking ? `Picking · ${pickingMeta ?? "Hover an object and click to select."}` : selectionMeta}</Text>
           </PanelHeader>
           <PanelActionRow
             key="inspector.actions"
             compact
             actions={[
               {
+                key: "pick",
+                icon: picking ? "P" : "p",
+                text: picking ? "Picking" : "Pick",
+                title: picking ? "Cancel element picker" : "Pick an element from the canvas",
+                onClick: picking
+                  ? () => stopPicking()
+                  : ctx.inspector?.beginPick
+                    ? () => {
+                        pickActive.set(true)
+                        stopPick = ctx.inspector?.beginPick?.({
+                          onHover: (hit) => {
+                            pickHover.set(hit ? `${hit.label}${hit.id ? ` · ${hit.id}` : ""}` : null)
+                          },
+                          onPick: (hit) => {
+                            stopPick = null
+                            pickActive.set(false)
+                            pickHover.set(null)
+                            if (!hit) return
+                            expandPath(expanded, hit.path)
+                            selectedId.set(hit.path)
+                          },
+                          onCancel: () => {
+                            stopPick = null
+                            pickActive.set(false)
+                            pickHover.set(null)
+                          },
+                        }) ?? null
+                      }
+                    : undefined,
+                disabled: !picking && !ctx.inspector?.beginPick,
+              },
+              {
                 key: "clear",
                 icon: "X",
                 text: "Clear",
                 title: "Clear selection and overlay",
                 onClick: () => {
-                  selectedId = null
+                  stopPicking()
+                  selectedId.set(null)
                   applyOverlay(ctx, null)
                 },
-                disabled: !selectedId && !overlayActive,
+                disabled: !selectedId.peek() && !overlayActive,
               },
             ]}
           />
@@ -81,6 +127,7 @@ const InspectorPanelSurface = defineSurface({
               <Text weight="bold">{selected?.label ?? "No selection"}</Text>
               <Text tone="muted" size="meta">{selected ? describeNode(selected) : tree ? "Select a node to see details." : "Inspector runtime tree is not connected."}</Text>
               <Text tone="muted" size="meta">{selected ? `Listeners: ${describeListeners(selected)}` : "Listeners: -"}</Text>
+              <Text tone="muted" size="meta">{selected ? `Runtime: ${describeRuntime(selected)}` : "Runtime: -"}</Text>
             </VStack>
           </PanelSection>
           <PanelScroll key="inspector.tree">
@@ -89,9 +136,9 @@ const InspectorPanelSurface = defineSurface({
                 key="inspector.treeview"
                 items={items}
                 expanded={expanded}
-                selectedId={selectedId}
+                selectedId={selectedId.get()}
                 onSelect={(id) => {
-                  selectedId = id
+                  selectedId.set(id)
                   if (tree) applyOverlay(ctx, findNode(tree, id, "0"))
                 }}
                 onToggle={(id) => {
@@ -126,6 +173,11 @@ function seedDefaultExpansion(node: DebugTreeNodeSnapshot, expanded: Set<string>
 
 function pruneExpanded(expanded: Set<string>, ids: Set<string>) {
   for (const id of [...expanded]) if (!ids.has(id)) expanded.delete(id)
+}
+
+function expandPath(expanded: Set<string>, id: string) {
+  const parts = id.split(".")
+  for (let i = 0; i < parts.length - 1; i++) expanded.add(parts.slice(0, i + 1).join("."))
 }
 
 function countNodes(items: TreeItem[]): number {
@@ -171,5 +223,12 @@ function describeRowMeta(node: DebugTreeNodeSnapshot) {
   const parts: string[] = [node.kind]
   if (typeof node.z === "number") parts.push(`z${node.z}`)
   if (node.id) parts.push(node.id)
+  if (node.meta) parts.push(node.meta)
   return parts.join(" · ")
+}
+
+function describeRuntime(node: DebugTreeNodeSnapshot) {
+  const runtime = node.runtime
+  if (!runtime?.fields.length) return "-"
+  return runtime.fields.map((field) => `${field.label}: ${field.value}`).join(" · ")
 }

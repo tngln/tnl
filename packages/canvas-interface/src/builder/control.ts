@@ -14,7 +14,7 @@
 
 import type { InteractionCancelReason } from "../event_stream"
 import type { Rect } from "../draw"
-import type { CursorKind, Vec2 } from "../ui_base"
+import type { CursorKind, DebugRuntimeStateSnapshot, RuntimeDeactivateReason, Vec2 } from "../ui_base"
 import { PointerUIEvent, UIElement } from "../ui_base"
 import { usePress, type PressBinding } from "../use/use_press"
 
@@ -68,7 +68,7 @@ export class ControlElement extends UIElement {
       enabled: () => this._active && !this._disabled,
       onActivate: () => this._onClick?.(),
       onStateChange: () => {
-        this.invalidateSelf({ pad: 2 })
+        this.invalidateSelf({ source: "control.press" })
       },
     })
     this.on("doubleclick", (e: PointerUIEvent) => {
@@ -82,7 +82,7 @@ export class ControlElement extends UIElement {
       if (e.button !== 0) return
       this._dragging = true
       this._onPointerDown(e)
-      this.invalidateSelf({ pad: 2 })
+      this.invalidateSelf({ source: "control.pointerDown" })
     })
     this.on("pointermove", (e: PointerUIEvent) => {
       if (!this._dragging) return
@@ -92,17 +92,18 @@ export class ControlElement extends UIElement {
       if (!this._dragging) return
       this._dragging = false
       this._onPointerUp?.(e)
-      this.invalidateSelf({ pad: 2 })
+      this.invalidateSelf({ source: "control.pointerUp" })
     })
     this.on("pointercancel", (payload: { event: PointerUIEvent | null; reason: InteractionCancelReason }) => {
       if (!this._dragging) return
       this._dragging = false
       this._onPointerCancel?.(payload.reason)
-      this.invalidateSelf({ pad: 2 })
+      this.invalidateSelf({ source: "control.pointerCancel" })
     })
   }
 
   update(opts: ControlUpdateOpts) {
+    const wasActive = this._active
     this._rect = opts.rect
     this._active = opts.active
     this._disabled = opts.disabled
@@ -114,13 +115,32 @@ export class ControlElement extends UIElement {
     this._onPointerUp = opts.onPointerUp
     this._onPointerCancel = opts.onPointerCancel
     this._cursor = opts.cursor ?? null
-    if (!opts.active) {
-      this.press.cancel("inactive")
-      if (this._dragging) {
-        this._dragging = false
-        this._onPointerCancel?.("inactive")
-        this.invalidateSelf({ pad: 2 })
-      }
+    if (!opts.active && wasActive) this.onRuntimeDeactivate("inactive")
+  }
+
+  onRuntimeDeactivate(reason: RuntimeDeactivateReason = "inactive") {
+    this.press.cancel(reason)
+    if (this._dragging) {
+      this._dragging = false
+      this._onPointerCancel?.(reason)
+      this.invalidateSelf({ source: "control.inactive" })
+    }
+  }
+
+  protected invalidationOutset() {
+    return 2
+  }
+
+  protected debugRuntimeState(): DebugRuntimeStateSnapshot | null {
+    return {
+      title: "Control Runtime",
+      fields: [
+        { label: "active", value: String(this._active) },
+        { label: "disabled", value: String(this._disabled) },
+        { label: "hover", value: String(this.hover) },
+        { label: "pressed", value: String(this.press.pressed()) },
+        { label: "dragging", value: String(this._dragging) },
+      ],
     }
   }
 

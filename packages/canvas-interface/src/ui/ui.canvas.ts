@@ -1,5 +1,5 @@
 import { theme, alpha, neutral } from "../theme"
-import { classifySpatialClicks, createEventStream, type InteractionCancelReason } from "../event_stream"
+import type { InteractionCancelReason } from "../event_stream"
 import { clampRect, inflateRect, intersects, mergeRectInto, normalizeRect, rectArea, unionRect, ZERO_RECT, type Rect, type Vec2 } from "../draw"
 import {
   addBrowserInteractionCancelListener,
@@ -16,18 +16,38 @@ import {
 import { Compositor } from "../compositor"
 import { dispatchDoubleClickEvent, dispatchKeyEvent, dispatchPointerCancelEvent, dispatchPointerEvent, dispatchWheelEvent } from "./ui.dispatch"
 import { KeyUIEvent, type KeyLike, PointerUIEvent, WheelUIEvent } from "./ui.events"
-import { UIElement } from "./ui.element"
+import { UIElement, type DebugTreeNodeSnapshot, type InvalidateRectOpts } from "./ui.element"
 import { pointInRect } from "./ui.hit_test"
+import { CanvasRuntimeDebugState, FocusSession, PointerSession, type DebugCanvasRuntimeSnapshot } from "./ui.session"
+
+export type DebugInspectorPickHit = {
+  path: string
+  label: string
+  type: string
+  id?: string
+  meta?: string
+  bounds?: Rect
+}
+
+type DebugInspectorPickSession = {
+  onHover?: (hit: DebugInspectorPickHit | null) => void
+  onPick?: (hit: DebugInspectorPickHit | null) => void
+  onCancel?: () => void
+  hovered: DebugInspectorPickHit | null
+  pointer: Vec2 | null
+}
+
+type DebugInspectorPickCandidate = DebugInspectorPickHit & {
+  priority: number
+  area: number
+  depth: number
+}
 
 export class CanvasUI {
   readonly canvas: HTMLCanvasElement
   readonly ctx: CanvasRenderingContext2D
   readonly root: UIElement
   private rafPending = false
-  private capture: UIElement | null = null
-  private hover: UIElement | null = null
-  private focus: UIElement | null = null
-  private activePointerId: number | null = null
   private dpr = 1
   private cssW = 1
   private cssH = 1
@@ -35,7 +55,11 @@ export class CanvasUI {
   private dirtyFull = true
   private frameId = 0
   private compositor = new Compositor()
+  private readonly pointerSession: PointerSession
+  private readonly focusSession = new FocusSession()
+  private readonly debugState = new CanvasRuntimeDebugState()
   private debugOverlay: Rect | null = null
+  private debugInspectorPick: DebugInspectorPickSession | null = null
   private debugPaintFlash = false
   private debugFlashEntries: Array<{ rect: Rect; startMs: number; hue: number }> = []
   private debugFlashHue = 0
@@ -50,20 +74,6 @@ export class CanvasUI {
   private cursor: CursorKind = "default"
   private readonly doubleClickWindowMs = 320
   private readonly doubleClickDistSq = 36
-  private readonly clickUpEvents = createEventStream<{
-    target: UIElement
-    pointerId: number
-    x: number
-    y: number
-    button: number
-    buttons: number
-    altKey: boolean
-    ctrlKey: boolean
-    shiftKey: boolean
-    metaKey: boolean
-    timeStamp: number
-  }>()
-  private doubleClickSub: { unsubscribe(): void } | null = null
 
   get sizeCss(): Vec2 {
     return { x: this.cssW, y: this.cssH }
@@ -74,27 +84,27 @@ export class CanvasUI {
   }
 
   get hoverTarget() {
-    return this.hover
+    return this.pointerSession.hoverTarget
   }
 
   get captureTarget() {
-    return this.capture
+    return this.pointerSession.captureTarget
   }
 
   get focusTarget() {
-    return this.focus
+    return this.focusSession.focusedTarget
   }
 
   get hoverTopLevelTarget() {
-    return this.hover ? this.topLevelTargetOf(this.hover) : null
+    return this.pointerSession.hoverTarget ? this.topLevelTargetOf(this.pointerSession.hoverTarget) : null
   }
 
   get captureTopLevelTarget() {
-    return this.capture ? this.topLevelTargetOf(this.capture) : null
+    return this.pointerSession.captureTarget ? this.topLevelTargetOf(this.pointerSession.captureTarget) : null
   }
 
   get focusTopLevelTarget() {
-    return this.focus ? this.topLevelTargetOf(this.focus) : null
+    return this.focusSession.focusedTarget ? this.topLevelTargetOf(this.focusSession.focusedTarget) : null
   }
 
   constructor(
@@ -112,21 +122,47 @@ export class CanvasUI {
     if (!ctx) throw new Error("2D context not available")
     this.ctx = ctx
     this.root = root
+    this.pointerSession = new PointerSession({
+      doubleClickWindowMs: this.doubleClickWindowMs,
+      doubleClickDistanceSq: this.doubleClickDistSq,
+      onDoubleClick: (second) => {
+        this.debugState.recordEvent({
+          kind: "doubleclick",
+          at: second.timeStamp,
+          pointerId: second.pointerId,
+          hitTarget: second.target,
+          dispatchTarget: second.target,
+        })
+        const pointerEvent = new PointerUIEvent({
+          pointerId: second.pointerId,
+          x: second.x,
+          y: second.y,
+          button: second.button,
+          buttons: second.buttons,
+          altKey: second.altKey,
+          ctrlKey: second.ctrlKey,
+          shiftKey: second.shiftKey,
+          metaKey: second.metaKey,
+          timeStamp: second.timeStamp,
+        })
+        dispatchDoubleClickEvent(second.target, pointerEvent)
+      },
+    })
     this.onTopLevelPointerDown = opts.onTopLevelPointerDown
     this.onNativePointerDown = opts.onNativePointerDown
     this.onNativePointerUp = opts.onNativePointerUp
     this.onNativeWheel = opts.onNativeWheel
 
-    this.startDoubleClickClassifier()
     this.resize()
     this.removeResizeListener = addWindowResizeListener(this.resize)
     this.removeLostPointerCaptureListener = addLostPointerCaptureListener(canvas, (pointerId) => {
-      if (this.activePointerId !== pointerId) return
+      if (this.pointerSession.pointerId !== pointerId) return
       this.cancelPointerSession("lost-capture")
     })
     this.removeBrowserInteractionCancelListener = addBrowserInteractionCancelListener((reason) => {
+      this.cancelDebugInspectorPick(true)
       this.cancelPointerSession(reason)
-      this.clearFocus()
+      this.clearFocus(reason)
     })
 
     canvas.addEventListener("pointerdown", this.onPointerDown)
@@ -138,8 +174,8 @@ export class CanvasUI {
   }
 
   destroy() {
-    this.doubleClickSub?.unsubscribe()
-    this.doubleClickSub = null
+    this.cancelDebugInspectorPick(false)
+    this.pointerSession.destroy()
     this.removeResizeListener()
     this.removeLostPointerCaptureListener()
     this.removeBrowserInteractionCancelListener()
@@ -149,24 +185,26 @@ export class CanvasUI {
     this.canvas.removeEventListener("pointercancel", this.onPointerCancel)
     this.canvas.removeEventListener("wheel", this.onWheel)
     this.releasePointerCapture()
-    this.clearFocus()
+    this.clearFocus("destroy")
     this.applyCursor("default")
   }
 
-  invalidate() {
+  invalidate(source = "canvas.full") {
+    this.debugState.recordInvalidation({ x: 0, y: 0, w: this.cssW, h: this.cssH }, { force: true, source })
     this.dirtyFull = true
     this.dirty = []
     this.scheduleRender()
   }
 
-  invalidateRect(r: Rect, opts: { pad?: number; force?: boolean } = {}) {
-    if (opts.force) return this.invalidate()
+  invalidateRect(r: Rect, opts: InvalidateRectOpts = {}) {
+    if (opts.force) return this.invalidate(opts.source ?? "canvas.force")
     const pad = opts.pad ?? 2
     const b = { x: 0, y: 0, w: this.cssW, h: this.cssH }
     const n = normalizeRect(r)
     const inf = inflateRect(n, pad)
     const c = clampRect(inf, b)
     if (!c) return
+    this.debugState.recordInvalidation(c, { ...opts, pad })
     if (this.dirtyFull) {
       this.scheduleRender()
       return
@@ -189,9 +227,9 @@ export class CanvasUI {
   setDebugOverlay(rect: Rect | null) {
     const prev = this.debugOverlay
     this.debugOverlay = rect
-    if (prev && rect) this.invalidateRect(unionRect(prev, rect), { pad: 12 })
-    else if (prev) this.invalidateRect(prev, { pad: 12 })
-    else if (rect) this.invalidateRect(rect, { pad: 12 })
+    if (prev && rect) this.invalidateRect(unionRect(prev, rect), { pad: 12, source: "canvas.debugOverlay" })
+    else if (prev) this.invalidateRect(prev, { pad: 12, source: "canvas.debugOverlay" })
+    else if (rect) this.invalidateRect(rect, { pad: 12, source: "canvas.debugOverlay" })
   }
 
   /**
@@ -205,7 +243,7 @@ export class CanvasUI {
     this.debugPaintFlash = on
     if (!on) this.debugFlashEntries = []
     if (!on) {
-      for (const f of stale) this.invalidateRect(f.rect, { pad: 1 })
+      for (const f of stale) this.invalidateRect(f.rect, { pad: 1, source: "canvas.paintFlash" })
     }
   }
 
@@ -219,6 +257,67 @@ export class CanvasUI {
 
   debugCompositorFrameBlits() {
     return this.compositor.debugGetFrameBlits()
+  }
+
+  debugInteractionState(): DebugCanvasRuntimeSnapshot {
+    return this.debugState.snapshot(this.pointerSession.snapshot(), this.focusSession.snapshot())
+  }
+
+  beginDebugInspectorPick(opts: {
+    onHover?: (hit: DebugInspectorPickHit | null) => void
+    onPick?: (hit: DebugInspectorPickHit | null) => void
+    onCancel?: () => void
+  }) {
+    this.cancelDebugInspectorPick(false)
+    const session: DebugInspectorPickSession = {
+      ...opts,
+      hovered: null,
+      pointer: null,
+    }
+    this.debugInspectorPick = session
+    this.invalidate("canvas.debugPick")
+    this.applyCursor("crosshair")
+    return () => {
+      if (this.debugInspectorPick !== session) return
+      this.cancelDebugInspectorPick(true)
+    }
+  }
+
+  isDebugInspectorPickActive() {
+    return this.debugInspectorPick !== null
+  }
+
+  private cancelDebugInspectorPick(notify: boolean) {
+    const session = this.debugInspectorPick
+    if (!session) return
+    this.debugInspectorPick = null
+    session.onHover?.(null)
+    if (notify) session.onCancel?.()
+    this.invalidate("canvas.debugPick")
+    this.applyCursor("default")
+  }
+
+  private updateDebugInspectorHover(p: Vec2) {
+    const session = this.debugInspectorPick
+    if (!session) return null
+    const next = this.resolveDebugInspectorPickAt(p)
+    if (sameDebugInspectorPickHit(session.hovered, next) && vecEquals(session.pointer, p)) return next
+    session.hovered = next
+    session.pointer = { ...p }
+    session.onHover?.(next)
+    this.invalidate("canvas.debugPick")
+    return next
+  }
+
+  private completeDebugInspectorPick(p: Vec2) {
+    const session = this.debugInspectorPick
+    if (!session) return
+    const hit = this.resolveDebugInspectorPickAt(p)
+    this.debugInspectorPick = null
+    session.onHover?.(null)
+    session.onPick?.(hit)
+    this.invalidate("canvas.debugPick")
+    this.applyCursor("default")
   }
 
   private scheduleRender() {
@@ -240,7 +339,7 @@ export class CanvasUI {
     const h = Math.max(1, Math.floor(this.cssH * dpr))
     if (this.canvas.width !== w) this.canvas.width = w
     if (this.canvas.height !== h) this.canvas.height = h
-    this.invalidate()
+    this.invalidate("canvas.resize")
   }
 
   private toCanvasPoint(e: { clientX: number; clientY: number }): Vec2 {
@@ -289,16 +388,42 @@ export class CanvasUI {
       ctx.fillStyle = neutral[925]
       ctx.fillRect(r.x, r.y, r.w, r.h)
       this.root.draw(ctx, { clip: r, compositor: this.compositor, frameId, dpr: this.dpr, invalidateRect: (rect, opts) => this.invalidateRect(rect, opts) })
-      const overlay = this.debugOverlay
-      if (overlay && intersects(overlay, r)) {
+      const overlays = [
+        this.debugOverlay
+          ? { rect: this.debugOverlay, fill: alpha(theme.colors.accent, 0.12), stroke: alpha(theme.colors.accent, 0.6) }
+          : null,
+        this.debugInspectorPick?.hovered?.bounds
+          ? { rect: this.debugInspectorPick.hovered.bounds, fill: alpha(theme.colors.accent, 0.18), stroke: alpha(theme.colors.accent, 0.92) }
+          : null,
+      ]
+      for (const overlay of overlays) {
+        if (!overlay || !intersects(overlay.rect, r)) continue
         ctx.save()
         ctx.globalAlpha = 1
-        ctx.fillStyle = alpha(theme.colors.accent, 0.12)
-        ctx.strokeStyle = alpha(theme.colors.accent, 0.6)
+        ctx.fillStyle = overlay.fill
+        ctx.strokeStyle = overlay.stroke
         ctx.lineWidth = 1
-        ctx.fillRect(overlay.x, overlay.y, overlay.w, overlay.h)
-        ctx.strokeRect(overlay.x + 0.5, overlay.y + 0.5, Math.max(0, overlay.w - 1), Math.max(0, overlay.h - 1))
+        ctx.fillRect(overlay.rect.x, overlay.rect.y, overlay.rect.w, overlay.rect.h)
+        ctx.strokeRect(overlay.rect.x + 0.5, overlay.rect.y + 0.5, Math.max(0, overlay.rect.w - 1), Math.max(0, overlay.rect.h - 1))
         ctx.restore()
+      }
+      const pick = this.debugInspectorPick
+      if (pick?.hovered && pick.pointer) {
+        const tooltip = debugInspectorTooltipRect(ctx, pick.pointer, pick.hovered, this.cssW, this.cssH)
+        if (intersects(tooltip.rect, r)) {
+          ctx.save()
+          ctx.fillStyle = alpha(neutral[50], 0.96)
+          ctx.strokeStyle = alpha(neutral[300], 0.8)
+          ctx.lineWidth = 1
+          ctx.fillRect(tooltip.rect.x, tooltip.rect.y, tooltip.rect.w, tooltip.rect.h)
+          ctx.strokeRect(tooltip.rect.x + 0.5, tooltip.rect.y + 0.5, Math.max(0, tooltip.rect.w - 1), Math.max(0, tooltip.rect.h - 1))
+          ctx.fillStyle = neutral[925]
+          ctx.font = tooltip.font
+          ctx.textAlign = "start"
+          ctx.textBaseline = "top"
+          ctx.fillText(tooltip.text, tooltip.rect.x + 8, tooltip.rect.y + 6)
+          ctx.restore()
+        }
       }
       ctx.restore()
     }
@@ -341,44 +466,10 @@ export class CanvasUI {
   }
 
   private releasePointerCapture() {
-    if (this.activePointerId === null) return
-    releaseElementPointerCapture(this.canvas, this.activePointerId)
-    this.activePointerId = null
-  }
-
-  private startDoubleClickClassifier() {
-    this.doubleClickSub?.unsubscribe()
-    this.doubleClickSub = classifySpatialClicks({
-      clicks: this.clickUpEvents.stream,
-      windowMs: this.doubleClickWindowMs,
-      distanceSq: this.doubleClickDistSq,
-      canPair: (first, second) => {
-        if (first.target !== second.target) return false
-        if (first.button !== 0 || second.button !== 0) return false
-        if (first.pointerId !== second.pointerId) return false
-        return true
-      },
-    }).subscribe((event) => {
-      if (event.kind !== "double") return
-      const second = event.second
-      const pointerEvent = new PointerUIEvent({
-        pointerId: second.pointerId,
-        x: second.x,
-        y: second.y,
-        button: second.button,
-        buttons: second.buttons,
-        altKey: second.altKey,
-        ctrlKey: second.ctrlKey,
-        shiftKey: second.shiftKey,
-        metaKey: second.metaKey,
-        timeStamp: second.timeStamp,
-      })
-      dispatchDoubleClickEvent(second.target, pointerEvent)
-    })
-  }
-
-  private resetDoubleClickClassifier() {
-    this.startDoubleClickClassifier()
+    const pointerId = this.pointerSession.pointerId
+    if (pointerId === null) return
+    releaseElementPointerCapture(this.canvas, pointerId)
+    this.pointerSession.clearPointer()
   }
 
   private pointerUiEventFromNative(e: PointerEvent): PointerUIEvent {
@@ -398,36 +489,48 @@ export class CanvasUI {
   }
 
   private cancelPointerSession(reason: InteractionCancelReason, nativeEvent?: PointerEvent | null) {
-    this.resetDoubleClickClassifier()
-    const target = this.capture
-    const oldHover = this.hover
+    this.pointerSession.resetDoubleClickClassifier()
+    const target = this.pointerSession.captureTarget
+    const oldHover = this.pointerSession.hoverTarget
     const topBefore = target ? this.topLevelTargetOf(target) : oldHover ? this.topLevelTargetOf(oldHover) : null
     const before = topBefore?.bounds() ?? null
 
-    if (this.hover) {
-      this.hover.emit("pointerleave")
-      this.hover = null
+    if (oldHover) {
+      oldHover.emit("pointerleave")
+      this.pointerSession.setHover(null)
     }
 
     if (target) {
+      this.debugState.recordEvent({
+        kind: "pointercancel",
+        at: nativeEvent?.timeStamp,
+        pointerId: nativeEvent?.pointerId,
+        reason,
+        hitTarget: oldHover ?? target,
+        dispatchTarget: target,
+      })
       dispatchPointerCancelEvent(target, nativeEvent ? this.pointerUiEventFromNative(nativeEvent) : null, reason)
-      this.capture = null
+      this.pointerSession.setCapture(null)
     }
 
     this.releasePointerCapture()
     this.applyResolvedCursor(nativeEvent ? this.toCanvasPoint(nativeEvent) : null)
 
     const after = topBefore?.bounds() ?? before
-    if (before && after) this.invalidateRect(unionRect(before, after), { pad: 24 })
-    else if (before) this.invalidateRect(before, { pad: 24 })
+    if (before && after) this.invalidateRect(unionRect(before, after), { pad: 24, source: "canvas.pointerCancel" })
+    else if (before) this.invalidateRect(before, { pad: 24, source: "canvas.pointerCancel" })
   }
 
   private onPointerDown = (e: PointerEvent) => {
+    if (this.debugInspectorPick) {
+      this.completeDebugInspectorPick(this.toCanvasPoint(e))
+      return
+    }
     this.onNativePointerDown?.(e)
     const p = this.toCanvasPoint(e)
     const target = this.root.hitTest(p, this.ctx)
     if (!target) return
-    this.activePointerId = e.pointerId
+    this.pointerSession.beginPointer(e.pointerId)
     setElementPointerCapture(this.canvas, e.pointerId)
     let top: UIElement = target
     top = this.topLevelTargetOf(top)
@@ -445,43 +548,48 @@ export class CanvasUI {
       metaKey: e.metaKey,
       timeStamp: e.timeStamp,
     })
+    this.debugState.recordEvent({
+      kind: "pointerdown",
+      at: e.timeStamp,
+      pointerId: e.pointerId,
+      hitTarget: target,
+      dispatchTarget: target,
+    })
     const before = top.bounds()
     const dispatch = dispatchPointerEvent(target, ev, "down")
     const focusTarget = dispatch.focusTarget instanceof UIElement ? dispatch.focusTarget : dispatch.target instanceof UIElement ? dispatch.target : target
-    this.focusElement(this.resolveFocusableTarget(focusTarget))
-    if (dispatch.captureTarget === dispatch.target && target instanceof UIElement) this.capture = target
-    this.applyResolvedCursor(p, this.capture ?? target)
+    this.focusElement(this.resolveFocusableTarget(focusTarget), "pointerdown")
+    if (dispatch.captureTarget === dispatch.target && target instanceof UIElement) this.pointerSession.setCapture(target)
+    this.applyResolvedCursor(p, this.pointerSession.captureTarget ?? target)
     const after = top.bounds()
-    this.invalidateRect(unionRect(before, after), { pad: 24 })
+    this.invalidateRect(unionRect(before, after), { pad: 24, source: "canvas.pointerDown" })
   }
 
   private onPointerMove = (e: PointerEvent) => {
-    if (this.capture && this.activePointerId === e.pointerId && (e.buttons & 1) === 0) {
+    if (this.debugInspectorPick) {
+      this.updateDebugInspectorHover(this.toCanvasPoint(e))
+      this.applyCursor("crosshair")
+      return
+    }
+    if (this.pointerSession.captureTarget && this.pointerSession.pointerId === e.pointerId && (e.buttons & 1) === 0) {
       this.cancelPointerSession("buttons-released", e)
       return
     }
     const p = this.toCanvasPoint(e)
     const over = this.root.hitTest(p, this.ctx)
-    if (over !== this.hover) {
-      const oldTop = this.hover
-        ? (() => {
-            return this.topLevelTargetOf(this.hover as UIElement)
-          })()
-        : null
-      const newTop = over
-        ? (() => {
-            return this.topLevelTargetOf(over as UIElement)
-          })()
-        : null
-      this.hover?.emit("pointerleave")
+    const hover = this.pointerSession.hoverTarget
+    if (over !== hover) {
+      const oldTop = hover ? this.topLevelTargetOf(hover) : null
+      const newTop = over ? this.topLevelTargetOf(over) : null
+      hover?.emit("pointerleave")
       over?.emit("pointerenter")
-      this.hover = over
-      if (oldTop && newTop) this.invalidateRect(unionRect(oldTop.bounds(), newTop.bounds()), { pad: 8 })
-      else if (oldTop) this.invalidateRect(oldTop.bounds(), { pad: 8 })
-      else if (newTop) this.invalidateRect(newTop.bounds(), { pad: 8 })
+      this.pointerSession.setHover(over)
+      if (oldTop && newTop) this.invalidateRect(unionRect(oldTop.bounds(), newTop.bounds()), { pad: 8, source: "canvas.hover" })
+      else if (oldTop) this.invalidateRect(oldTop.bounds(), { pad: 8, source: "canvas.hover" })
+      else if (newTop) this.invalidateRect(newTop.bounds(), { pad: 8, source: "canvas.hover" })
     }
     this.applyResolvedCursor(p)
-    const target = this.capture ?? over
+    const target = this.pointerSession.captureTarget ?? over
     if (!target) return
     const ev = new PointerUIEvent({
       pointerId: e.pointerId,
@@ -495,6 +603,13 @@ export class CanvasUI {
       metaKey: e.metaKey,
       timeStamp: e.timeStamp,
     })
+    this.debugState.recordEvent({
+      kind: "pointermove",
+      at: e.timeStamp,
+      pointerId: e.pointerId,
+      hitTarget: over,
+      dispatchTarget: target,
+    })
     let topBefore: UIElement | null = target
     if (topBefore) topBefore = this.topLevelTargetOf(topBefore)
     const before = topBefore ? topBefore.bounds() : null
@@ -502,28 +617,36 @@ export class CanvasUI {
     let topAfter: UIElement | null = target
     if (topAfter) topAfter = this.topLevelTargetOf(topAfter)
     const after = topAfter ? topAfter.bounds() : before
-    const shouldInvalidate = this.capture !== null || dispatch.handled || !before || !after || !this.rectEquals(before, after)
+    const shouldInvalidate = this.pointerSession.captureTarget !== null || dispatch.handled || !before || !after || !this.rectEquals(before, after)
     if (!shouldInvalidate) return
-    if (before && after) this.invalidateRect(unionRect(before, after), { pad: 24 })
-    else if (after) this.invalidateRect(after, { pad: 24 })
+    if (before && after) this.invalidateRect(unionRect(before, after), { pad: 24, source: "canvas.pointerMove" })
+    else if (after) this.invalidateRect(after, { pad: 24, source: "canvas.pointerMove" })
   }
 
   private onPointerUp = (e: PointerEvent) => {
     this.onNativePointerUp?.(e)
     const p = this.toCanvasPoint(e)
-    const target = this.capture ?? this.root.hitTest(p, this.ctx)
+    const hit = this.root.hitTest(p, this.ctx)
+    const target = this.pointerSession.captureTarget ?? hit
     if (!target) {
-      this.capture = null
+      this.pointerSession.setCapture(null)
       this.releasePointerCapture()
       return
     }
     const ev = this.pointerUiEventFromNative(e)
+    this.debugState.recordEvent({
+      kind: "pointerup",
+      at: e.timeStamp,
+      pointerId: e.pointerId,
+      hitTarget: hit,
+      dispatchTarget: target,
+    })
     let top: UIElement | null = target
     if (top) top = this.topLevelTargetOf(top)
     const before = top ? top.bounds() : ZERO_RECT
     dispatchPointerEvent(target, ev, "up")
     if (e.button === 0 && pointInRect(p, target.bounds())) {
-      this.clickUpEvents.emit({
+      this.pointerSession.emitClickUp({
         target,
         pointerId: e.pointerId,
         x: p.x,
@@ -537,40 +660,71 @@ export class CanvasUI {
         timeStamp: e.timeStamp,
       })
     }
-    this.capture = null
+    this.pointerSession.setCapture(null)
     this.releasePointerCapture()
     this.applyResolvedCursor(p)
     const after = top ? top.bounds() : before
-    this.invalidateRect(unionRect(before, after), { pad: 24 })
+    this.invalidateRect(unionRect(before, after), { pad: 24, source: "canvas.pointerUp" })
   }
 
   private onPointerCancel = (e: PointerEvent) => {
+    if (this.debugInspectorPick) {
+      this.cancelDebugInspectorPick(true)
+      return
+    }
     this.cancelPointerSession("pointercancel", e)
   }
 
-  focusElement(target: UIElement | null) {
-    if (this.focus === target) return
-    const previous = this.focus
-    this.focus = target
-    previous?.emit("blur")
-    target?.emit("focus")
+  focusElement(target: UIElement | null, reason = "focus") {
+    const result = this.focusSession.focus(target, reason)
+    if (!result.changed) return
+    if (result.previous) {
+      this.debugState.recordEvent({
+        kind: "blur",
+        reason,
+        dispatchTarget: result.previous,
+        hitTarget: result.previous,
+      })
+    }
+    if (result.current) {
+      this.debugState.recordEvent({
+        kind: "focus",
+        reason,
+        dispatchTarget: result.current,
+        hitTarget: result.current,
+      })
+    }
   }
 
-  clearFocus() {
-    this.focusElement(null)
+  clearFocus(reason = "clear") {
+    this.focusElement(null, reason)
   }
 
   handleKeyDown(e: KeyLike) {
-    if (!this.focus) return { consumed: false, preventDefault: false }
+    const focus = this.focusSession.focusedTarget
+    if (!focus) return { consumed: false, preventDefault: false }
+    this.debugState.recordEvent({
+      kind: "keydown",
+      at: e.timeStamp,
+      dispatchTarget: focus,
+      hitTarget: focus,
+    })
     const ev = new KeyUIEvent(e)
-    dispatchKeyEvent(this.focus, ev, "down")
+    dispatchKeyEvent(focus, ev, "down")
     return { consumed: ev.didConsume, preventDefault: ev.didPreventDefault }
   }
 
   handleKeyUp(e: KeyLike) {
-    if (!this.focus) return { consumed: false, preventDefault: false }
+    const focus = this.focusSession.focusedTarget
+    if (!focus) return { consumed: false, preventDefault: false }
+    this.debugState.recordEvent({
+      kind: "keyup",
+      at: e.timeStamp,
+      dispatchTarget: focus,
+      hitTarget: focus,
+    })
     const ev = new KeyUIEvent(e)
-    dispatchKeyEvent(this.focus, ev, "up")
+    dispatchKeyEvent(focus, ev, "up")
     return { consumed: ev.didConsume, preventDefault: ev.didPreventDefault }
   }
 
@@ -582,14 +736,15 @@ export class CanvasUI {
   }
 
   private resolveCursor(p: Vec2 | null, targetOverride?: UIElement | null): CursorKind {
-    const target = targetOverride ?? this.capture ?? this.hover
+    if (this.debugInspectorPick) return "crosshair"
+    const target = targetOverride ?? this.pointerSession.captureTarget ?? this.pointerSession.hoverTarget
     if (target) {
       let top: UIElement = target
       top = this.topLevelTargetOf(top)
       const cursor = p ? top.cursorAt(p, this.ctx) : null
       if (cursor) return cursor
       if (p && pointInRect(p, top.bounds())) return "default"
-      if (this.capture && targetOverride === undefined) return this.capture.captureCursor() ?? "default"
+      if (this.pointerSession.captureTarget && targetOverride === undefined) return this.pointerSession.captureTarget.captureCursor() ?? "default"
     }
     if (p) {
       const cursor = this.root.cursorAt(p, this.ctx)
@@ -617,6 +772,11 @@ export class CanvasUI {
     return null
   }
 
+  private resolveDebugInspectorPickAt(p: Vec2): DebugInspectorPickHit | null {
+    const snapshot = this.root.debugSnapshot()
+    return findBestDebugSnapshotAtPoint(snapshot, p)
+  }
+
   private applyResolvedCursor(p: Vec2 | null, targetOverride?: UIElement | null) {
     this.applyCursor(this.resolveCursor(p, targetOverride))
   }
@@ -627,6 +787,12 @@ export class CanvasUI {
     const p = this.toCanvasPoint(e)
     const target = this.root.hitTest(p, this.ctx)
     if (!target) return
+    this.debugState.recordEvent({
+      kind: "wheel",
+      at: e.timeStamp,
+      hitTarget: target,
+      dispatchTarget: target,
+    })
     const d = this.toCssWheelDelta(e)
     const ev = new WheelUIEvent({
       x: p.x,
@@ -645,6 +811,122 @@ export class CanvasUI {
     e.preventDefault()
     let top: UIElement | null = target
     while (top && top.parent && top.parent !== this.root) top = top.parent
-    if (top) this.invalidateRect(top.bounds(), { pad: 24 })
+    if (top) this.invalidateRect(top.bounds(), { pad: 24, source: "canvas.wheel" })
+  }
+}
+
+function sameDebugInspectorPickHit(a: DebugInspectorPickHit | null, b: DebugInspectorPickHit | null) {
+  if (!a && !b) return true
+  if (!a || !b) return false
+  return a.path === b.path
+    && a.label === b.label
+    && a.type === b.type
+    && a.id === b.id
+    && rectEquals(a.bounds, b.bounds)
+}
+
+function vecEquals(a: Vec2 | null, b: Vec2 | null) {
+  if (!a && !b) return true
+  if (!a || !b) return false
+  return a.x === b.x && a.y === b.y
+}
+
+function rectEquals(a: Rect | undefined, b: Rect | undefined) {
+  if (!a && !b) return true
+  if (!a || !b) return false
+  return a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
+}
+
+function findBestDebugSnapshotAtPoint(node: DebugTreeNodeSnapshot, point: Vec2): DebugInspectorPickHit | null {
+  let best: DebugInspectorPickCandidate | null = null
+  const visit = (current: DebugTreeNodeSnapshot, path: string, depth: number) => {
+    if (current.bounds && !pointInRect(point, current.bounds)) return
+    const candidate: DebugInspectorPickCandidate | null = current.bounds
+      ? {
+          path,
+          label: current.label,
+          type: current.type,
+          id: current.id,
+          meta: current.meta,
+          bounds: current.bounds,
+          priority: debugInspectorPickPriority(current),
+          area: Math.max(0, current.bounds.w) * Math.max(0, current.bounds.h),
+          depth,
+        }
+      : null
+    if (candidate && isBetterDebugInspectorCandidate(candidate, best)) best = candidate
+    for (let i = 0; i < current.children.length; i++) visit(current.children[i]!, `${path}.${i}`, depth + 1)
+  }
+  visit(node, "0", 0)
+  const resolved = best as DebugInspectorPickCandidate | null
+  if (!resolved) return null
+  if (isDebugInspectorRootLike(resolved.type)) return null
+  return {
+    path: resolved.path,
+    label: resolved.label,
+    type: resolved.type,
+    id: resolved.id,
+    meta: resolved.meta,
+    bounds: resolved.bounds,
+  }
+}
+
+function isBetterDebugInspectorCandidate(
+  next: DebugInspectorPickCandidate,
+  current: DebugInspectorPickCandidate | null,
+) {
+  if (!current) return true
+  if (next.priority !== current.priority) return next.priority < current.priority
+  if (next.area !== current.area) return next.area < current.area
+  return next.depth > current.depth
+}
+
+function debugInspectorPickPriority(node: DebugTreeNodeSnapshot) {
+  if (node.type === "BuilderNode") return 0
+  if (node.kind === "element" && !isDebugInspectorWrapper(node.type)) return 1
+  if (node.kind === "surface") return 2
+  if (node.type === "BuilderDeclarationTree") return 3
+  if (node.type === "BuilderRetainedTree") return 4
+  if (node.type === "ViewportElement") return 5
+  if (isDebugInspectorRootLike(node.type)) return 9
+  return 6
+}
+
+function isDebugInspectorWrapper(type: string) {
+  return type === "BuilderDeclarationTree"
+    || type === "BuilderRetainedTree"
+    || type === "ViewportElement"
+    || isDebugInspectorRootLike(type)
+}
+
+function isDebugInspectorRootLike(type: string) {
+  return type === "Root" || type === "SurfaceRoot"
+}
+
+function debugInspectorTooltipText(hit: DebugInspectorPickHit) {
+  return hit.id ? `${hit.label} · ${hit.id}` : hit.label
+}
+
+function debugInspectorTooltipRect(
+  ctx: CanvasRenderingContext2D,
+  point: Vec2,
+  hit: DebugInspectorPickHit,
+  maxW: number,
+  maxH: number,
+) {
+  const font = `${500} ${Math.max(10, theme.typography.body.size - 1)}px ${theme.typography.family}`
+  ctx.save()
+  ctx.font = font
+  const text = debugInspectorTooltipText(hit)
+  const textW = ctx.measureText(text).width
+  ctx.restore()
+  const w = Math.ceil(textW) + 16
+  const h = 26
+  const x = Math.min(Math.max(0, point.x + 12), Math.max(0, maxW - w))
+  const y = Math.min(Math.max(0, point.y + 14), Math.max(0, maxH - h))
+  return {
+    text,
+    font,
+    rect: { x, y, w, h },
   }
 }

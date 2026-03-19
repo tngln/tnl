@@ -359,6 +359,7 @@ type RichTextSelectableState = {
 
 export const richTextSelectableDescriptor: WidgetDescriptor<RichTextSelectableState, { block: RichTextBlock; topLayer: TopLayerController }> = {
   id: "richTextSelectable",
+  retainedKind: "widget",
   initialZIndex: 10,
   create: (id) => {
     const emptyBlock = { measure: () => ({ w: 0, h: 0 }), getLayout: () => null, draw: () => {} } as RichTextBlock

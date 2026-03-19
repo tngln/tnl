@@ -176,6 +176,7 @@ export const scrollbarDescriptor: WidgetDescriptor<ScrollbarStateData, {
   autoHide?: boolean
 }> = {
   id: "scrollbar",
+  retainedKind: "widget",
   initialZIndex: 40,
   create: () => {
     const state = { rect: ZERO_RECT, active: false } as ScrollbarStateData

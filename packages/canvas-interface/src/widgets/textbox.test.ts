@@ -156,4 +156,25 @@ describe("textbox", () => {
 
     expect(bridge.session).toBe(null)
   })
+
+  it("exposes text-input runtime state for inspection", () => {
+    const value = signal("hello", { debugLabel: "test.textbox.value" })
+    const bridge = new MockBridge()
+    const textbox = new TextBox({
+      rect: () => ({ x: 0, y: 0, w: 120, h: 28 }),
+      value,
+      inputBridge: bridge,
+    })
+
+    textbox.emit("focus")
+
+    const runtime = textbox.debugSnapshot().runtime
+    expect(runtime?.title).toBe("Text Input")
+    expect(runtime?.fields).toEqual(
+      expect.arrayContaining([
+        { label: "focused", value: "true" },
+        { label: "bridge", value: "focused" },
+      ]),
+    )
+  })
 })

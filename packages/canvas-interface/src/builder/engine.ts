@@ -2,7 +2,7 @@ import { theme } from "../theme"
 import { draw, RectOp, ZERO_RECT, type Rect, type Vec2 } from "../draw"
 import { AppError } from "../errors"
 import { createLayoutContext, layout, measureLayout, type Rect as LayoutRect } from "../layout"
-import type { DrawRuntime } from "../ui_base"
+import type { DebugRuntimeStateSnapshot, DebugTreeNodeSnapshot, DrawRuntime } from "../ui_base"
 import { BuilderRuntime } from "./runtime"
 import { createDefaultBuilderRegistry, type BuilderNodeRegistry } from "./registry"
 import { defaultInheritedStyle, mergeInheritedStyle } from "./styles"
@@ -12,6 +12,7 @@ export class BuilderEngine {
   readonly runtime: BuilderRuntime
   readonly registry: BuilderNodeRegistry
   drawOps: Array<(ctx: CanvasRenderingContext2D) => void> = []
+  private lastAst: AstNode | null = null
 
   constructor(registry: BuilderNodeRegistry = createDefaultBuilderRegistry(), createTreeSurface: (id: string) => any) {
     this.registry = registry
@@ -24,6 +25,20 @@ export class BuilderEngine {
 
   hitTest(pSurface: Vec2) {
     return this.runtime.hitTest(pSurface)
+  }
+
+  clearDebugTree() {
+    this.lastAst = null
+  }
+
+  debugBuilderSnapshot(): DebugTreeNodeSnapshot | null {
+    if (!this.lastAst) return null
+    return astToDebugSnapshot(this.lastAst, this.registry)
+  }
+
+  debugBuilderCounts() {
+    if (!this.lastAst) return null
+    return countAstRuntimeKinds(this.lastAst, this.registry)
   }
 
   toAst(node: BuilderNode, ctx: CanvasRenderingContext2D, path: string, inherited: InheritedStyle): AstNode {
@@ -70,6 +85,7 @@ export class BuilderEngine {
     const measured = measureLayout(ast, { w: size.x, h: Number.POSITIVE_INFINITY }, layoutContext)
     const outer = { x: 0, y: 0, w: size.x, h: Math.max(size.y, measured.h) }
     layout(ast, outer, layoutContext)
+    this.lastAst = ast
     this.mountAst(ctx, ast, "root")
     for (const op of this.drawOps) op(ctx)
     this.runtime.endFrame()
@@ -130,4 +146,42 @@ export type BuilderTreeSurfaceLike = {
 function devGuardEnabled() {
   const v = (globalThis as any).__TNL_DEBUG_LEVEL__
   return v === "debug" || v === "trace"
+}
+
+function astToDebugSnapshot(ast: AstNode, registry: BuilderNodeRegistry): DebugTreeNodeSnapshot {
+  const node = ast.builder
+  const runtimeKind = registry.runtimeKind(node)
+  const runtime: DebugRuntimeStateSnapshot = {
+    title: "Builder Node",
+    fields: [
+      { label: "kind", value: node.kind },
+      { label: "runtime", value: runtimeKind },
+      { label: "key", value: node.key ?? "-" },
+      { label: "visible", value: String(node.visible ?? true) },
+      { label: "active", value: String(node.active ?? true) },
+    ],
+  }
+  return {
+    kind: "element",
+    type: "BuilderNode",
+    label: node.key ? `${node.kind}:${node.key}` : node.kind,
+    id: ast.id,
+    bounds: ast.rect,
+    visible: node.visible ?? true,
+    meta: runtimeKind,
+    runtime,
+    children: ((ast.children as AstNode[] | undefined) ?? []).map((child) => astToDebugSnapshot(child, registry)),
+  }
+}
+
+function countAstRuntimeKinds(ast: AstNode, registry: BuilderNodeRegistry) {
+  const counts = { total: 0, primitive: 0, control: 0, widget: 0 }
+  const visit = (node: AstNode) => {
+    counts.total += 1
+    const runtimeKind = registry.runtimeKind(node.builder)
+    counts[runtimeKind] += 1
+    for (const child of (node.children as AstNode[] | undefined) ?? []) visit(child)
+  }
+  visit(ast)
+  return counts
 }

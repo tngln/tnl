@@ -2,7 +2,7 @@ import { font, theme, neutral, alpha } from "../theme"
 import { draw, LineOp, RectOp, TextOp, clamp, ZERO_RECT, type Rect as BoundsRect, type Vec2 } from "../draw"
 import type { InteractionCancelReason } from "../event_stream"
 import { batch, signal, type Signal } from "../reactivity"
-import { CursorRegion, pointInRect, type DebugEventListenerSnapshot, PointerUIEvent, UIElement } from "./ui_base"
+import { CursorRegion, pointInRect, type DebugEventListenerSnapshot, type DebugRuntimeStateSnapshot, PointerUIEvent, UIElement } from "./ui_base"
 import { ViewportElement, type Surface } from "../viewport"
 import { isSurfaceMountSpec, mountSurface, type SurfaceMountSpec } from "../builder/surface_builder"
 import { useDragHandle } from "../use/use_drag_handle"
@@ -283,6 +283,20 @@ export class ModalWindow extends UIElement {
       z: this.z,
       visible: this.visible,
       meta: parts.join(" · "),
+    }
+  }
+
+  protected debugRuntimeState(): DebugRuntimeStateSnapshot | null {
+    return {
+      title: "Window Runtime",
+      fields: [
+        { label: "open", value: String(this.open.peek()) },
+        { label: "minimized", value: String(this.minimized.peek()) },
+        { label: "maximized", value: String(this.maximized.peek()) },
+        { label: "screen", value: this.screenUsage.peek() },
+        { label: "dragging", value: String(this.titleInteraction.dragging) },
+        { label: "chrome", value: this.chrome },
+      ],
     }
   }
 

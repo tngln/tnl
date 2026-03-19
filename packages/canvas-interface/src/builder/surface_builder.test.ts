@@ -47,6 +47,43 @@ describe("surface builder", () => {
     const second = surface.debugCounts()
     expect(second).toEqual(first)
     expect(first.widgets).toBe(5) // 1 button + 1 checkbox + 1 textbox + 1 listRow + 1 scrollArea
+    expect(first.controls).toBe(3)
+    expect(first.statefulWidgets).toBe(2)
+  })
+
+  it("counts retained instances instead of widget kinds", () => {
+    const a = signal("A", { debugLabel: "test.builder.multi.a" })
+    const b = signal("B", { debugLabel: "test.builder.multi.b" })
+    const surface = new BuilderSurface({
+      id: "Builder.Counts.Multi",
+      build: () =>
+        column(
+          [
+            textBoxNode(a, { key: "a" }),
+            textBoxNode(b, { key: "b" }),
+            buttonNode("Click", { key: "btn" }),
+          ],
+          { axis: "column", gap: theme.spacing.xs },
+        ),
+    })
+    const ctx = fakeCtx()
+    const viewport = {
+      rect: { x: 0, y: 0, w: 240, h: 180 },
+      contentRect: { x: 0, y: 0, w: 240, h: 180 },
+      clip: false,
+      scroll: { x: 0, y: 0 },
+      toSurface: (p: { x: number; y: number }) => p,
+      dpr: 1,
+    }
+
+    surface.render(ctx, viewport)
+
+    expect(surface.debugCounts()).toMatchObject({
+      widgets: 3,
+      retained: 3,
+      controls: 1,
+      statefulWidgets: 2,
+    })
   })
 
   it("measures scroll content larger than viewport", () => {
@@ -93,6 +130,59 @@ describe("surface builder", () => {
     const bounds = rowNodes[0]!.bounds
     expect(bounds.w).toBeGreaterThan(0)
     expect(bounds.h).toBeGreaterThan(0)
+  })
+
+  it("publishes builder declaration nodes with runtime kinds in debug snapshots", () => {
+    const value = signal("", { debugLabel: "test.builder.debug.value" })
+    const surface = new BuilderSurface({
+      id: "Builder.Debug.Tree",
+      build: () =>
+        column(
+          [
+            textNode("Label", { key: "label" }),
+            buttonNode("Click", { key: "button" }),
+            textBoxNode(value, { key: "textbox" }),
+          ],
+          { axis: "column" },
+          { key: "root" },
+        ),
+    })
+    const ctx = fakeCtx()
+    const viewport = {
+      rect: { x: 0, y: 0, w: 240, h: 120 },
+      contentRect: { x: 0, y: 0, w: 240, h: 120 },
+      clip: false,
+      scroll: { x: 0, y: 0 },
+      toSurface: (p: { x: number; y: number }) => p,
+      dpr: 1,
+    }
+
+    surface.render(ctx, viewport)
+    const snapshot = surface.debugSnapshot()
+    const builderTree = snapshot.children.find((child: any) => child.type === "BuilderDeclarationTree")
+    expect(builderTree).toBeTruthy()
+    expect(builderTree).toMatchObject({
+      meta: "p2 c1 w1",
+      runtime: {
+        title: "Builder Snapshot",
+        fields: expect.arrayContaining([
+          { label: "primitive", value: "2" },
+          { label: "control", value: "1" },
+          { label: "widget", value: "1" },
+        ]),
+      },
+    })
+    const rootNode = builderTree?.children?.[0]
+    expect(rootNode).toMatchObject({
+      type: "BuilderNode",
+      label: "flex:root",
+      meta: "primitive",
+    })
+    expect(rootNode?.children?.map((child: any) => [child.label, child.meta])).toEqual([
+      ["text:label", "primitive"],
+      ["button:button", "control"],
+      ["textbox:textbox", "widget"],
+    ])
   })
 
   it("guards against rowItem nested in row when debug level is enabled", () => {
@@ -353,12 +443,13 @@ describe("surface builder", () => {
 
     surface.render(ctx, viewport)
     const first = surface.debugCounts()
-    expect(first.widgets).toBe(1) // 1 treeRow (parent) + child rows are dynamically added inside TreeView widget
+    expect(first.widgets).toBe(3)
+    expect(first.statefulWidgets).toBe(3)
 
     expanded.delete("branch")
     surface.render(ctx, viewport)
     const second = surface.debugCounts()
-    expect(second.widgets).toBe(1) // 1 treeRow
+    expect(second.widgets).toBe(3) // pooled retained rows stay mounted even when descendants are inactive
 
     const hiddenLeaf = surface.hitTest({ x: 40, y: 54 })
     // The hidden row is still in the tree but has zero bounds, so hitTest should not return it

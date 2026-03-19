@@ -43,6 +43,19 @@ class ClickElement extends UIElement {
   }
 }
 
+class RuntimeElement extends UIElement {
+  bounds() {
+    return { x: 0, y: 0, w: 10, h: 10 }
+  }
+
+  protected debugRuntimeState() {
+    return {
+      title: "Runtime",
+      fields: [{ label: "mode", value: "active" }],
+    }
+  }
+}
+
 describe("ui debug snapshots", () => {
   it("includes viewport targets as surface nodes in the tree", () => {
     const root = new BoxElement({ x: 0, y: 0, w: 320, h: 180 }, "Root")
@@ -66,6 +79,45 @@ describe("ui debug snapshots", () => {
     })
   })
 
+  it("translates surface debug bounds into canvas coordinates", () => {
+    const root = new BoxElement({ x: 0, y: 0, w: 320, h: 180 }, "Root")
+    const viewport = new ViewportElement({
+      rect: () => ({ x: 10, y: 12, w: 120, h: 80 }),
+      target: {
+        id: "Debug.Surface",
+        render() {},
+        debugSnapshot() {
+          return {
+            kind: "surface",
+            type: "DebugSurface",
+            label: "Debug.Surface",
+            bounds: { x: 0, y: 0, w: 40, h: 30 },
+            children: [
+              {
+                kind: "element",
+                type: "LocalNode",
+                label: "Local",
+                bounds: { x: 5, y: 6, w: 10, h: 8 },
+                children: [],
+              },
+            ],
+          }
+        },
+      },
+      options: {
+        padding: 4,
+        scroll: { x: 3, y: 2 },
+      },
+    })
+
+    root.add(viewport)
+
+    const snapshot = root.debugSnapshot()
+    const surface = snapshot.children[0].children[0]!
+    expect(surface.bounds).toEqual({ x: 11, y: 14, w: 40, h: 30 })
+    expect(surface.children[0]?.bounds).toEqual({ x: 16, y: 20, w: 10, h: 8 })
+  })
+
   it("includes debug listeners for elements", () => {
     const root = new BoxElement({ x: 0, y: 0, w: 320, h: 180 }, "Root")
     const pointer = new PointerElement()
@@ -77,5 +129,16 @@ describe("ui debug snapshots", () => {
     expect(snapshot.children).toHaveLength(2)
     expect(snapshot.children[0].listeners?.map((l) => l.id)).toEqual(["pointer.down"])
     expect(snapshot.children[1].listeners?.map((l) => l.id)).toEqual(["click"])
+  })
+
+  it("includes runtime state in debug snapshots", () => {
+    const root = new BoxElement({ x: 0, y: 0, w: 320, h: 180 }, "Root")
+    root.add(new RuntimeElement())
+
+    const snapshot = root.debugSnapshot()
+    expect(snapshot.children[0].runtime).toEqual({
+      title: "Runtime",
+      fields: [{ label: "mode", value: "active" }],
+    })
   })
 })

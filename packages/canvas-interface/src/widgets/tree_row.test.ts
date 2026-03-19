@@ -219,4 +219,31 @@ describe("tree row", () => {
 
     expect(invalidations).toBe(2)
   })
+
+  it("does not draw after being deactivated", () => {
+    const row = new TreeRow()
+    row.set({
+      rect: { x: 0, y: 0, w: 180, h: TREE_ROW_HEIGHT },
+      depth: 0,
+      expandable: true,
+      expanded: false,
+      leftText: "Node",
+    })
+
+    const before = fakeCtx()
+    row.draw(before.ctx)
+    expect(before.fills.length).toBeGreaterThan(0)
+
+    row.set({
+      rect: { x: 0, y: 0, w: 180, h: TREE_ROW_HEIGHT },
+      depth: 0,
+      expandable: true,
+      expanded: false,
+      leftText: "Node",
+    }, undefined, false)
+
+    const after = fakeCtx()
+    row.draw(after.ctx)
+    expect(after.fills.length).toBe(0)
+  })
 })

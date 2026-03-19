@@ -70,7 +70,7 @@ const DemoHomeSurface = defineSurface<DemoSurfaceProps>({
           <PanelSection title="Suggested Checks">
             <VStack style={{ gap: theme.spacing.xs }}>
               <Text tone="muted">Drag and resize windows.</Text>
-              <Text tone="muted">Open Developer and inspect WM / Surface / Data panels.</Text>
+              <Text tone="muted">Open Developer and inspect WM / Surface / Runtime / Data panels.</Text>
               <Text tone="muted">Toggle paint flash and interact with this window.</Text>
             </VStack>
           </PanelSection>
@@ -109,9 +109,11 @@ const developerContext: DeveloperContext = {
     setOverlay: (rect) => ui.setDebugOverlay(rect),
     setPaintFlash: (on) => ui.setDebugPaintFlash(on),
     getPaintFlash: () => ui.isDebugPaintFlashEnabled(),
+    getRuntime: () => ui.debugInteractionState(),
   },
   inspector: {
     tree: () => root.debugSnapshot(),
+    beginPick: (opts) => ui.beginDebugInspectorPick(opts),
   },
 }
 

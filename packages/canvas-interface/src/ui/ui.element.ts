@@ -15,6 +15,7 @@ export type DebugTreeNodeSnapshot = {
   visible?: boolean
   meta?: string
   listeners?: DebugEventListenerSnapshot[]
+  runtime?: DebugRuntimeStateSnapshot
   children: DebugTreeNodeSnapshot[]
 }
 
@@ -24,12 +25,32 @@ export type DebugEventListenerSnapshot = {
   detail?: string
 }
 
+export type DebugNodeRefSnapshot = {
+  type: string
+  label: string
+  id?: string
+  bounds?: Rect
+}
+
+export type DebugRuntimeStateSnapshot = {
+  title?: string
+  fields: Array<{ label: string; value: string }>
+}
+
+export type InvalidateRectOpts = {
+  pad?: number
+  force?: boolean
+  source?: string
+}
+
+export type RuntimeDeactivateReason = InteractionCancelReason | "inactive" | "destroy"
+
 export type DrawRuntime = {
   clip?: Rect
   compositor?: Compositor
   frameId: number
   dpr: number
-  invalidateRect?: (rect: Rect, opts?: { pad?: number; force?: boolean }) => void
+  invalidateRect?: (rect: Rect, opts?: InvalidateRectOpts) => void
 }
 
 export abstract class UIElement {
@@ -127,6 +148,10 @@ export abstract class UIElement {
     return this.children.map((child) => child.debugSnapshot())
   }
 
+  protected debugRuntimeState(): DebugRuntimeStateSnapshot | null {
+    return null
+  }
+
   protected debugListeners(): DebugEventListenerSnapshot[] | null {
     return null
   }
@@ -151,19 +176,39 @@ export abstract class UIElement {
   debugSnapshot(): DebugTreeNodeSnapshot {
     const described = this.debugDescribe()
     const listeners = this.debugListeners() ?? this.inferDebugListeners()
+    const runtime = this.debugRuntimeState()
     if (!described) {
       return {
         kind: "element",
         type: this.constructor.name || "UIElement",
         label: this.constructor.name || "UIElement",
         listeners: listeners ?? undefined,
+        runtime: runtime ?? undefined,
         children: this.debugChildren(),
       }
     }
     return {
       ...described,
       listeners: listeners ?? undefined,
+      runtime: runtime ?? undefined,
       children: this.debugChildren(),
+    }
+  }
+
+  debugRef(): DebugNodeRefSnapshot {
+    const described = this.debugDescribe()
+    if (described) {
+      return {
+        type: described.type,
+        label: described.label,
+        id: described.id,
+        bounds: described.bounds,
+      }
+    }
+    return {
+      type: this.constructor.name || "UIElement",
+      label: this.constructor.name || "UIElement",
+      bounds: this.bounds(),
     }
   }
 
@@ -232,7 +277,7 @@ export abstract class UIElement {
       }
     }
     if (wasHover !== this.hover) {
-      this.invalidateSelf({ pad: 2 })
+      this.invalidateSelf({ source: "ui.hover" })
     }
   }
 
@@ -240,10 +285,19 @@ export abstract class UIElement {
     return false
   }
   onRuntimeActivate() {}
-  onRuntimeDeactivate() {}
+  onRuntimeDeactivate(_reason: RuntimeDeactivateReason = "inactive") {}
 
-  protected invalidateSelf(opts?: { pad?: number; force?: boolean }) {
-    this.rt?.invalidateRect?.(this.bounds(), opts)
+  protected invalidationOutset() {
+    return 0
+  }
+
+  protected invalidateSelf(opts?: InvalidateRectOpts) {
+    const pad = Math.max(opts?.pad ?? 0, this.invalidationOutset())
+    this.rt?.invalidateRect?.(this.bounds(), {
+      ...opts,
+      pad,
+      source: opts?.source ?? `${this.constructor.name || "UIElement"}.self`,
+    })
   }
 }
 

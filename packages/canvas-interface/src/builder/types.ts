@@ -22,6 +22,8 @@ export type InheritedStyle = {
   text?: InheritedTextStyle
 }
 
+export type BuilderNodeRuntimeKind = "primitive" | "control" | "widget"
+
 type NodeBase = {
   key?: string
   style?: LayoutStyle

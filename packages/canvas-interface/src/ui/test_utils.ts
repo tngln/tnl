@@ -24,9 +24,16 @@ export function createListenerHost() {
 }
 
 export function fakeContext() {
+  let font = "400 12px system-ui"
   return {
     globalCompositeOperation: "source-over",
     globalAlpha: 1,
+    get font() {
+      return font
+    },
+    set font(v: string) {
+      font = v
+    },
     setTransform() {},
     save() {},
     restore() {},
@@ -34,9 +41,16 @@ export function fakeContext() {
     rect() {},
     clip() {},
     fillRect() {},
+    strokeRect() {},
     clearRect() {},
     translate() {},
     drawImage() {},
+    fillText() {},
+    measureText(text: string) {
+      const m = /(\d+(?:\.\d+)?)px/.exec(font)
+      const size = m ? parseFloat(m[1]) : 12
+      return { width: text.length * size * 0.6, actualBoundingBoxAscent: size * 0.8, actualBoundingBoxDescent: size * 0.2 }
+    },
   } as unknown as CanvasRenderingContext2D
 }
 

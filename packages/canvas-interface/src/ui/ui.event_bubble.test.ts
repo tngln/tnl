@@ -136,6 +136,23 @@ class CancelProbeElement extends UIElement {
   }
 }
 
+class PickLeafElement extends UIElement {
+  bounds(): Rect {
+    return { x: 0, y: 0, w: 30, h: 30 }
+  }
+
+  protected debugDescribe() {
+    return {
+      kind: "element" as const,
+      type: "PickLeafElement",
+      label: "Picked Leaf",
+      bounds: this.bounds(),
+      z: this.z,
+      visible: this.visible,
+    }
+  }
+}
+
 describe("ui event bubbling", () => {
   it("bubbles pointer events from child to parent", () => {
     withFakeDom({}, ({ canvas }) => {
@@ -436,6 +453,131 @@ describe("ui event bubbling", () => {
 
       expect(handled).toEqual({ consumed: false, preventDefault: false })
       expect(host.events).toEqual([])
+
+      ui.destroy()
+    })
+  })
+
+  it("reports session state, event paths, and invalidation sources for developer tooling", () => {
+    withFakeDom({}, ({ canvas }) => {
+      const host = new HostElement()
+      const child = new ChildElement()
+      child.captureOnDown = true
+      host.add(child)
+      const ui = new CanvasUI(canvas, host)
+
+      ;(canvas as any).dispatch("pointerdown", pointerEvent(25, 25, 1))
+      ;(canvas as any).dispatch("pointermove", pointerEvent(55, 55, 1))
+
+      const runtime = ui.debugInteractionState()
+      expect(runtime.focus.focusedPath.map((entry) => entry.label)).toEqual(["HostElement", "ChildElement"])
+      expect(runtime.pointer.capturePath.map((entry) => entry.label)).toEqual(["HostElement", "ChildElement"])
+      expect(runtime.lastEvent?.kind).toBe("pointermove")
+      expect(runtime.lastEvent?.hitPath.map((entry) => entry.label)).toEqual(["HostElement", "ChildElement"])
+      expect(runtime.lastEvent?.dispatchPath.map((entry) => entry.label)).toEqual(["ChildElement", "HostElement"])
+      expect(runtime.invalidations.some((entry) => entry.source === "canvas.pointerDown")).toBe(true)
+
+      ui.destroy()
+    })
+  })
+
+  it("supports inspector picking inside viewport surfaces and reports translated bounds", () => {
+    withFakeDom({}, ({ canvas }) => {
+      const host = new HostElement()
+      const pickRoot = new SurfaceRoot()
+      pickRoot.add(new PickLeafElement())
+      const surface: Surface = {
+        id: "pick-surface",
+        render() {},
+        hitTest(p) {
+          return pickRoot.hitTest(p)
+        },
+        debugSnapshot() {
+          return {
+            kind: "surface",
+            type: "BuilderTreeSurface",
+            label: "PickSurface",
+            bounds: { x: 0, y: 0, w: 80, h: 80 },
+            children: [
+              {
+                kind: "element",
+                type: "BuilderDeclarationTree",
+                label: "Builder Tree",
+                bounds: { x: 0, y: 0, w: 80, h: 80 },
+                children: [
+                  {
+                    kind: "element",
+                    type: "BuilderNode",
+                    label: "flex:root",
+                    bounds: { x: 0, y: 0, w: 80, h: 80 },
+                    meta: "primitive",
+                    children: [
+                      {
+                        kind: "element",
+                        type: "BuilderNode",
+                        label: "button:btn",
+                        bounds: { x: 0, y: 0, w: 30, h: 30 },
+                        meta: "control",
+                        children: [],
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                kind: "element",
+                type: "BuilderRetainedTree",
+                label: "Retained Runtime",
+                bounds: { x: 0, y: 0, w: 80, h: 80 },
+                children: [pickRoot.debugSnapshot()],
+              },
+            ],
+          }
+        },
+      }
+      const viewport = new ViewportElement({
+        rect: () => ({ x: 50, y: 40, w: 100, h: 100 }),
+        target: surface,
+        options: { padding: 4, scroll: { x: 3, y: 2 } },
+      })
+      host.add(viewport)
+      const ui = new CanvasUI(canvas, host)
+      let hovered: any = null
+      let picked: any = null
+
+      ui.beginDebugInspectorPick({
+        onHover: (hit) => {
+          hovered = hit
+        },
+        onPick: (hit) => {
+          picked = hit
+        },
+      })
+
+      ;(canvas as any).dispatch("pointermove", pointerEvent(56, 48, 0))
+      expect(hovered).toMatchObject({
+        label: "button:btn",
+        type: "BuilderNode",
+        bounds: { x: 51, y: 42, w: 30, h: 30 },
+      })
+
+      ;(canvas as any).dispatch("pointermove", pointerEvent(90, 90, 0))
+      expect(hovered).toMatchObject({
+        label: "flex:root",
+        type: "BuilderNode",
+        bounds: { x: 51, y: 42, w: 80, h: 80 },
+      })
+
+      ;(canvas as any).dispatch("pointermove", pointerEvent(56, 48, 0))
+      ;(canvas as any).dispatch("pointerdown", pointerEvent(56, 48, 1))
+      expect(picked).toMatchObject({
+        label: "button:btn",
+        type: "BuilderNode",
+        bounds: { x: 51, y: 42, w: 30, h: 30 },
+      })
+      expect(typeof picked.path).toBe("string")
+      expect(host.events).toEqual([])
+      expect(ui.isDebugInspectorPickActive()).toBe(false)
 
       ui.destroy()
     })
