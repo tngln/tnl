@@ -1,6 +1,6 @@
 export type { Rect, Vec2 } from "./draw"
 export type { Circle } from "./draw"
-export type { CursorKind } from "../../../src/platform/web/input"
+export type { CursorKind } from "./platform/web/input"
 
 export * from "./ui.hit_test"
 export * from "./ui.events"

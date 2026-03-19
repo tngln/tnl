@@ -3,7 +3,7 @@ export type LayerOptions = {
   opacity?: number
 }
 
-import { createLayerCanvas, getCanvas2DContext, type Any2DContext, type AnyCanvas } from "../../../src/platform/web/canvas"
+import { createLayerCanvas, getCanvas2DContext, type Any2DContext, type AnyCanvas } from "./platform/web/canvas"
 import type { Rect } from "./draw"
 
 type Layer = {

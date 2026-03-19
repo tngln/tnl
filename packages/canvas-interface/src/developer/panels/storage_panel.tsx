@@ -1,14 +1,11 @@
-import { theme } from "@tnl/canvas-interface/theme"
-import { openOpfs, type OpfsEntryV1 } from "@tnl/app/platform"
-import { showAlert, showConfirm, showPrompt } from "@tnl/app/platform"
-import { downloadBlob, pickFiles } from "@tnl/app/platform"
-import { buildAcceptString } from "@tnl/app/platform"
-import { createElement } from "@tnl/canvas-interface/jsx"
-import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
-import { invalidateAll } from "@tnl/canvas-interface/ui"
-import { formatBytes } from "@tnl/canvas-interface/util"
-import type { DeveloperPanelSpec } from "@tnl/canvas-interface/developer"
-import { createAsyncJobState } from "@/ui/async_state"
+import { theme } from "../../theme"
+import { openOpfs, type OpfsEntryV1, showAlert, showConfirm, showPrompt, downloadBlob, pickFiles } from "../../browser"
+import { createElement } from "../../jsx"
+import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack, defineSurface, mountSurface } from "../../builder"
+import { invalidateAll } from "../../ui"
+import { formatBytes } from "../../util"
+import type { DeveloperPanelSpec } from "../index"
+import { createAsyncJobState } from "../../async_state"
 
 export function createStoragePanel(): DeveloperPanelSpec {
   return {
@@ -34,6 +31,8 @@ type StorageSnapshot = {
   usage: { entries: number; bytes: number; quota?: number; usage?: number }
   selectedPath: string | null
 }
+
+const STORAGE_ACCEPT = "video/*,audio/*,image/*"
 
 export const StoragePanelSurface = defineSurface({
   id: "Developer.Storage.Surface",
@@ -77,11 +76,7 @@ export const StoragePanelSurface = defineSurface({
     }
 
     const upload = async () => {
-      const files = await pickFiles({
-        multiple: true,
-        accept: `${buildAcceptString("video")},${buildAcceptString("audio")},${buildAcceptString("image")}`,
-        inputId: "tnl-devtools-file-input",
-      })
+      const files = await pickFiles({ multiple: true, accept: STORAGE_ACCEPT, inputId: "tnl-devtools-file-input" })
       if (!files.length) return
       const nextPrefix = (prefix ?? "uploads").trim() || "uploads"
       await asyncState.runLatest(async (run) => {

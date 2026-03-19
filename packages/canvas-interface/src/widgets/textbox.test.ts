@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test"
 import { signal } from "@tnl/canvas-interface/reactivity"
 import { KeyUIEvent, PointerUIEvent } from "@tnl/canvas-interface/ui"
 import { TextBox } from "@tnl/canvas-interface/widgets"
-import type { OnePxTextboxBridge, OnePxTextboxSession, OnePxTextboxSyncState } from "@tnl/app/platform"
+import type { OnePxTextboxBridge, OnePxTextboxSession, OnePxTextboxSyncState } from "./../platform/web/1px_textbox"
 import { withFakeDocument } from "../builder/test_utils"
 
 class MockBridge implements OnePxTextboxBridge {

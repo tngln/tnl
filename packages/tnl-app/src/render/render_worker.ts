@@ -1,7 +1,7 @@
 import { JobScheduler } from "./scheduler"
 import type { RenderGraphSnapshotV1, RenderQuality } from "./types"
 import type { RenderWorkerRequest, RenderWorkerResponse } from "./worker_protocol"
-import { theme, neutral } from "../config/theme"
+import { theme, neutral } from "@/config/theme"
 
 type PendingRender = {
   requestId: number

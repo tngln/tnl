@@ -6,7 +6,7 @@ import { getWebNavigatorInfo, getWebRuntimeFlags } from "@tnl/canvas-interface/b
 import { probeCodecConfig } from "@tnl/app/platform"
 import { invalidateAll } from "@tnl/canvas-interface/ui"
 import type { DeveloperCodecEntry, DeveloperContext, DeveloperPanelSpec } from "@tnl/canvas-interface/developer"
-import { createAsyncJobState } from "@/ui/async_state"
+import { createAsyncJobState } from "@tnl/canvas-interface"
 
 type ProbeRow = {
   id: string

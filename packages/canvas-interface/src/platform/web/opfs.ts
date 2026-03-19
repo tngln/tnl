@@ -1,4 +1,4 @@
-import { estimateStorageUsage, getOpfsRootDirectory } from "../platform/web/opfs"
+import { estimateStorageUsage, getOpfsRootDirectory } from "./opfs_native"
 import { AppError } from "@tnl/canvas-interface/errors"
 import { baseName, dirName } from "@tnl/canvas-interface/util"
 

@@ -1,6 +1,6 @@
 import { effect } from "../reactivity"
 import { invalidateAll } from "../invalidate"
-import { createMeasureContext } from "../../../../src/platform/web/canvas"
+import { createMeasureContext } from "../platform/web/canvas"
 import { SurfaceRoot, type Surface, type ViewportContext } from "../viewport"
 import { WheelUIEvent, type DebugTreeNodeSnapshot, type Vec2 } from "../ui_base"
 import { BuilderEngine } from "./engine"

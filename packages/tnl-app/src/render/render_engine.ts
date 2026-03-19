@@ -1,6 +1,6 @@
 import { AutoQualityController } from "./auto_quality"
 import { quantizeFrame } from "./frame_time"
-import { workerRegistry } from "../core/workers"
+import { workerRegistry } from "./runtime/workers"
 import type { FrameTime, RenderGraphSnapshotV1, RenderPlaybackIntent, RenderRequestOptions, RenderResult, RenderQuality } from "./types"
 import type { RenderWorkerRequest, RenderWorkerResponse } from "./worker_protocol"
 

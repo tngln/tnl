@@ -1,16 +1,14 @@
 import { theme, neutral } from "@tnl/canvas-interface/theme"
-import { normalizePath, openOpfs, type OpfsEntryV1 } from "@tnl/app/platform"
+import { normalizePath, openOpfs, showConfirm, showPrompt, downloadBlob, pickFiles, type OpfsEntryV1 } from "@tnl/canvas-interface/browser"
 import { signal } from "@tnl/canvas-interface/reactivity"
 import { getSeekableEnd, probeVideoDuration, resolvePlaybackDuration } from "@tnl/app/platform"
-import { showConfirm, showPrompt } from "@tnl/app/platform"
-import { downloadBlob, pickFiles } from "@tnl/app/platform"
 import { buildAcceptString } from "@tnl/app/platform"
 import { baseName, dirName, formatBytes, formatLocalTime } from "@tnl/canvas-interface/util"
 import type { Surface } from "@tnl/canvas-interface/ui"
 import { Button, ClickArea, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelToolbar, Spacer, Stack, Text, TextBox, VStack, defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
 import { invalidateAll } from "@tnl/canvas-interface/ui"
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
-import { createAsyncJobState } from "@/ui/async_state"
+import { createAsyncJobState } from "@tnl/canvas-interface"
 
 export const EXPLORER_WINDOW_ID = "Explorer"
 

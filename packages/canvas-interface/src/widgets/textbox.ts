@@ -1,8 +1,8 @@
 import { font, theme } from "../theme"
 import { draw, RectOp, TextOp, measureTextWidth, toGetter, ZERO_RECT, type Rect } from "../draw"
 import { signal, type Signal } from "../reactivity"
-import { getTextInputBridge, type TextInputBridge, type TextInputSyncState } from "@tnl/canvas-interface/browser"
-import { createMeasureContext } from "../../../../src/platform/web/canvas"
+import { getTextInputBridge, type TextInputBridge, type TextInputSyncState } from "../platform/web/text_input"
+import { createMeasureContext } from "../platform/web/canvas"
 import { CursorRegion, KeyUIEvent, UIElement } from "../ui_base"
 import type { WidgetDescriptor } from "../builder/widget_registry"
 
