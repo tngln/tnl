@@ -1,6 +1,5 @@
 import { ControlsSurface } from "../surfaces/controls_surface"
-import { DividerSurface } from "../surfaces/divider_surface"
-import { TabPanelSurface } from "../surfaces/tab_panel_surface"
+import { DividerSurface, TabPanelSurface } from "@tnl/canvas-interface/surfaces"
 import { TextSurface } from "../surfaces/text_surface"
 import { mountSurface } from "@tnl/canvas-interface/builder"
 import type { Surface } from "@tnl/canvas-interface/ui"

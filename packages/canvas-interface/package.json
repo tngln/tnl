@@ -27,6 +27,8 @@
     "./browser": "./src/browser.ts",
     "./theme": "./src/theme.ts",
     "./jsx": "./src/jsx.ts",
-    "./util": "./src/util.ts"
+    "./util": "./src/util.ts",
+    "./docking": "./src/docking.ts",
+    "./surfaces": "./src/surfaces.ts"
   }
 }

@@ -1,7 +1,7 @@
-import { font, theme, neutral, alpha } from "@tnl/canvas-interface/theme"
-import { draw, LineOp, RectOp, TextOp, measureTextWidth, clamp, inflateRect, ZERO_RECT } from "@tnl/canvas-interface/draw"
-import { columnLayout, rowLayout } from "@tnl/canvas-interface/layout"
-import { CursorRegion, UIElement, pointInRect, type Rect, type Vec2, SurfaceRoot, ViewportElement, type Surface, type ViewportContext, TopLayerController, invalidateAll, MenuBar, type MenuBarMenu, type MenuItem, useDragHandle } from "@tnl/canvas-interface/ui"
+import { font, theme, neutral, alpha } from "../theme"
+import { draw, LineOp, RectOp, TextOp, measureTextWidth, clamp, inflateRect, ZERO_RECT } from "../draw"
+import { columnLayout, rowLayout } from "../layout"
+import { CursorRegion, UIElement, pointInRect, type Rect, type Vec2, SurfaceRoot, ViewportElement, type Surface, type ViewportContext, TopLayerController, invalidateAll, MenuBar, type MenuBarMenu, type MenuItem, useDragHandle } from "../ui"
 import { clampRatio, type DockDropPlacement, type DockNode } from "./model"
 
 export type DockDropPreview = {

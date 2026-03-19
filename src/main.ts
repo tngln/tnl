@@ -10,9 +10,8 @@ import { createCodecRegistry } from "./core/codecs"
 import { workerRegistry } from "./core/workers"
 import { ABOUT_DIALOG_ID, createAboutDialog } from "./ui/windows/about_dialog"
 import { addBrowserInteractionCancelListener, addWindowErrorListener, addWindowKeyDownListener, addWindowKeyUpListener, addWindowLoadListener, addWindowResizeListener, addWindowUnhandledRejectionListener, applyDocumentTheme, getRootCanvas, registerServiceWorker, scheduleAnimationFrame } from "./platform/web"
-import { DockingManager } from "./ui/docking/manager"
+import { DockingManager, findLeafByPane } from "@tnl/canvas-interface/docking"
 import { createDefaultDockablePaneSpecs, type DefaultDockablePaneSpec } from "./ui/docking/default_panes"
-import { findLeafByPane } from "./ui/docking/model"
 
 const canvas = getRootCanvas("#app")
 invariant(canvas, {

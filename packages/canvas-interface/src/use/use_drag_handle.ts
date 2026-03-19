@@ -20,6 +20,7 @@ export function useDragHandle(
   target: UIElement,
   opts: {
     enabled?: () => boolean
+    shouldPress?: (event: PointerUIEvent) => boolean
     thresholdSq?: number
     cancelOnLeave?: boolean
     onPress?: (gesture: DragGesture, event: PointerUIEvent) => void
@@ -31,6 +32,7 @@ export function useDragHandle(
   } = {},
 ): DragHandleBinding {
   const enabled = opts.enabled ?? (() => true)
+  const shouldPress = opts.shouldPress ?? (() => true)
   const thresholdSq = opts.thresholdSq ?? 0
   const downEvents = createEventStream<PointerUIEvent>()
   const moveEvents = createEventStream<PointerUIEvent>()
@@ -80,6 +82,7 @@ export function useDragHandle(
   target.on("pointerdown", (e: PointerUIEvent) => {
     if (!enabled()) return
     if (e.button !== 0) return
+    if (!shouldPress(e)) return
     phase = "pressed"
     originPointer = { x: e.x, y: e.y }
     lastPointer = originPointer
