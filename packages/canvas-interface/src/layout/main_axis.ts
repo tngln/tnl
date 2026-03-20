@@ -20,58 +20,69 @@ export type MainAxisDistributionOpts = {
   maxSizes?: number[]
 }
 
+const FLEX_EPSILON = 1e-6
+const FLEX_BOUND_EPSILON = 1e-9
+
 function safePos(value: number | undefined, fallback: number) {
   if (value === undefined) return fallback
   if (!Number.isFinite(value)) return fallback
   return value
 }
 
-function distributeGrow(sizes: number[], weights: number[], maxes: number[], extra: number) {
-  let remaining = extra
-  let active: number[] = []
-  for (let i = 0; i < sizes.length; i++) if (weights[i]! > 0 && sizes[i]! < maxes[i]!) active.push(i)
-  for (let iter = 0; iter < 8 && remaining > 1e-6 && active.length > 0; iter++) {
-    const total = active.reduce((sum, index) => sum + weights[index]!, 0)
-    if (total <= 0) break
-    const startRemaining = remaining
-    let changed = 0
-    for (const index of active) {
-      const add = (startRemaining * weights[index]!) / total
-      const next = Math.min(maxes[index]!, sizes[index]! + add)
-      const delta = next - sizes[index]!
-      if (delta > 0) {
-        sizes[index] = next
-        remaining -= delta
-        changed += delta
-      }
+function activeFlexItems(
+  sizes: number[],
+  weights: number[],
+  mins: number[],
+  maxes: number[],
+  mode: "grow" | "shrink",
+) {
+  const active: number[] = []
+  for (let i = 0; i < sizes.length; i++) {
+    if (weights[i]! <= 0) continue
+    if (mode === "grow") {
+      if (sizes[i]! < maxes[i]! - FLEX_BOUND_EPSILON) active.push(i)
+      continue
     }
-    if (changed <= 1e-6) break
-    active = active.filter((index) => sizes[index]! < maxes[index]! - 1e-9)
+    if (sizes[i]! > mins[i]! + FLEX_BOUND_EPSILON) active.push(i)
+  }
+  return active
+}
+
+function resolveFlexibleLengths(
+  sizes: number[],
+  weights: number[],
+  mins: number[],
+  maxes: number[],
+  availableMain: number,
+  mode: "grow" | "shrink",
+) {
+  let active = activeFlexItems(sizes, weights, mins, maxes, mode)
+  while (active.length > 0) {
+    const freeSpace = availableMain - sizes.reduce((sum, size) => sum + size, 0)
+    if (mode === "grow" ? freeSpace <= FLEX_EPSILON : freeSpace >= -FLEX_EPSILON) break
+    const total = active.reduce((sum, index) => sum + weights[index]!, 0)
+    if (total <= FLEX_EPSILON) break
+
+    const violations = new Set<number>()
+    for (const index of active) {
+      const delta = (freeSpace * weights[index]!) / total
+      const tentative = sizes[index]! + delta
+      const next = clamp(tentative, mins[index]!, maxes[index]!)
+      sizes[index] = next
+      if (Math.abs(next - tentative) > FLEX_EPSILON) violations.add(index)
+    }
+
+    if (violations.size === 0) break
+    active = active.filter((index) => !violations.has(index))
   }
 }
 
-function distributeShrink(sizes: number[], weights: number[], mins: number[], deficit: number) {
-  let remaining = deficit
-  let active: number[] = []
-  for (let i = 0; i < sizes.length; i++) if (weights[i]! > 0 && sizes[i]! > mins[i]!) active.push(i)
-  for (let iter = 0; iter < 8 && remaining > 1e-6 && active.length > 0; iter++) {
-    const total = active.reduce((sum, index) => sum + weights[index]!, 0)
-    if (total <= 0) break
-    const startRemaining = remaining
-    let changed = 0
-    for (const index of active) {
-      const sub = (startRemaining * weights[index]!) / total
-      const next = Math.max(mins[index]!, sizes[index]! - sub)
-      const delta = sizes[index]! - next
-      if (delta > 0) {
-        sizes[index] = next
-        remaining -= delta
-        changed += delta
-      }
-    }
-    if (changed <= 1e-6) break
-    active = active.filter((index) => sizes[index]! > mins[index]! + 1e-9)
-  }
+function distributeGrow(sizes: number[], weights: number[], mins: number[], maxes: number[], availableMain: number) {
+  resolveFlexibleLengths(sizes, weights, mins, maxes, availableMain, "grow")
+}
+
+function distributeShrink(sizes: number[], weights: number[], mins: number[], maxes: number[], availableMain: number) {
+  resolveFlexibleLengths(sizes, weights, mins, maxes, availableMain, "shrink")
 }
 
 export function distributeMainAxis(opts: MainAxisDistributionOpts): MainAxisDistribution {
@@ -93,9 +104,10 @@ export function distributeMainAxis(opts: MainAxisDistributionOpts): MainAxisDist
   const baseSum = sizes.reduce((sum, size) => sum + size, 0)
   const totalGrow = growWeights.reduce((sum, weight) => sum + weight, 0)
   const totalShrink = shrinkWeights.reduce((sum, weight) => sum + weight, 0)
+  const freeSpace = itemAvail - baseSum
 
-  if (baseSum < itemAvail && totalGrow > 0) distributeGrow(sizes, growWeights, maxes, itemAvail - baseSum)
-  if (baseSum > itemAvail && totalShrink > 0) distributeShrink(sizes, shrinkWeights, mins, baseSum - itemAvail)
+  if (freeSpace > FLEX_EPSILON && totalGrow > 0) distributeGrow(sizes, growWeights, mins, maxes, itemAvail)
+  if (freeSpace < -FLEX_EPSILON && totalShrink > 0) distributeShrink(sizes, shrinkWeights, mins, maxes, itemAvail)
 
   for (let i = 0; i < sizes.length; i++) sizes[i] = clamp(sizes[i]!, mins[i]!, maxes[i]!)
 

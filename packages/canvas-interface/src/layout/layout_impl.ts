@@ -185,59 +185,38 @@ function setLayoutOffset(rect: Rect, axis: "row" | "column", offset: number): Re
   return { ...rect, y: offset }
 }
 
-function distributeFlex(sizes: number[], weights: number[], mins: number[], maxes: number[], extra: number) {
-  let remaining = extra
-  let active: number[] = []
-  for (let i = 0; i < sizes.length; i++) if (weights[i] > 0 && sizes[i] < maxes[i]) active.push(i)
-  for (let iter = 0; iter < 8 && remaining > 1e-6 && active.length > 0; iter++) {
-    const total = active.reduce((sum, index) => sum + weights[index], 0)
-    if (total <= 0) break
-    const startRemaining = remaining
-    let changed = 0
-    for (const index of active) {
-      const add = (startRemaining * weights[index]) / total
-      const next = clamp(sizes[index] + add, mins[index], maxes[index])
-      const delta = next - sizes[index]
-      if (delta > 0) {
-        sizes[index] = next
-        remaining -= delta
-        changed += delta
-      }
-    }
-    if (changed <= 1e-6) break
-    active = active.filter((index) => sizes[index] < maxes[index] - 1e-9)
-  }
-}
-
 function linearLayout(axis: "row" | "column", outer: Rect, slices: LayoutSlice[], options?: LinearLayoutOptions): Rect[] {
   if (slices.length === 0) return []
   const box = shrinkBox(outer, resolvePadding(options?.padding))
   const gap = Math.max(0, safePos(options?.gap, 0))
-  const gapTotal = gap * Math.max(0, slices.length - 1)
-  const available = Math.max(0, layoutMain(box, axis) - gapTotal)
   const sizes = new Array<number>(slices.length)
   const mins = new Array<number>(slices.length)
   const maxes = new Array<number>(slices.length)
   const weights = new Array<number>(slices.length)
 
-  let used = 0
   for (let i = 0; i < slices.length; i++) {
     const slice = slices[i]
     mins[i] = Math.max(0, safePos(slice.min, 0))
     maxes[i] = safePos(slice.max, Number.POSITIVE_INFINITY)
     weights[i] = Math.max(0, safePos(slice.flex, 0))
     sizes[i] = clamp(Math.max(0, safePos(slice.fixed, 0)), mins[i], maxes[i])
-    used += sizes[i]
   }
 
-  if (used < available) distributeFlex(sizes, weights, mins, maxes, available - used)
+  const distribution = distributeMainAxis({
+    baseSizes: sizes,
+    availableMain: layoutMain(box, axis),
+    gap,
+    growWeights: weights,
+    minSizes: mins,
+    maxSizes: maxes,
+  })
 
   const rects: Rect[] = new Array(slices.length)
-  let cursor = axis === "row" ? box.x : box.y
+  let cursor = (axis === "row" ? box.x : box.y) + distribution.startOffset
   for (let i = 0; i < slices.length; i++) {
-    const base = setLayoutMain(box, axis, sizes[i])
+    const base = setLayoutMain(box, axis, distribution.sizes[i])
     rects[i] = setLayoutOffset(base, axis, cursor)
-    cursor += sizes[i] + gap
+    cursor += distribution.sizes[i] + distribution.gap
   }
   return rects
 }
