@@ -3,22 +3,22 @@ import { invalidateAll } from "../invalidate"
 import { createMeasureContext } from "../platform/web/canvas"
 import { SurfaceRoot, type Surface, type ViewportContext } from "../viewport"
 import { WheelUIEvent, type DebugTreeNodeSnapshot, type Vec2 } from "../ui_base"
-import { BuilderEngine } from "./engine"
-import type { BuilderNode, MountedSurface, SurfaceDefinition, SurfaceMountSpec, SurfaceSetup } from "./types"
+import { RenderEngine } from "./engine"
+import type { RenderElement, MountedSurface, SurfaceDefinition, SurfaceMountSpec, SurfaceSetup } from "./types"
 
-export class BuilderTreeSurface implements Surface {
+export class RenderTreeSurface implements Surface {
   readonly id: string
-  readonly engine: BuilderEngine
-  private node: BuilderNode | null = null
+  readonly engine: RenderEngine
+  private node: RenderElement | null = null
   private wheelFallback: ((e: WheelUIEvent) => void) | null = null
   private invalidateSurface: () => void = invalidateAll
 
   constructor(id: string) {
     this.id = id
-    this.engine = new BuilderEngine(undefined, (nextId) => new BuilderTreeSurface(nextId))
+    this.engine = new RenderEngine(undefined, (nextId) => new RenderTreeSurface(nextId))
   }
 
-  setNode(node: BuilderNode | null) {
+  setNode(node: RenderElement | null) {
     this.node = node
     if (!node) this.engine.clearDebugTree()
   }
@@ -75,40 +75,40 @@ export class BuilderTreeSurface implements Surface {
   }
 
   debugSnapshot(): DebugTreeNodeSnapshot {
-    const builderTree = this.engine.debugBuilderSnapshot()
-    const builderCounts = this.engine.debugBuilderCounts()
+    const renderTree = this.engine.debugRenderSnapshot()
+    const renderCounts = this.engine.debugRenderCounts()
     const runtimeCounts = this.engine.debugCounts()
     return {
       kind: "surface",
-      type: "BuilderTreeSurface",
+      type: "RenderTreeSurface",
       label: this.id,
       id: this.id,
       visible: true,
       children: [
-        ...(builderTree
+        ...(renderTree
           ? [{
               kind: "element" as const,
-              type: "BuilderDeclarationTree",
-              label: "Builder Tree",
-              meta: builderCounts ? `p${builderCounts.primitive} c${builderCounts.control} w${builderCounts.widget}` : (builderTree.meta ?? "primitive"),
+              type: "RenderTree",
+              label: "Render Tree",
+              meta: renderCounts ? `p${renderCounts.primitive} c${renderCounts.control} w${renderCounts.widget}` : (renderTree.meta ?? "primitive"),
               runtime: {
-                title: "Builder Snapshot",
+                title: "Render Snapshot",
                 fields: [
-                  { label: "total", value: String(builderCounts?.total ?? 0) },
-                  { label: "primitive", value: String(builderCounts?.primitive ?? 0) },
-                  { label: "control", value: String(builderCounts?.control ?? 0) },
-                  { label: "widget", value: String(builderCounts?.widget ?? 0) },
+                  { label: "total", value: String(renderCounts?.total ?? 0) },
+                  { label: "primitive", value: String(renderCounts?.primitive ?? 0) },
+                  { label: "control", value: String(renderCounts?.control ?? 0) },
+                  { label: "widget", value: String(renderCounts?.widget ?? 0) },
                   { label: "retained", value: String(runtimeCounts.retained) },
                   { label: "controls", value: String(runtimeCounts.controls) },
                   { label: "widgets", value: String(runtimeCounts.statefulWidgets) },
                 ],
               },
-              children: [builderTree],
+              children: [renderTree],
             }]
           : []),
         {
           kind: "element" as const,
-          type: "BuilderRetainedTree",
+          type: "RetainedTree",
           label: "Retained Runtime",
           meta: `${runtimeCounts.retained} retained`,
           children: [this.engine.runtime.root.debugSnapshot()],
@@ -118,15 +118,15 @@ export class BuilderTreeSurface implements Surface {
   }
 }
 
-export class BuilderSurface implements Surface {
+export class RenderSurface implements Surface {
   readonly id: string
-  private readonly tree: BuilderTreeSurface
-  private readonly build: () => BuilderNode
+  private readonly tree: RenderTreeSurface
+  private readonly build: () => RenderElement
   private readonly stopWatching: () => void
 
-  constructor(opts: { id: string; build: () => BuilderNode }) {
+  constructor(opts: { id: string; build: () => RenderElement }) {
     this.id = opts.id
-    this.tree = new BuilderTreeSurface(opts.id)
+    this.tree = new RenderTreeSurface(opts.id)
     this.build = opts.build
     let ready = false
     this.stopWatching = effect(() => {
@@ -175,16 +175,16 @@ export class BuilderSurface implements Surface {
   }
 }
 
-export class FunctionalBuilderSurface<P> implements MountedSurface<P> {
+export class FunctionalSurface<P> implements MountedSurface<P> {
   readonly id: string
-  private readonly tree: BuilderTreeSurface
-  private readonly renderNode: (props: P) => BuilderNode
+  private readonly tree: RenderTreeSurface
+  private readonly renderNode: (props: P) => RenderElement
   private props: P
   private readonly stopWatching: () => void
 
   constructor(opts: { id: string; props: P; setup: SurfaceSetup<P> }) {
     this.id = opts.id
-    this.tree = new BuilderTreeSurface(opts.id)
+    this.tree = new RenderTreeSurface(opts.id)
     this.props = opts.props
     const result = opts.setup(opts.props)
     this.renderNode = typeof result === "function" ? result : result.render
@@ -250,9 +250,9 @@ export function defineSurface<P>(opts: {
 }): SurfaceDefinition<P> {
   return {
     kind: "surface-definition",
-    displayName: opts.displayName ?? (typeof opts.id === "string" ? opts.id : "FunctionalBuilderSurface"),
+    displayName: opts.displayName ?? (typeof opts.id === "string" ? opts.id : "FunctionalSurface"),
     mount(props: P) {
-      return new FunctionalBuilderSurface<P>({
+      return new FunctionalSurface<P>({
         id: typeof opts.id === "function" ? opts.id(props) : opts.id,
         props,
         setup: opts.setup,

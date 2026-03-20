@@ -1,7 +1,7 @@
-import type { BuilderNode } from "./types"
+import type { RenderElement } from "./types"
 
-export type ContentTextNode = Extract<BuilderNode, { kind: "text" }>
+export type ContentTextNode = Extract<RenderElement, { kind: "text" }>
 
-export function contentTextNode(text: string, opts: Omit<ContentTextNode, "kind" | "text"> = {}): BuilderNode {
+export function contentTextNode(text: string, opts: Omit<ContentTextNode, "kind" | "text"> = {}): RenderElement {
   return { kind: "text", text, ...opts }
 }

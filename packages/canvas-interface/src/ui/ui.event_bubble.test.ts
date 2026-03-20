@@ -495,26 +495,26 @@ describe("ui event bubbling", () => {
         debugSnapshot() {
           return {
             kind: "surface",
-            type: "BuilderTreeSurface",
+            type: "RenderTreeSurface",
             label: "PickSurface",
             bounds: { x: 0, y: 0, w: 80, h: 80 },
             children: [
               {
                 kind: "element",
-                type: "BuilderDeclarationTree",
-                label: "Builder Tree",
+                type: "RenderTree",
+                label: "Render Tree",
                 bounds: { x: 0, y: 0, w: 80, h: 80 },
                 children: [
                   {
                     kind: "element",
-                    type: "BuilderNode",
+                    type: "RenderElement",
                     label: "flex:root",
                     bounds: { x: 0, y: 0, w: 80, h: 80 },
                     meta: "primitive",
                     children: [
                       {
                         kind: "element",
-                        type: "BuilderNode",
+                        type: "RenderElement",
                         label: "button:btn",
                         bounds: { x: 0, y: 0, w: 30, h: 30 },
                         meta: "control",
@@ -526,7 +526,7 @@ describe("ui event bubbling", () => {
               },
               {
                 kind: "element",
-                type: "BuilderRetainedTree",
+                type: "RetainedTree",
                 label: "Retained Runtime",
                 bounds: { x: 0, y: 0, w: 80, h: 80 },
                 children: [pickRoot.debugSnapshot()],
@@ -557,14 +557,14 @@ describe("ui event bubbling", () => {
       ;(canvas as any).dispatch("pointermove", pointerEvent(56, 48, 0))
       expect(hovered).toMatchObject({
         label: "button:btn",
-        type: "BuilderNode",
+        type: "RenderElement",
         bounds: { x: 51, y: 42, w: 30, h: 30 },
       })
 
       ;(canvas as any).dispatch("pointermove", pointerEvent(90, 90, 0))
       expect(hovered).toMatchObject({
         label: "flex:root",
-        type: "BuilderNode",
+        type: "RenderElement",
         bounds: { x: 51, y: 42, w: 80, h: 80 },
       })
 
@@ -572,7 +572,7 @@ describe("ui event bubbling", () => {
       ;(canvas as any).dispatch("pointerdown", pointerEvent(56, 48, 1))
       expect(picked).toMatchObject({
         label: "button:btn",
-        type: "BuilderNode",
+        type: "RenderElement",
         bounds: { x: 51, y: 42, w: 30, h: 30 },
       })
       expect(typeof picked.path).toBe("string")

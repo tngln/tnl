@@ -3,20 +3,20 @@ import { draw, RectOp, ZERO_RECT, type Rect, type Vec2 } from "../draw"
 import { AppError } from "../errors"
 import { createLayoutContext, layout, measureLayout, type Rect as LayoutRect } from "../layout"
 import type { DebugRuntimeStateSnapshot, DebugTreeNodeSnapshot, DrawRuntime } from "../ui_base"
-import { BuilderRuntime } from "./runtime"
-import { createDefaultBuilderRegistry, type BuilderNodeRegistry } from "./registry"
+import { RetainedRuntime } from "./runtime"
+import { createDefaultBuilderRegistry, type RenderRegistry } from "./registry"
 import { defaultNodeEnv, mergeNodeEnv } from "./styles"
-import type { AstNode, BoxStyle, BuilderNode, NodeEnv } from "./types"
+import type { AstNode, BoxStyle, RenderElement, NodeEnv } from "./types"
 
-export class BuilderEngine {
-  readonly runtime: BuilderRuntime
-  readonly registry: BuilderNodeRegistry
+export class RenderEngine {
+  readonly runtime: RetainedRuntime
+  readonly registry: RenderRegistry
   drawOps: Array<(ctx: CanvasRenderingContext2D) => void> = []
   private lastAst: AstNode | null = null
 
-  constructor(registry: BuilderNodeRegistry = createDefaultBuilderRegistry(), createTreeSurface: (id: string) => any) {
+  constructor(registry: RenderRegistry = createDefaultBuilderRegistry(), createTreeSurface: (id: string) => any) {
     this.registry = registry
-    this.runtime = new BuilderRuntime(createTreeSurface)
+    this.runtime = new RetainedRuntime(createTreeSurface)
   }
 
   debugCounts() {
@@ -31,17 +31,17 @@ export class BuilderEngine {
     this.lastAst = null
   }
 
-  debugBuilderSnapshot(): DebugTreeNodeSnapshot | null {
+  debugRenderSnapshot(): DebugTreeNodeSnapshot | null {
     if (!this.lastAst) return null
     return astToDebugSnapshot(this.lastAst, this.registry)
   }
 
-  debugBuilderCounts() {
+  debugRenderCounts() {
     if (!this.lastAst) return null
     return countAstRuntimeKinds(this.lastAst, this.registry)
   }
 
-  toAst(node: BuilderNode, ctx: CanvasRenderingContext2D, path: string, inheritedEnv: NodeEnv): AstNode {
+  toAst(node: RenderElement, ctx: CanvasRenderingContext2D, path: string, inheritedEnv: NodeEnv): AstNode {
     const handler = this.registry.get(node.kind)
     const nextInheritedEnv = mergeNodeEnv(inheritedEnv, node.provideEnv)
     const resolvedEnv = mergeNodeEnv(nextInheritedEnv, node.envOverride)
@@ -71,13 +71,13 @@ export class BuilderEngine {
     return ast
   }
 
-  measureContentWithContext(ctx: CanvasRenderingContext2D, viewportSize: Vec2, node: BuilderNode) {
+  measureContentWithContext(ctx: CanvasRenderingContext2D, viewportSize: Vec2, node: RenderElement) {
     const ast = this.toAst(node, ctx, "root", defaultNodeEnv())
     const measured = measureLayout(ast, { w: viewportSize.x, h: Number.POSITIVE_INFINITY })
     return { x: Math.max(viewportSize.x, measured.w), y: Math.max(viewportSize.y, measured.h) }
   }
 
-  render(ctx: CanvasRenderingContext2D, size: Vec2, node: BuilderNode, rt?: DrawRuntime) {
+  render(ctx: CanvasRenderingContext2D, size: Vec2, node: RenderElement, rt?: DrawRuntime) {
     this.runtime.beginFrame()
     this.drawOps = []
     const ast = this.toAst(node, ctx, "root", defaultNodeEnv())
@@ -104,15 +104,15 @@ export class BuilderEngine {
   }
 }
 
-function nodeVisible(node: BuilderNode) {
+function nodeVisible(node: RenderElement) {
   return node.visible ?? true
 }
 
-function nodeActive(node: BuilderNode) {
+function nodeActive(node: RenderElement) {
   return (node.active ?? true) && nodeVisible(node)
 }
 
-function nodeKey(node: BuilderNode, path: string) {
+function nodeKey(node: RenderElement, path: string) {
   return node.key ?? path
 }
 
@@ -136,8 +136,8 @@ function drawNodeBox(drawOps: Array<(ctx: CanvasRenderingContext2D) => void>, re
   })
 }
 
-export type BuilderTreeSurfaceLike = {
-  setNode(node: BuilderNode | null): void
+export type RenderTreeSurfaceLike = {
+  setNode(node: RenderElement | null): void
   setWheelFallback(fn: any): void
   contentSize(viewportSize: Vec2): Vec2
   measureWithContext(ctx: CanvasRenderingContext2D, viewportSize: Vec2): Vec2
@@ -148,11 +148,11 @@ function devGuardEnabled() {
   return v === "debug" || v === "trace"
 }
 
-function astToDebugSnapshot(ast: AstNode, registry: BuilderNodeRegistry): DebugTreeNodeSnapshot {
+function astToDebugSnapshot(ast: AstNode, registry: RenderRegistry): DebugTreeNodeSnapshot {
   const node = ast.builder
   const runtimeKind = registry.runtimeKind(node)
   const runtime: DebugRuntimeStateSnapshot = {
-    title: "Builder Node",
+    title: "Render Element",
     fields: [
       { label: "kind", value: node.kind },
       { label: "runtime", value: runtimeKind },
@@ -163,7 +163,7 @@ function astToDebugSnapshot(ast: AstNode, registry: BuilderNodeRegistry): DebugT
   }
   return {
     kind: "element",
-    type: "BuilderNode",
+    type: "RenderElement",
     label: node.key ? `${node.kind}:${node.key}` : node.kind,
     id: ast.id,
     bounds: ast.rect,
@@ -174,7 +174,7 @@ function astToDebugSnapshot(ast: AstNode, registry: BuilderNodeRegistry): DebugT
   }
 }
 
-function countAstRuntimeKinds(ast: AstNode, registry: BuilderNodeRegistry) {
+function countAstRuntimeKinds(ast: AstNode, registry: RenderRegistry) {
   const counts = { total: 0, primitive: 0, control: 0, widget: 0 }
   const visit = (node: AstNode) => {
     counts.total += 1

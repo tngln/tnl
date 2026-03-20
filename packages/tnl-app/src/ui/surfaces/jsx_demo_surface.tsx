@@ -17,7 +17,7 @@ export const JsxDemoSurface = defineSurface({
         />
         <Section title="Authoring">
           <SectionStack>
-            <Label color={theme.colors.textMuted}>This surface exists to validate TSX authoring on top of BuilderNode.</Label>
+            <Label color={theme.colors.textMuted}>This surface exists to validate TSX authoring on top of RenderElement.</Label>
             <Button text="Increment" onClick={() => clicks.set((v) => v + 1)} style={{ fixed: 120 }} />
           </SectionStack>
         </Section>

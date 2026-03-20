@@ -1,11 +1,11 @@
 import { theme, neutral } from "../theme"
 import { column, labelNode, row } from "./nodes"
-import type { BuilderNode, CommonNodeProps } from "./types"
+import type { RenderElement, CommonNodeProps } from "./types"
 import type { LayoutStyle } from "../layout"
 
 type PatternBase = Omit<CommonNodeProps, "style"> & { style?: LayoutStyle }
 
-export function section(title: string, body: BuilderNode[], opts: PatternBase = {}): BuilderNode {
+export function section(title: string, body: RenderElement[], opts: PatternBase = {}): RenderElement {
   return column(
     [
       labelNode(title, {
@@ -27,7 +27,7 @@ export function section(title: string, body: BuilderNode[], opts: PatternBase = 
   )
 }
 
-export function formRow(label: string, field: BuilderNode, opts: PatternBase & { key?: string; labelWidth?: number } = {}): BuilderNode {
+export function formRow(label: string, field: RenderElement, opts: PatternBase & { key?: string; labelWidth?: number } = {}): RenderElement {
   return row(
     [
       labelNode(label, { key: opts.key ? `${opts.key}.label` : undefined, color: theme.colors.textMuted, style: { w: opts.labelWidth ?? 92 } }),
@@ -38,6 +38,6 @@ export function formRow(label: string, field: BuilderNode, opts: PatternBase & {
   )
 }
 
-export function toolbarRow(children: BuilderNode[], opts: PatternBase & { key?: string } = {}): BuilderNode {
+export function toolbarRow(children: RenderElement[], opts: PatternBase & { key?: string } = {}): RenderElement {
   return row(children, { align: "center", gap: theme.spacing.sm, ...(opts.style ?? {}) }, { key: opts.key, active: opts.active, visible: opts.visible, provideEnv: opts.provideEnv, envOverride: opts.envOverride, box: opts.box })
 }

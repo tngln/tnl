@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import { signal } from "@tnl/canvas-interface/reactivity"
 import { theme } from "@tnl/canvas-interface/theme"
-import { BuilderSurface, Label, VStack, buttonNode, checkboxNode, column, defineSurface, flattenTreeItems, labelNode, mountSurface, richTextNode, row, rowItemNode, scrollAreaNode, textBoxNode, treeItem, treeViewNode } from "@tnl/canvas-interface/builder"
+import { RenderSurface, Label, VStack, buttonNode, checkboxNode, column, defineSurface, flattenTreeItems, labelNode, mountSurface, richTextNode, row, rowItemNode, scrollAreaNode, textBoxNode, treeItem, treeViewNode } from "@tnl/canvas-interface/builder"
 import { PointerUIEvent } from "@tnl/canvas-interface/ui"
 import { fakeCtx, withFakeDocument } from "./test_utils"
 
@@ -9,7 +9,7 @@ describe("surface builder", () => {
   it("reuses mounted widget counts across renders", () => {
     const checked = signal(false, { debugLabel: "test.builder.checked" })
     const text = signal("hello", { debugLabel: "test.builder.text" })
-    const surface = new BuilderSurface({
+    const surface = new RenderSurface({
       id: "Builder.Test",
       build: () =>
         column(
@@ -54,7 +54,7 @@ describe("surface builder", () => {
   it("counts retained instances instead of widget kinds", () => {
     const a = signal("A", { debugLabel: "test.builder.multi.a" })
     const b = signal("B", { debugLabel: "test.builder.multi.b" })
-    const surface = new BuilderSurface({
+    const surface = new RenderSurface({
       id: "Builder.Counts.Multi",
       build: () =>
         column(
@@ -87,7 +87,7 @@ describe("surface builder", () => {
   })
 
   it("measures scroll content larger than viewport", () => {
-    const surface = new BuilderSurface({
+    const surface = new RenderSurface({
       id: "Builder.Measure",
       build: () =>
         scrollAreaNode(
@@ -105,7 +105,7 @@ describe("surface builder", () => {
   })
 
   it("keeps row items visible when nested in row containers", () => {
-    const surface = new BuilderSurface({
+    const surface = new RenderSurface({
       id: "Builder.RowItem.Nesting",
       build: () => column([row([rowItemNode({ key: "r1", leftText: "Nested" })])]),
     })
@@ -134,7 +134,7 @@ describe("surface builder", () => {
 
   it("publishes builder declaration nodes with runtime kinds in debug snapshots", () => {
     const value = signal("", { debugLabel: "test.builder.debug.value" })
-    const surface = new BuilderSurface({
+    const surface = new RenderSurface({
       id: "Builder.Debug.Tree",
       build: () =>
         column(
@@ -159,12 +159,12 @@ describe("surface builder", () => {
 
     surface.render(ctx, viewport)
     const snapshot = surface.debugSnapshot()
-    const builderTree = snapshot.children.find((child: any) => child.type === "BuilderDeclarationTree")
+    const builderTree = snapshot.children.find((child: any) => child.type === "RenderTree")
     expect(builderTree).toBeTruthy()
     expect(builderTree).toMatchObject({
       meta: "p2 c1 w1",
       runtime: {
-        title: "Builder Snapshot",
+        title: "Render Snapshot",
         fields: expect.arrayContaining([
           { label: "primitive", value: "2" },
           { label: "control", value: "1" },
@@ -174,7 +174,7 @@ describe("surface builder", () => {
     })
     const rootNode = builderTree?.children?.[0]
     expect(rootNode).toMatchObject({
-      type: "BuilderNode",
+      type: "RenderElement",
       label: "flex:root",
       meta: "primitive",
     })
@@ -189,7 +189,7 @@ describe("surface builder", () => {
     const prev = (globalThis as any).__TNL_DEBUG_LEVEL__
     ;(globalThis as any).__TNL_DEBUG_LEVEL__ = "debug"
     try {
-      const surface = new BuilderSurface({
+      const surface = new RenderSurface({
         id: "Builder.RowItem.Guard",
         build: () => column([row([rowItemNode({ key: "r1", leftText: "Nested" })])]),
       })
@@ -329,11 +329,11 @@ describe("surface builder", () => {
   })
 
   it("applies inherited text style from parent containers", () => {
-    const defaultSurface = new BuilderSurface({
+    const defaultSurface = new RenderSurface({
       id: "Builder.Inherit.Default",
       build: () => VStack({ children: ["MMMM"] }),
     })
-    const inheritedSurface = new BuilderSurface({
+    const inheritedSurface = new RenderSurface({
       id: "Builder.Inherit.Custom",
       build: () => VStack({ children: ["MMMM"], provideEnv: { text: { fontSize: 20, lineHeight: 24 } } }),
     })
@@ -346,7 +346,7 @@ describe("surface builder", () => {
   })
 
   it("measures text nodes by intrinsic width even under narrow constraints", () => {
-    const surface = new BuilderSurface({
+    const surface = new RenderSurface({
       id: "Builder.Text.IntrinsicWidth",
       build: () => VStack({ children: ["MMMMMMMM"] }),
     })
@@ -358,7 +358,7 @@ describe("surface builder", () => {
   })
 
   it("truncates labels by default when constrained", () => {
-    const surface = new BuilderSurface({
+    const surface = new RenderSurface({
       id: "Builder.Label.Truncate",
       build: () => column([labelNode("MMMMMMMM", { style: { w: 30 } })]),
     })
@@ -380,7 +380,7 @@ describe("surface builder", () => {
   })
 
   it("lets labels opt into visible overflow", () => {
-    const surface = new BuilderSurface({
+    const surface = new RenderSurface({
       id: "Builder.Label.Visible",
       build: () => column([labelNode("MMMMMMMM", { overflow: "visible", style: { w: 30 } })]),
     })
@@ -402,7 +402,7 @@ describe("surface builder", () => {
   })
 
   it("does not propagate envOverride to descendants", () => {
-    const surface = new BuilderSurface({
+    const surface = new RenderSurface({
       id: "Builder.Override.Scope",
       build: () => VStack({
         provideEnv: { text: { fontSize: 20, lineHeight: 24 } },
@@ -424,7 +424,7 @@ describe("surface builder", () => {
   })
 
   it("measures rich text from inherited defaults when textStyle is omitted", () => {
-    const surface = new BuilderSurface({
+    const surface = new RenderSurface({
       id: "Builder.RichText.Inherit",
       build: () =>
         column(
@@ -463,7 +463,7 @@ describe("surface builder", () => {
 
   it("reuses mounted tree rows and hides collapsed descendants", () => {
     const expanded = new Set<string>(["root", "branch"])
-    const surface = new BuilderSurface({
+    const surface = new RenderSurface({
       id: "Builder.TreeView",
       build: () =>
         treeViewNode({
@@ -551,7 +551,7 @@ describe("surface builder", () => {
   it("routes tree toggle and select through tree row hit areas", () => {
     const expanded = new Set<string>(["root"])
     const events: string[] = []
-    const surface = new BuilderSurface({
+    const surface = new RenderSurface({
       id: "Builder.TreeView.Events",
       build: () =>
         treeViewNode({

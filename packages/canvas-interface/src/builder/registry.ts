@@ -12,9 +12,9 @@ import { fontString } from "../text"
 import { buildButtonVisual, buildCheckboxVisual, buildListRowVisual, buildRadioVisual, drawButton, drawCheckbox, drawListRow, drawRadio } from "./draw_controls"
 import { drawSlider, resolveSliderValueFromPointer } from "./slider_control"
 import { resolveTextColor, resolveTextEmphasis, resolveTextStyle, textEnvToRichTextStyle } from "./styles"
-import type { BuilderEngine } from "./engine"
+import type { RenderEngine } from "./engine"
 import type { ControlMountOpts } from "./runtime"
-import type { AstNode, BuilderNode, BuilderNodeRuntimeKind, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, DropdownNode, LabelNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, TextBoxNode, TextOverflow, TreeViewNode } from "./types"
+import type { AstNode, RenderElement, RetainedKind, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, DropdownNode, LabelNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, TextBoxNode, TextOverflow, TreeViewNode } from "./types"
 import { flattenTreeItems } from "./runtime"
 import { measureVisualNode } from "./visual"
 import { resolveDropdownVisualModel } from "./widget_visuals"
@@ -29,25 +29,25 @@ widgetRegistry.register(treeRowDescriptor)
 
 export type MeasureSize = { w: number; h: number }
 
-type RuntimeKindResolver<TNode extends BuilderNode> = BuilderNodeRuntimeKind | ((node: TNode) => BuilderNodeRuntimeKind)
+type RuntimeKindResolver<TNode extends RenderElement> = RetainedKind | ((node: TNode) => RetainedKind)
 
-export type BuilderNodeHandler<TNode extends BuilderNode = BuilderNode> = {
+export type RenderHandler<TNode extends RenderElement = RenderElement> = {
   kind: TNode["kind"]
   runtimeKind: RuntimeKindResolver<TNode>
-  getChildren?: (node: TNode) => BuilderNode[] | undefined
+  getChildren?: (node: TNode) => RenderElement[] | undefined
   getStyle?: (node: TNode) => LayoutStyle | undefined
-  measure?: (engine: BuilderEngine, ctx: CanvasRenderingContext2D, node: TNode, max: MeasureSize, path: string, ast: AstNode) => MeasureSize
-  mount?: (engine: BuilderEngine, ctx: CanvasRenderingContext2D, node: TNode, ast: AstNode, path: string, active: boolean) => void
+  measure?: (engine: RenderEngine, ctx: CanvasRenderingContext2D, node: TNode, max: MeasureSize, path: string, ast: AstNode) => MeasureSize
+  mount?: (engine: RenderEngine, ctx: CanvasRenderingContext2D, node: TNode, ast: AstNode, path: string, active: boolean) => void
 }
 
-export class BuilderNodeRegistry {
-  private readonly handlers = new Map<BuilderNode["kind"], BuilderNodeHandler>()
+export class RenderRegistry {
+  private readonly handlers = new Map<RenderElement["kind"], RenderHandler>()
 
-  register<TNode extends BuilderNode>(handler: BuilderNodeHandler<TNode>) {
-    this.handlers.set(handler.kind, handler as unknown as BuilderNodeHandler)
+  register<TNode extends RenderElement>(handler: RenderHandler<TNode>) {
+    this.handlers.set(handler.kind, handler as unknown as RenderHandler)
   }
 
-  get(kind: BuilderNode["kind"]) {
+  get(kind: RenderElement["kind"]) {
     const handler = this.handlers.get(kind)
     if (!handler) {
       throw new AppError({
@@ -60,44 +60,44 @@ export class BuilderNodeRegistry {
     return handler
   }
 
-  runtimeKind(node: BuilderNode): BuilderNodeRuntimeKind {
-    return resolveBuilderNodeRuntimeKind(this.get(node.kind) as BuilderNodeHandler<typeof node>, node)
+  runtimeKind(node: RenderElement): RetainedKind {
+    return resolveElementRetainedKind(this.get(node.kind) as RenderHandler<typeof node>, node)
   }
 }
 
-export function resolveBuilderNodeRuntimeKind<TNode extends BuilderNode>(handler: BuilderNodeHandler<TNode>, node: TNode): BuilderNodeRuntimeKind {
+export function resolveElementRetainedKind<TNode extends RenderElement>(handler: RenderHandler<TNode>, node: TNode): RetainedKind {
   return typeof handler.runtimeKind === "function" ? handler.runtimeKind(node) : handler.runtimeKind
 }
 
-type BaseHandlerOpts<TNode extends BuilderNode> = {
+type BaseHandlerOpts<TNode extends RenderElement> = {
   kind: TNode["kind"]
-  getChildren?: (node: TNode) => BuilderNode[] | undefined
+  getChildren?: (node: TNode) => RenderElement[] | undefined
   getStyle?: (node: TNode) => LayoutStyle | undefined
-  measure?: (engine: BuilderEngine, ctx: CanvasRenderingContext2D, node: TNode, max: MeasureSize, path: string, ast: AstNode) => MeasureSize
+  measure?: (engine: RenderEngine, ctx: CanvasRenderingContext2D, node: TNode, max: MeasureSize, path: string, ast: AstNode) => MeasureSize
 }
 
-type PrimitiveHandlerOpts<TNode extends BuilderNode> = BaseHandlerOpts<TNode> & {
+type PrimitiveHandlerOpts<TNode extends RenderElement> = BaseHandlerOpts<TNode> & {
   runtimeKind?: RuntimeKindResolver<TNode>
-  mount?: (engine: BuilderEngine, ctx: CanvasRenderingContext2D, node: TNode, ast: AstNode, path: string, active: boolean) => void
+  mount?: (engine: RenderEngine, ctx: CanvasRenderingContext2D, node: TNode, ast: AstNode, path: string, active: boolean) => void
 }
 
-type ControlHandlerOpts<TNode extends BuilderNode> = BaseHandlerOpts<TNode> & {
-  mountControl: (engine: BuilderEngine, ctx: CanvasRenderingContext2D, node: TNode, ast: AstNode, path: string, active: boolean) => ControlMountOpts
+type ControlHandlerOpts<TNode extends RenderElement> = BaseHandlerOpts<TNode> & {
+  mountControl: (engine: RenderEngine, ctx: CanvasRenderingContext2D, node: TNode, ast: AstNode, path: string, active: boolean) => ControlMountOpts
 }
 
-type WidgetHandlerOpts<TNode extends BuilderNode, TProps> = BaseHandlerOpts<TNode> & {
+type WidgetHandlerOpts<TNode extends RenderElement, TProps> = BaseHandlerOpts<TNode> & {
   widgetType: string
-  mountWidget: (engine: BuilderEngine, ctx: CanvasRenderingContext2D, node: TNode, ast: AstNode, path: string, active: boolean) => TProps
+  mountWidget: (engine: RenderEngine, ctx: CanvasRenderingContext2D, node: TNode, ast: AstNode, path: string, active: boolean) => TProps
 }
 
-function primitiveHandler<TNode extends BuilderNode>(opts: PrimitiveHandlerOpts<TNode>): BuilderNodeHandler<TNode> {
+function primitiveHandler<TNode extends RenderElement>(opts: PrimitiveHandlerOpts<TNode>): RenderHandler<TNode> {
   return {
     ...opts,
     runtimeKind: opts.runtimeKind ?? "primitive",
   }
 }
 
-function controlHandler<TNode extends BuilderNode>(opts: ControlHandlerOpts<TNode>): BuilderNodeHandler<TNode> {
+function controlHandler<TNode extends RenderElement>(opts: ControlHandlerOpts<TNode>): RenderHandler<TNode> {
   return {
     ...opts,
     runtimeKind: "control",
@@ -107,7 +107,7 @@ function controlHandler<TNode extends BuilderNode>(opts: ControlHandlerOpts<TNod
   }
 }
 
-function widgetHandler<TNode extends BuilderNode, TProps>(opts: WidgetHandlerOpts<TNode, TProps>): BuilderNodeHandler<TNode> {
+function widgetHandler<TNode extends RenderElement, TProps>(opts: WidgetHandlerOpts<TNode, TProps>): RenderHandler<TNode> {
   return {
     ...opts,
     runtimeKind: "widget",
@@ -129,7 +129,7 @@ const containerHandler = primitiveHandler<ContainerNode>({
   getStyle: containerStyle,
 })
 
-type PlainTextNode = Extract<BuilderNode, { kind: "text" }> | LabelNode
+type PlainTextNode = Extract<RenderElement, { kind: "text" }> | LabelNode
 
 function measurePlainTextNode(ctx: CanvasRenderingContext2D, node: PlainTextNode, max: MeasureSize, ast: AstNode, overflow: TextOverflow) {
   const style = resolveTextStyle(ast.resolvedEnv, node)
@@ -141,7 +141,7 @@ function measurePlainTextNode(ctx: CanvasRenderingContext2D, node: PlainTextNode
   }
 }
 
-function mountPlainTextNode(engine: BuilderEngine, node: PlainTextNode, ast: AstNode, active: boolean, overflow: TextOverflow) {
+function mountPlainTextNode(engine: RenderEngine, node: PlainTextNode, ast: AstNode, active: boolean, overflow: TextOverflow) {
   if (!active) return
   const rect = ast.rect ?? ZERO_RECT
   engine.drawOps.push((canvas) => {
@@ -177,7 +177,7 @@ function mountPlainTextNode(engine: BuilderEngine, node: PlainTextNode, ast: Ast
   })
 }
 
-const textHandler = primitiveHandler<Extract<BuilderNode, { kind: "text" }>>({
+const textHandler = primitiveHandler<Extract<RenderElement, { kind: "text" }>>({
   kind: "text",
   measure: (_engine, ctx, node, max, _path, ast) => {
     return measurePlainTextNode(ctx, node, max, ast, "visible")
@@ -361,7 +361,7 @@ const treeViewHandler = primitiveHandler<TreeViewNode>({
   },
 })
 
-const scrollAreaHandler = widgetHandler<ScrollAreaNode, { child: BuilderNode; createTreeSurface: ReturnType<BuilderEngine["runtime"]["treeSurfaceFactory"]>; measureCtx?: CanvasRenderingContext2D }>({
+const scrollAreaHandler = widgetHandler<ScrollAreaNode, { child: RenderElement; createTreeSurface: ReturnType<RenderEngine["runtime"]["treeSurfaceFactory"]>; measureCtx?: CanvasRenderingContext2D }>({
   kind: "scrollArea",
   widgetType: "scrollArea",
   measure: (engine, ctx, node, max, path, ast) => {
@@ -414,7 +414,7 @@ const sliderHandler = controlHandler<SliderNode>({
 })
 
 export function createDefaultBuilderRegistry() {
-  const registry = new BuilderNodeRegistry()
+  const registry = new RenderRegistry()
   registry.register(containerHandler)
   registry.register({ ...containerHandler, kind: "row" })
   registry.register({ ...containerHandler, kind: "column" })

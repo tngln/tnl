@@ -25,7 +25,7 @@ import {
   treeViewNode,
   toolbarRow,
   type BoxStyle,
-  type BuilderNode,
+  type RenderElement,
   type CommonNodeProps,
   type NodeEnv,
   type RowVariant,
@@ -144,7 +144,7 @@ type SectionProps = JSXNodeProps & {
 
 type FormRowProps = JSXNodeProps & {
   label: string
-  field: BuilderNode
+  field: RenderElement
   labelWidth?: number
 }
 
@@ -153,8 +153,8 @@ type ToolbarRowProps = JSXNodeProps
 type PanelContainerProps = JSXNodeProps
 
 type SplitRowProps = Omit<JSXNodeProps, "children"> & {
-  left?: BuilderNode | BuilderNode[]
-  right?: BuilderNode | BuilderNode[]
+  left?: RenderElement | RenderElement[]
+  right?: RenderElement | RenderElement[]
 }
 
 export type PanelAction = {
@@ -405,8 +405,8 @@ export function ToolbarRow(props: ToolbarRowProps) {
   return toolbarRow(resolveChildren(props), { ...common(props), style: props.style })
 }
 
-function resolveSplitChildren(children: BuilderNode | BuilderNode[] | undefined) {
-  if (children === undefined) return [] as BuilderNode[]
+function resolveSplitChildren(children: RenderElement | RenderElement[] | undefined) {
+  if (children === undefined) return [] as RenderElement[]
   return Array.isArray(children) ? children : [children]
 }
 
@@ -419,7 +419,7 @@ export function SplitRow(props: SplitRowProps) {
   const right = rightChildren.length <= 1
     ? (rightChildren[0] ?? undefined)
     : Row({ key: props.key ? `${props.key}.right` : undefined, style: { align: "center", gap: theme.spacing.sm }, children: rightChildren })
-  const children = [left, right].filter((child): child is BuilderNode => child !== undefined)
+  const children = [left, right].filter((child): child is RenderElement => child !== undefined)
   return Row({
     ...props,
     style: mergeLayout({ align: "center", justify: "space-between", gap: theme.spacing.sm }, props.style),

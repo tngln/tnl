@@ -1,6 +1,6 @@
 import { theme } from "../theme"
 import type { RichTextSpan, TextEmphasis } from "../draw"
-import type { BuilderChild } from "../jsx"
+import type { RenderChild } from "../jsx"
 
 export type RichInlineKind = "text" | "fragment" | "b" | "i" | "u" | "span"
 
@@ -120,7 +120,7 @@ export function isRichInlineNode(value: unknown): value is RichInlineNode {
   return kind === "text" || kind === "fragment" || kind === "b" || kind === "i" || kind === "u" || kind === "span"
 }
 
-export function assertNoRichInlineChildren(children: BuilderChild[]) {
+export function assertNoRichInlineChildren(children: RenderChild[]) {
   for (const child of children) {
     if (Array.isArray(child)) {
       assertNoRichInlineChildren(child)

@@ -48,7 +48,7 @@ The framework contract is that every interactive node follows the same rules for
 - Primitive paint/layout nodes render directly and should avoid retained interaction state.
 - Interactive control nodes use a shared retained runtime contract for hover, press, drag, and deactivation.
 - Stateful widget nodes may own additional runtime state, but they still participate in the same activation, invalidation, and debug protocols.
-- BuilderRuntime pools both control nodes and widget nodes through one retained-node runtime; `mountControl()` and `mountWidget()` are compatibility helpers over that shared path.
+- RetainedRuntime pools both control nodes and widget nodes through one retained-node runtime; `mountControl()` and `mountWidget()` are compatibility helpers over that shared path.
 - Builder handlers must declare their runtime class explicitly as `primitive`, `control`, or `widget`; nodes like selectable rich text may resolve that class from props instead of relying on convention.
 
 Builder code should choose among those node classes intentionally instead of creating parallel lifecycle systems.

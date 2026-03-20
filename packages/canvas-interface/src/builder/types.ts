@@ -26,7 +26,7 @@ export type NodeEnv = {
 
 export type TextOverflow = "visible" | "truncate" | "clip"
 
-export type BuilderNodeRuntimeKind = "primitive" | "control" | "widget"
+export type RetainedKind = "primitive" | "control" | "widget"
 
 type NodeBase = {
   key?: string
@@ -42,7 +42,7 @@ export type CommonNodeProps = NodeBase
 
 export type ContainerNode = NodeBase & {
   kind: "flex" | "row" | "column" | "stack"
-  children: BuilderNode[]
+  children: RenderElement[]
 }
 
 type ContentTextNode = NodeBase & {
@@ -151,7 +151,7 @@ export type TreeViewNode = NodeBase & {
 
 export type ScrollAreaNode = NodeBase & {
   kind: "scrollArea"
-  child: BuilderNode
+  child: RenderElement
 }
 
 export type PaintNode = NodeBase & {
@@ -170,7 +170,7 @@ export type SliderNode = NodeBase & {
   disabled?: boolean
 }
 
-export type BuilderNode =
+export type RenderElement =
   | ContainerNode
   | ContentTextNode
   | LabelNode
@@ -188,13 +188,13 @@ export type BuilderNode =
   | SliderNode
 
 export type AstNode = LayoutNode & {
-  builder: BuilderNode
+  builder: RenderElement
   inheritedEnv: NodeEnv
   resolvedEnv: NodeEnv
   children?: AstNode[]
 }
 
-export type SurfaceRender<P> = (props: P) => BuilderNode
+export type SurfaceRender<P> = (props: P) => RenderElement
 export type SurfaceSetupResult<P> = SurfaceRender<P> | { render: SurfaceRender<P> }
 export type SurfaceSetup<P> = (props: P) => SurfaceSetupResult<P>
 

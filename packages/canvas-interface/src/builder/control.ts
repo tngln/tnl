@@ -7,9 +7,9 @@
  * into the draw function instead of living in class instance variables.
  *
  * This breaks the chain:
- *   BuilderNode → widget descriptor → Button/Checkbox/.../UIElement
+ *   RenderElement → widget descriptor → Button/Checkbox/.../UIElement
  * and replaces it with:
- *   BuilderNode → ControlElement (generic pool) + pure draw function
+ *   RenderElement → ControlElement (generic pool) + pure draw function
  */
 
 import type { InteractionCancelReason } from "../event_stream"

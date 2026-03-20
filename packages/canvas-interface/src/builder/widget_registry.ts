@@ -25,7 +25,7 @@ export interface WidgetDescriptor<TState = unknown, TProps = unknown> {
   /** Unique identifier for the widget type (e.g., "button", "textbox") */
   id: string
 
-  /** Runtime category used by BuilderRuntime for pooling and debug stats. */
+  /** Runtime category used by RetainedRuntime for pooling and debug stats. */
   retainedKind?: RetainedNodeKind
 
   /** Declares which capability domains this host expects from runtime payloads. */

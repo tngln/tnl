@@ -882,19 +882,19 @@ function isBetterDebugInspectorCandidate(
 }
 
 function debugInspectorPickPriority(node: DebugTreeNodeSnapshot) {
-  if (node.type === "BuilderNode") return 0
+  if (node.type === "RenderElement") return 0
   if (node.kind === "element" && !isDebugInspectorWrapper(node.type)) return 1
   if (node.kind === "surface") return 2
-  if (node.type === "BuilderDeclarationTree") return 3
-  if (node.type === "BuilderRetainedTree") return 4
+  if (node.type === "RenderTree") return 3
+  if (node.type === "RetainedTree") return 4
   if (node.type === "ViewportElement") return 5
   if (isDebugInspectorRootLike(node.type)) return 9
   return 6
 }
 
 function isDebugInspectorWrapper(type: string) {
-  return type === "BuilderDeclarationTree"
-    || type === "BuilderRetainedTree"
+  return type === "RenderTree"
+    || type === "RetainedTree"
     || type === "ViewportElement"
     || isDebugInspectorRootLike(type)
 }

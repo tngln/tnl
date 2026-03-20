@@ -1,12 +1,12 @@
 import { clamp, ZERO_RECT, type Rect, type Vec2 } from "../draw"
 import { UIElement, WheelUIEvent } from "../ui_base"
 import { type Surface, ViewportElement } from "../viewport"
-import type { BuilderNode } from "../builder/types"
+import type { RenderElement } from "../builder/types"
 import type { WidgetDescriptor } from "../builder/widget_registry"
 import { Scrollbar } from "./scrollbar"
 
-type BuilderTreeSurfaceLike = Surface & {
-  setNode(node: BuilderNode | null): void
+type RenderTreeSurfaceLike = Surface & {
+  setNode(node: RenderElement | null): void
   setWheelFallback(fn: ((e: WheelUIEvent) => void) | null): void
   contentSize(viewportSize: Vec2): Vec2
   measureWithContext(ctx: CanvasRenderingContext2D, viewportSize: Vec2): Vec2
@@ -15,7 +15,7 @@ type BuilderTreeSurfaceLike = Surface & {
 export class ScrollArea extends UIElement {
   private rect: Rect = ZERO_RECT
   private active = false
-  private contentSurface: BuilderTreeSurfaceLike | null = null
+  private contentSurface: RenderTreeSurfaceLike | null = null
   private viewport: ViewportElement | null = null
   private scrollbar: Scrollbar | null = null
   private scrollY = 0
@@ -37,7 +37,7 @@ export class ScrollArea extends UIElement {
     e.handle()
   }
 
-  private ensure(createTreeSurface: (id: string) => BuilderTreeSurfaceLike) {
+  private ensure(createTreeSurface: (id: string) => RenderTreeSurfaceLike) {
     if (this.contentSurface) return
     this.contentSurface = createTreeSurface(`${this.id}.Content`)
     this.contentSurface.setWheelFallback((e) => this.onContentWheel(e))
@@ -68,7 +68,7 @@ export class ScrollArea extends UIElement {
     this.add(this.scrollbar)
   }
 
-  update(next: { rect: Rect; active: boolean; child: BuilderNode; createTreeSurface: (id: string) => BuilderTreeSurfaceLike; measureCtx?: CanvasRenderingContext2D }) {
+  update(next: { rect: Rect; active: boolean; child: RenderElement; createTreeSurface: (id: string) => RenderTreeSurfaceLike; measureCtx?: CanvasRenderingContext2D }) {
     this.ensure(next.createTreeSurface)
     this.rect = next.rect
     this.active = next.active && next.rect.w > 0 && next.rect.h > 0
@@ -109,7 +109,7 @@ type ScrollAreaState = { widget: ScrollArea }
 
 export const scrollAreaDescriptor: WidgetDescriptor<
   ScrollAreaState,
-  { child: BuilderNode; createTreeSurface: (id: string) => BuilderTreeSurfaceLike; measureCtx?: CanvasRenderingContext2D }
+  { child: RenderElement; createTreeSurface: (id: string) => RenderTreeSurfaceLike; measureCtx?: CanvasRenderingContext2D }
 > = {
   id: "scrollArea",
   retainedKind: "widget",

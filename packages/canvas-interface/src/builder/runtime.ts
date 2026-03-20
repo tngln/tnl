@@ -6,12 +6,12 @@ import { UIElement, WheelUIEvent, type Rect, type Vec2, type CursorKind, type Po
 import { TopLayerController } from "../top_layer"
 import { widgetRegistry, type WidgetDescriptor } from "./widget_registry"
 import { TREE_ROW_HEIGHT } from "../widgets/tree_row"
-import type { BuilderNode, TreeItem, TreeViewNode } from "./types"
+import type { RenderElement, TreeItem, TreeViewNode } from "./types"
 import { ControlElement, type ControlDrawFn } from "./control"
 import { NodeRuntimeStateStore } from "./runtime_state"
 
-export type BuilderTreeSurfaceLike = Surface & {
-  setNode(node: BuilderNode | null): void
+export type RenderTreeSurfaceLike = Surface & {
+  setNode(node: RenderElement | null): void
   setWheelFallback(fn: ((e: WheelUIEvent) => void) | null): void
   contentSize(viewportSize: Vec2): Vec2
   measureWithContext(ctx: CanvasRenderingContext2D, viewportSize: Vec2): Vec2
@@ -68,7 +68,7 @@ const controlDescriptor: WidgetDescriptor<ControlCellState, ControlMountOpts> = 
   },
 }
 
-export class BuilderRuntime {
+export class RetainedRuntime {
   readonly root = new SurfaceRoot()
   readonly topLayer = new TopLayerController({ rect: () => this.root.bounds(), invalidate: invalidateAll, z: 8_000_000 })
   readonly nodeStateStore = new NodeRuntimeStateStore()
@@ -76,7 +76,7 @@ export class BuilderRuntime {
   private readonly richBlocks = new Map<string, ReturnType<typeof createRichTextBlock>>()
   private invalidateSurface: () => void = invalidateAll
 
-  constructor(private readonly createTreeSurface: (id: string) => BuilderTreeSurfaceLike) {
+  constructor(private readonly createTreeSurface: (id: string) => RenderTreeSurfaceLike) {
     this.root.add(this.topLayer.host)
   }
 
