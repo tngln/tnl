@@ -1,5 +1,6 @@
 import { font, theme, neutral } from "../theme"
-import { draw, LineOp, RectOp, TextOp, measureTextWidth, type Rect, type Vec2 } from "../draw"
+import { draw, LineOp, RectOp, measureTextWidth, type Rect, type Vec2 } from "../draw"
+import { drawSingleLineText } from "../text/single_line"
 import { UIElement, pointInRect } from "../ui_base"
 import type { TopLayerController } from "../top_layer"
 import { usePress, type PressBinding } from "../use/use_press"
@@ -147,15 +148,15 @@ export class MenuBar extends UIElement {
       if (hovered || opened) {
         draw(ctx, RectOp({ x: rect.x, y: rect.y + 2, w: rect.w, h: Math.max(0, rect.h - 4) }, { fill: { paint: neutral[600] } }))
       }
-      draw(
-        ctx,
-        TextOp({
-          x: rect.x + padX,
-          y: rect.y + rect.h / 2 + 0.5,
-          text: m.label,
-          style: { color: theme.colors.text, font: f, baseline: "middle" },
-        }),
-      )
+      drawSingleLineText(ctx, {
+        x: rect.x + padX,
+        y: rect.y + rect.h / 2 + 0.5,
+        text: m.label,
+        color: theme.colors.text,
+        font: f,
+        baseline: "middle",
+        overflow: "visible",
+      })
       x += w + gap
     }
     ctx.restore()

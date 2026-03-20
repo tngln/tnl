@@ -1,5 +1,6 @@
 import { font, theme, neutral } from "../theme"
-import { draw, RectOp, TextOp, toGetter, type Rect, type Vec2 } from "../draw"
+import { draw, RectOp, toGetter, type Rect, type Vec2 } from "../draw"
+import { drawSingleLineText } from "../text/single_line"
 import type { InteractionCancelReason } from "../event_stream"
 import { createPressMachine } from "../fsm"
 import { PointerUIEvent, UIElement, pointInRect } from "../ui_base"
@@ -195,38 +196,40 @@ export class Menu extends UIElement {
         draw(ctx, { kind: "Rect", rect: row, fill: { paint: hovered ? neutral[500] : neutral[600] } })
       }
       const textColor = it.disabled ? theme.colors.textDim : theme.colors.text
-      draw(
-        ctx,
-        TextOp({
-          x: row.x + theme.ui.controls.rowTextPadX,
-          y: row.y + row.h / 2 + 0.5,
-          text: it.text,
-          style: { color: textColor, font: f, baseline: "middle" },
-        }),
-      )
+      drawSingleLineText(ctx, {
+        x: row.x + theme.ui.controls.rowTextPadX,
+        y: row.y + row.h / 2 + 0.5,
+        text: it.text,
+        color: textColor,
+        font: f,
+        baseline: "middle",
+        overflow: "visible",
+      })
       const rightText = it.rightText
       const hasSubmenu = !!it.submenu
       if (rightText) {
-        draw(
-          ctx,
-          TextOp({
-            x: row.x + row.w - (hasSubmenu ? theme.ui.controls.rowTextPadX + 14 : theme.ui.controls.rowTextPadX),
-            y: row.y + row.h / 2 + 0.5,
-            text: rightText,
-            style: { color: it.disabled ? theme.colors.textDim : theme.colors.textMuted, font: f, baseline: "middle", align: "right" },
-          }),
-        )
+        drawSingleLineText(ctx, {
+          x: row.x + row.w - (hasSubmenu ? theme.ui.controls.rowTextPadX + 14 : theme.ui.controls.rowTextPadX),
+          y: row.y + row.h / 2 + 0.5,
+          text: rightText,
+          color: it.disabled ? theme.colors.textDim : theme.colors.textMuted,
+          font: f,
+          baseline: "middle",
+          align: "right",
+          overflow: "visible",
+        })
       }
       if (hasSubmenu) {
-        draw(
-          ctx,
-          TextOp({
-            x: row.x + row.w - theme.ui.controls.rowTextPadX,
-            y: row.y + row.h / 2 + 0.5,
-             text: "▸",
-            style: { color: it.disabled ? theme.colors.textDim : theme.colors.textMuted, font: f, baseline: "middle", align: "right" },
-          }),
-        )
+        drawSingleLineText(ctx, {
+          x: row.x + row.w - theme.ui.controls.rowTextPadX,
+          y: row.y + row.h / 2 + 0.5,
+          text: "▸",
+          color: it.disabled ? theme.colors.textDim : theme.colors.textMuted,
+          font: f,
+          baseline: "middle",
+          align: "right",
+          overflow: "visible",
+        })
       }
       y += h
     }

@@ -1,5 +1,6 @@
-import { font, theme, neutral, alpha } from "../theme"
-import { draw, LineOp, RectOp, TextOp, clamp, ZERO_RECT, type Rect as BoundsRect, type Vec2 } from "../draw"
+import { font, theme, neutral } from "../theme"
+import { draw, LineOp, RectOp, clamp, ZERO_RECT, type Rect as BoundsRect, type Vec2 } from "../draw"
+import { drawSingleLineText } from "../text/single_line"
 import type { InteractionCancelReason } from "../event_stream"
 import { batch, signal, type Signal } from "../reactivity"
 import { CursorRegion, pointInRect, type DebugEventListenerSnapshot, type DebugRuntimeStateSnapshot, PointerUIEvent, UIElement } from "./ui_base"
@@ -375,49 +376,38 @@ export class ModalWindow extends UIElement {
       draw(
         ctx,
         RectOp({ x, y, w, h: this.titleBarHeight }, { fill: { paint: neutral[50] } }),
-        TextOp({
-          x: x + theme.spacing.sm,
-          y: y + this.titleBarHeight / 2 + 0.5,
-          text: this.title.peek(),
-          style: { color: neutral[925], font: font(theme, theme.typography.title), baseline: "middle" },
-        }),
         LineOp({ x, y: y + this.titleBarHeight }, { x: x + w, y: y + this.titleBarHeight }, { color: neutral[850], hairline: true }),
       )
+      drawSingleLineText(ctx, {
+        x: x + theme.spacing.sm,
+        y: y + this.titleBarHeight / 2 + 0.5,
+        text: this.title.peek(),
+        color: neutral[925],
+        font: font(theme, theme.typography.title),
+        baseline: "middle",
+        overflow: "visible",
+      })
     } else {
       const t = this.title.peek().trim()
       if (t.length) {
         const size = Math.max(10, theme.typography.title.size - 2)
         const f = `${theme.typography.title.weight} ${size}px ${theme.typography.family}`
-        draw(
-          ctx,
-          TextOp({
-            x: x + theme.spacing.sm,
-            y: y + this.titleBarHeight / 2 + 0.5,
-            text: t.toUpperCase(),
-            style: { color: theme.colors.textMuted, font: f, baseline: "middle" },
-          }),
-        )
+        drawSingleLineText(ctx, {
+          x: x + theme.spacing.sm,
+          y: y + this.titleBarHeight / 2 + 0.5,
+          text: t.toUpperCase(),
+          color: theme.colors.textMuted,
+          font: f,
+          baseline: "middle",
+          overflow: "visible",
+        })
       }
     }
 
     if (!this.minimized.peek() && this.bodySurface === null) this.drawBody(ctx, x, y + this.titleBarHeight, w, h - this.titleBarHeight)
   }
 
-  protected drawBody(ctx: CanvasRenderingContext2D, x: number, y: number, _w: number, _h: number) {
-    draw(
-      ctx,
-      TextOp({
-        x: x + theme.spacing.md,
-        y: y + theme.spacing.md,
-        text: "Hello World",
-        style: {
-          color: alpha(neutral[925], 0.65),
-          font: font(theme, theme.typography.body),
-          baseline: "top",
-        },
-      }),
-    )
-  }
+  protected drawBody(_ctx: CanvasRenderingContext2D, _x: number, _y: number, _w: number, _h: number) {}
 
   private isInTitleBar(p: Vec2) {
     if (this.minimized.peek()) return false

@@ -1,5 +1,6 @@
 import { theme, neutral } from "../theme"
-import { draw, LineOp, RectOp, TextOp, clamp } from "../draw"
+import { draw, LineOp, RectOp, clamp } from "../draw"
+import { drawSingleLineText } from "../text/single_line"
 import { signal, type Signal } from "../reactivity"
 import { UIElement, type DebugTreeNodeSnapshot, type Rect, type Vec2, WheelUIEvent, pointInRect, ViewportElement, SurfaceRoot, type Surface, type ViewportContext, InteractiveElement, Scrollbar } from "../ui"
 
@@ -26,20 +27,17 @@ class TabButton extends InteractiveElement {
     const bg = sel ? neutral[600] : this.pressed() ? neutral[600] : this.hover ? neutral[700] : "transparent"
     const stroke = sel || this.hover ? { color: neutral[300], hairline: true } : undefined
       if (bg !== "transparent" || stroke) draw(ctx, RectOp({ x: r.x, y: r.y, w: r.w, h: r.h }, { radius: 6, fill: bg !== "transparent" ? { paint: bg } : undefined, stroke }))
-    draw(
-      ctx,
-      TextOp({
-        x: r.x + r.w / 2,
-        y: r.y + r.h / 2 + 0.5,
-        text: this.text().toUpperCase(),
-        style: {
-          color: sel ? theme.colors.text : theme.colors.textMuted,
-          font: `${600} ${Math.max(10, theme.typography.body.size - 1)}px ${theme.typography.family}`,
-          align: "center",
-          baseline: "middle",
-        },
-      }),
-    )
+    drawSingleLineText(ctx, {
+      x: r.x + r.w / 2,
+      y: r.y + r.h / 2 + 0.5,
+      text: this.text().toUpperCase(),
+      color: sel ? theme.colors.text : theme.colors.textMuted,
+      font: `${600} ${Math.max(10, theme.typography.body.size - 1)}px ${theme.typography.family}`,
+      align: "center",
+      baseline: "middle",
+      overflow: "truncate",
+      availableWidth: Math.max(0, r.w - 12),
+    })
     if (sel) {
       const y = this.coverLineY()
       draw(ctx, LineOp({ x: r.x + 6, y }, { x: r.x + r.w - 6, y }, { color: this.coverColor, width: 2 }))

@@ -1,8 +1,9 @@
 import { font, theme, neutral, alpha } from "../theme"
-import { draw, LineOp, RectOp, TextOp, measureTextWidth, clamp, inflateRect, ZERO_RECT } from "../draw"
+import { draw, LineOp, RectOp, measureTextWidth, clamp, inflateRect, ZERO_RECT } from "../draw"
 import { columnLayout, rowLayout } from "../layout"
 import { CursorRegion, UIElement, pointInRect, type Rect, type Vec2, SurfaceRoot, ViewportElement, type Surface, type ViewportContext, TopLayerController, invalidateAll, MenuBar, type MenuBarMenu, type MenuItem, useDragHandle } from "../ui"
 import { clampRatio, type DockDropPlacement, type DockNode } from "./model"
+import { drawSingleLineText } from "../text/single_line"
 
 export type DockDropPreview = {
   containerId: string
@@ -130,18 +131,18 @@ class DockTabHandle extends UIElement {
           stroke: { color: selected ? neutral[300] : neutral[500], hairline: true },
         },
       ),
-      TextOp({
-        x: r.x + r.w / 2,
-        y: r.y + r.h / 2 + 0.5,
-        text: this.title(),
-        style: {
-          color: selected ? theme.colors.text : theme.colors.textMuted,
-          font: `${600} ${Math.max(10, theme.typography.body.size - 1)}px ${theme.typography.family}`,
-          align: "center",
-          baseline: "middle",
-        },
-      }),
     )
+    drawSingleLineText(ctx, {
+      x: r.x + r.w / 2,
+      y: r.y + r.h / 2 + 0.5,
+      text: this.title(),
+      color: selected ? theme.colors.text : theme.colors.textMuted,
+      font: `${600} ${Math.max(10, theme.typography.body.size - 1)}px ${theme.typography.family}`,
+      align: "center",
+      baseline: "middle",
+      overflow: "truncate",
+      availableWidth: Math.max(0, r.w - 12),
+    })
   }
 }
 

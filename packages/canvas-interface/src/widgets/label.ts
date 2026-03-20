@@ -1,4 +1,5 @@
-import { draw, TextOp, toGetter, type Rect } from "../draw"
+import { toGetter, type Rect } from "../draw"
+import { drawSingleLineText } from "../text/single_line"
 import { font, theme } from "../theme"
 import { UIElement } from "../ui_base"
 
@@ -20,14 +21,14 @@ export class Label extends UIElement {
   protected onDraw(ctx: CanvasRenderingContext2D) {
     if (!this.active()) return
     const r = this.rect()
-    draw(
-      ctx,
-      TextOp({
-        x: r.x,
-        y: r.y,
-        text: this.text(),
-        style: { color: this.color(), font: font(theme, theme.typography.body), baseline: "top" },
-      }),
-    )
+    drawSingleLineText(ctx, {
+      x: r.x,
+      y: r.y,
+      text: this.text(),
+      color: this.color(),
+      font: font(theme, theme.typography.body),
+      baseline: "top",
+      overflow: "visible",
+    })
   }
 }
