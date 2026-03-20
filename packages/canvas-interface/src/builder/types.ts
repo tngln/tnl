@@ -4,24 +4,12 @@ import type { IconDef } from "../icons"
 import type { LayoutNode, LayoutStyle } from "../layout"
 import type { Surface } from "../viewport"
 import type { VisualImageSource, VisualStyleInput } from "./visual"
+import type { NodeEnv } from "./env"
 
 export type BoxStyle = {
   fill?: string
   stroke?: string
   radius?: number
-}
-
-export type TextEnv = {
-  color?: string
-  fontFamily?: string
-  fontSize?: number
-  fontWeight?: number
-  lineHeight?: number
-  emphasis?: TextEmphasis
-}
-
-export type NodeEnv = {
-  text?: TextEnv
 }
 
 export type TextOverflow = "visible" | "truncate" | "clip"
@@ -40,19 +28,19 @@ type NodeBase = {
 
 export type CommonNodeProps = NodeBase
 
-export type ContainerNode = NodeBase & {
+export type ContainerElement = NodeBase & {
   kind: "flex" | "row" | "column" | "stack"
   children: RenderElement[]
 }
 
-type ContentTextNode = NodeBase & {
+type ContentTextElement = NodeBase & {
   kind: "text"
   text: string
   color?: string
   emphasis?: TextEmphasis
 }
 
-export type LabelNode = NodeBase & {
+export type LabelElement = NodeBase & {
   kind: "label"
   text: string
   color?: string
@@ -60,7 +48,7 @@ export type LabelNode = NodeBase & {
   overflow?: TextOverflow
 }
 
-export type RichTextNode = NodeBase & {
+export type RichTextElement = NodeBase & {
   kind: "richText"
   spans: RichTextSpan[]
   textStyle?: RichTextStyle
@@ -68,7 +56,7 @@ export type RichTextNode = NodeBase & {
   selectable?: boolean
 }
 
-export type ButtonNode = NodeBase & {
+export type ButtonElement = NodeBase & {
   kind: "button"
   text: string
   title?: string
@@ -79,13 +67,13 @@ export type ButtonNode = NodeBase & {
   disabled?: boolean
 }
 
-export type ClickAreaNode = NodeBase & {
+export type ClickAreaElement = NodeBase & {
   kind: "clickArea"
   onClick?: () => void
   disabled?: boolean
 }
 
-export type CheckboxNode = NodeBase & {
+export type CheckboxElement = NodeBase & {
   kind: "checkbox"
   label: string
   checked: Signal<boolean>
@@ -93,7 +81,7 @@ export type CheckboxNode = NodeBase & {
   disabled?: boolean
 }
 
-export type DropdownNode = NodeBase & {
+export type DropdownElement = NodeBase & {
   kind: "dropdown"
   options: Array<{ value: string; label: string }>
   selected: Signal<string>
@@ -101,7 +89,7 @@ export type DropdownNode = NodeBase & {
   disabled?: boolean
 }
 
-export type RadioNode = NodeBase & {
+export type RadioElement = NodeBase & {
   kind: "radio"
   label: string
   value: string
@@ -110,7 +98,7 @@ export type RadioNode = NodeBase & {
   disabled?: boolean
 }
 
-export type TextBoxNode = NodeBase & {
+export type TextBoxElement = NodeBase & {
   kind: "textbox"
   value: Signal<string>
   placeholder?: string
@@ -120,7 +108,7 @@ export type TextBoxNode = NodeBase & {
 
 export type RowVariant = "group" | "item"
 
-export type RowNode = NodeBase & {
+export type RowElement = NodeBase & {
   kind: "listRow" | "rowItem"
   leftText: string
   rightText?: string
@@ -140,7 +128,7 @@ export type TreeItem = {
   children?: TreeItem[]
 }
 
-export type TreeViewNode = NodeBase & {
+export type TreeViewElement = NodeBase & {
   kind: "treeView"
   items: TreeItem[]
   expanded: ReadonlySet<string>
@@ -149,18 +137,18 @@ export type TreeViewNode = NodeBase & {
   onSelect?: (id: string) => void
 }
 
-export type ScrollAreaNode = NodeBase & {
+export type ScrollAreaElement = NodeBase & {
   kind: "scrollArea"
   child: RenderElement
 }
 
-export type PaintNode = NodeBase & {
+export type PaintElement = NodeBase & {
   kind: "paint"
   draw: (ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }, active: boolean) => void
   measure?: (max: { w: number; h: number }) => { w: number; h: number }
 }
 
-export type SliderNode = NodeBase & {
+export type SliderElement = NodeBase & {
   kind: "slider"
   min: number
   max: number
@@ -171,21 +159,21 @@ export type SliderNode = NodeBase & {
 }
 
 export type RenderElement =
-  | ContainerNode
-  | ContentTextNode
-  | LabelNode
-  | RichTextNode
-  | ButtonNode
-  | ClickAreaNode
-  | CheckboxNode
-  | DropdownNode
-  | RadioNode
-  | TextBoxNode
-  | RowNode
-  | TreeViewNode
-  | ScrollAreaNode
-  | PaintNode
-  | SliderNode
+  | ContainerElement
+  | ContentTextElement
+  | LabelElement
+  | RichTextElement
+  | ButtonElement
+  | ClickAreaElement
+  | CheckboxElement
+  | DropdownElement
+  | RadioElement
+  | TextBoxElement
+  | RowElement
+  | TreeViewElement
+  | ScrollAreaElement
+  | PaintElement
+  | SliderElement
 
 export type AstNode = LayoutNode & {
   builder: RenderElement

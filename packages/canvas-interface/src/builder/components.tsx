@@ -3,6 +3,7 @@ import type { LayoutStyle } from "../layout"
 import type { Signal } from "../reactivity"
 import type { IconDef } from "../icons"
 import type { VisualImageSource, VisualStyleInput } from "./visual"
+import { defaultNodeEnv, mergeNodeEnvPatch, textEnvPatch } from "./env"
 import {
   buttonNode,
   checkboxNode,
@@ -27,7 +28,6 @@ import {
   type BoxStyle,
   type RenderElement,
   type CommonNodeProps,
-  type NodeEnv,
   type RowVariant,
   type TextOverflow,
   type TreeItem,
@@ -211,48 +211,12 @@ function commonWithoutStyle(base: {
   return rest
 }
 
-function mergeEnv(base: Partial<NodeEnv> | undefined, patch: Partial<NodeEnv> | undefined): Partial<NodeEnv> | undefined {
-  if (!base && !patch) return undefined
-  const text = {
-    text: {
-      ...(base?.text ?? {}),
-      ...(patch?.text ?? {}),
-    },
-  }
-  if (!Object.keys(text.text).length) return undefined
-  return text
-}
-
 function mergeLayout(base: LayoutStyle, patch: LayoutStyle | undefined) {
   return { ...base, ...(patch ?? {}) }
 }
 
 function mergeBox(base: BoxStyle, patch: BoxStyle | undefined): BoxStyle {
   return { ...base, ...(patch ?? {}) }
-}
-
-function textEnvPatch(props: { tone?: "primary" | "muted"; weight?: "normal" | "bold"; size?: "body" | "headline" | "meta"; color?: string; emphasis?: TextEmphasis }): Partial<NodeEnv> | undefined {
-  const text: NonNullable<NodeEnv["text"]> = {}
-  if (props.color) text.color = props.color
-  else if (props.tone === "muted") text.color = theme.colors.textMuted
-  else if (props.tone === "primary") text.color = theme.colors.text
-  if (props.size === "headline") {
-    text.fontSize = theme.typography.headline.size
-    text.fontWeight = theme.typography.headline.weight
-    text.lineHeight = theme.spacing.lg
-  } else if (props.size === "meta") {
-    text.fontSize = Math.max(10, theme.typography.body.size - 1)
-    text.fontWeight = theme.typography.body.weight
-    text.lineHeight = theme.spacing.md
-  } else if (props.size === "body") {
-    text.fontSize = theme.typography.body.size
-    text.fontWeight = theme.typography.body.weight
-    text.lineHeight = theme.spacing.lg
-  }
-  if (props.weight === "bold") text.fontWeight = 700
-  if (props.weight === "normal") text.fontWeight = 400
-  if (props.emphasis) text.emphasis = props.emphasis
-  return Object.keys(text).length ? { text } : undefined
 }
 
 export function Column(props: ContainerProps) {
@@ -287,7 +251,7 @@ export function Label(props: LabelProps) {
     color: props.color,
     emphasis: props.emphasis,
     overflow: props.overflow,
-    envOverride: mergeEnv(props.envOverride, textEnvPatch(props)),
+    envOverride: mergeNodeEnvPatch(props.envOverride, textEnvPatch(props)),
   })
 }
 
@@ -302,7 +266,7 @@ export function RichText(props: RichTextProps) {
     textStyle: props.textStyle,
     align: props.align,
     selectable: props.selectable,
-    envOverride: mergeEnv(props.envOverride, textEnvPatch(props)),
+    envOverride: mergeNodeEnvPatch(props.envOverride, textEnvPatch(props)),
   })
 }
 
@@ -439,18 +403,7 @@ export function PanelColumn(props: PanelContainerProps) {
     ...props,
     style: mergeLayout({ padding: theme.spacing.sm, gap: theme.spacing.sm }, props.style),
     box: props.box,
-    provideEnv: mergeEnv(
-      {
-        text: {
-          color: theme.colors.text,
-          fontFamily: theme.typography.family,
-          fontSize: theme.typography.body.size,
-          fontWeight: theme.typography.body.weight,
-          lineHeight: theme.spacing.lg,
-        },
-      },
-      props.provideEnv,
-    ),
+    provideEnv: mergeNodeEnvPatch(defaultNodeEnv(), props.provideEnv),
   })
 }
 
@@ -523,17 +476,6 @@ export function PanelSection(props: SectionProps) {
       },
       props.box,
     ),
-    provideEnv: mergeEnv(
-      {
-        text: {
-          color: theme.colors.text,
-          fontFamily: theme.typography.family,
-          fontSize: theme.typography.body.size,
-          fontWeight: theme.typography.body.weight,
-          lineHeight: theme.spacing.lg,
-        },
-      },
-      props.provideEnv,
-    ),
+    provideEnv: mergeNodeEnvPatch(defaultNodeEnv(), props.provideEnv),
   })
 }

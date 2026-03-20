@@ -1,7 +1,7 @@
 import type { Signal } from "../reactivity"
 import type { RichTextSpan } from "../draw"
 import type { LayoutStyle } from "../layout"
-import type { RenderElement, ButtonNode, CheckboxNode, ClickAreaNode, CommonNodeProps, DropdownNode, LabelNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, TextBoxNode, TreeItem, TreeViewNode } from "./types"
+import type { RenderElement, ButtonElement, CheckboxElement, ClickAreaElement, CommonNodeProps, DropdownElement, LabelElement, PaintElement, RadioElement, RichTextElement, RowElement, ScrollAreaElement, SliderElement, TextBoxElement, TreeItem, TreeViewElement } from "./types"
 
 type NodeBase = Omit<CommonNodeProps, "style">
 
@@ -21,43 +21,43 @@ export function stack(children: RenderElement[], style?: LayoutStyle, base?: Nod
   return { kind: "stack", children, style, ...base }
 }
 
-export function labelNode(text: string, opts: Omit<LabelNode, "kind" | "text"> = {}): RenderElement {
+export function labelNode(text: string, opts: Omit<LabelElement, "kind" | "text"> = {}): RenderElement {
   return { kind: "label", text, ...opts }
 }
 
-export function richTextNode(spans: RichTextSpan[], opts: Omit<RichTextNode, "kind" | "spans">): RenderElement {
+export function richTextNode(spans: RichTextSpan[], opts: Omit<RichTextElement, "kind" | "spans">): RenderElement {
   return { kind: "richText", spans, ...opts }
 }
 
-export function buttonNode(text: string, opts: Omit<ButtonNode, "kind" | "text"> = {}): RenderElement {
+export function buttonNode(text: string, opts: Omit<ButtonElement, "kind" | "text"> = {}): RenderElement {
   return { kind: "button", text, ...opts }
 }
 
-export function clickAreaNode(opts: Omit<ClickAreaNode, "kind"> = {}): RenderElement {
+export function clickAreaNode(opts: Omit<ClickAreaElement, "kind"> = {}): RenderElement {
   return { kind: "clickArea", ...opts }
 }
 
-export function checkboxNode(label: string, checked: Signal<boolean>, opts: Omit<CheckboxNode, "kind" | "label" | "checked"> = {}): RenderElement {
+export function checkboxNode(label: string, checked: Signal<boolean>, opts: Omit<CheckboxElement, "kind" | "label" | "checked"> = {}): RenderElement {
   return { kind: "checkbox", label, checked, ...opts }
 }
 
-export function dropdownNode(options: DropdownNode["options"], selected: Signal<string>, opts: Omit<DropdownNode, "kind" | "options" | "selected"> = {}): RenderElement {
+export function dropdownNode(options: DropdownElement["options"], selected: Signal<string>, opts: Omit<DropdownElement, "kind" | "options" | "selected"> = {}): RenderElement {
   return { kind: "dropdown", options, selected, ...opts }
 }
 
-export function radioNode(label: string, value: string, selected: Signal<string>, opts: Omit<RadioNode, "kind" | "label" | "value" | "selected"> = {}): RenderElement {
+export function radioNode(label: string, value: string, selected: Signal<string>, opts: Omit<RadioElement, "kind" | "label" | "value" | "selected"> = {}): RenderElement {
   return { kind: "radio", label, value, selected, ...opts }
 }
 
-export function textBoxNode(value: Signal<string>, opts: Omit<TextBoxNode, "kind" | "value"> = {}): RenderElement {
+export function textBoxNode(value: Signal<string>, opts: Omit<TextBoxElement, "kind" | "value"> = {}): RenderElement {
   return { kind: "textbox", value, ...opts }
 }
 
-export function rowItemNode(opts: Omit<RowNode, "kind">): RenderElement {
+export function rowItemNode(opts: Omit<RowElement, "kind">): RenderElement {
   return { kind: "listRow", ...opts }
 }
 
-export function listRowNode(opts: Omit<RowNode, "kind">): RenderElement {
+export function listRowNode(opts: Omit<RowElement, "kind">): RenderElement {
   return { kind: "listRow", ...opts }
 }
 
@@ -65,18 +65,18 @@ export function treeItem(id: string, label: string, opts: Omit<TreeItem, "id" | 
   return { id, label, ...opts }
 }
 
-export function treeViewNode(opts: Omit<TreeViewNode, "kind">): RenderElement {
+export function treeViewNode(opts: Omit<TreeViewElement, "kind">): RenderElement {
   return { kind: "treeView", ...opts }
 }
 
-export function scrollAreaNode(child: RenderElement, opts: Omit<ScrollAreaNode, "kind" | "child"> = {}): RenderElement {
+export function scrollAreaNode(child: RenderElement, opts: Omit<ScrollAreaElement, "kind" | "child"> = {}): RenderElement {
   return { kind: "scrollArea", child, ...opts }
 }
 
-export function paintNode(opts: Omit<PaintNode, "kind">): RenderElement {
+export function paintNode(opts: Omit<PaintElement, "kind">): RenderElement {
   return { kind: "paint", ...opts }
 }
 
-export function sliderNode(opts: Omit<SliderNode, "kind">): RenderElement {
+export function sliderNode(opts: Omit<SliderElement, "kind">): RenderElement {
   return { kind: "slider", ...opts }
 }

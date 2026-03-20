@@ -6,7 +6,7 @@ import { UIElement, WheelUIEvent, type Rect, type Vec2, type CursorKind, type Po
 import { TopLayerController } from "../top_layer"
 import { widgetRegistry, type WidgetDescriptor } from "./widget_registry"
 import { TREE_ROW_HEIGHT } from "../widgets/tree_row"
-import type { RenderElement, TreeItem, TreeViewNode } from "./types"
+import type { RenderElement, TreeItem, TreeViewElement } from "./types"
 import { ControlElement, type ControlDrawFn } from "./control"
 import { NodeRuntimeStateStore } from "./runtime_state"
 
@@ -156,7 +156,7 @@ export class RetainedRuntime {
     this.mountWidget("richTextSelectable", key, rect, { block, topLayer: this.topLayer }, active)
   }
 
-  mountTreeView(key: string, rect: Rect, node: TreeViewNode, active: boolean) {
+  mountTreeView(key: string, rect: Rect, node: TreeViewElement, active: boolean) {
     const rows = flattenTreeItems(node.items, node.expanded)
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i]

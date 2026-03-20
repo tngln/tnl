@@ -5,8 +5,9 @@ import { createLayoutContext, layout, measureLayout, type Rect as LayoutRect } f
 import type { DebugRuntimeStateSnapshot, DebugTreeNodeSnapshot, DrawRuntime } from "../ui_base"
 import { RetainedRuntime } from "./runtime"
 import { createDefaultBuilderRegistry, type RenderRegistry } from "./registry"
-import { defaultNodeEnv, mergeNodeEnv } from "./styles"
-import type { AstNode, BoxStyle, RenderElement, NodeEnv } from "./types"
+import { defaultNodeEnv, mergeNodeEnv } from "./env"
+import type { NodeEnv } from "./env"
+import type { AstNode, BoxStyle, RenderElement } from "./types"
 
 export class RenderEngine {
   readonly runtime: RetainedRuntime

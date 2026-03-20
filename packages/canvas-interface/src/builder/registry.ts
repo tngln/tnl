@@ -10,11 +10,11 @@ import { textBoxDescriptor } from "../widgets/textbox"
 import { TREE_ROW_HEIGHT, treeRowDescriptor } from "../widgets/tree_row"
 import { fontString } from "../text"
 import { buildButtonVisual, buildCheckboxVisual, buildListRowVisual, buildRadioVisual, drawButton, drawCheckbox, drawListRow, drawRadio } from "./draw_controls"
+import { resolveTextColor, resolveTextEmphasis, resolveTextStyle, textEnvToRichTextStyle } from "./env"
 import { drawSlider, resolveSliderValueFromPointer } from "./slider_control"
-import { resolveTextColor, resolveTextEmphasis, resolveTextStyle, textEnvToRichTextStyle } from "./styles"
 import type { RenderEngine } from "./engine"
 import type { ControlMountOpts } from "./runtime"
-import type { AstNode, RenderElement, RetainedKind, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, DropdownNode, LabelNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, TextBoxNode, TextOverflow, TreeViewNode } from "./types"
+import type { AstNode, RenderElement, RetainedKind, ButtonElement, CheckboxElement, ClickAreaElement, ContainerElement, DropdownElement, LabelElement, PaintElement, RadioElement, RichTextElement, RowElement, ScrollAreaElement, SliderElement, TextBoxElement, TextOverflow, TreeViewElement } from "./types"
 import { flattenTreeItems } from "./runtime"
 import { measureVisualNode } from "./visual"
 import { resolveDropdownVisualModel } from "./widget_visuals"
@@ -117,19 +117,19 @@ function widgetHandler<TNode extends RenderElement, TProps>(opts: WidgetHandlerO
   }
 }
 
-function containerStyle(node: ContainerNode) {
+function containerStyle(node: ContainerElement) {
   if (node.kind === "stack") return { ...node.style, axis: "stack" as LayoutStyle["axis"] }
   const axis: LayoutStyle["axis"] = node.style?.axis ?? (node.kind === "column" ? "column" : "row")
   return { ...node.style, axis }
 }
 
-const containerHandler = primitiveHandler<ContainerNode>({
+const containerHandler = primitiveHandler<ContainerElement>({
   kind: "flex",
   getChildren: (node) => node.children,
   getStyle: containerStyle,
 })
 
-type PlainTextNode = Extract<RenderElement, { kind: "text" }> | LabelNode
+type PlainTextNode = Extract<RenderElement, { kind: "text" }> | LabelElement
 
 function measurePlainTextNode(ctx: CanvasRenderingContext2D, node: PlainTextNode, max: MeasureSize, ast: AstNode, overflow: TextOverflow) {
   const style = resolveTextStyle(ast.resolvedEnv, node)
@@ -187,7 +187,7 @@ const textHandler = primitiveHandler<Extract<RenderElement, { kind: "text" }>>({
   },
 })
 
-const labelHandler = primitiveHandler<LabelNode>({
+const labelHandler = primitiveHandler<LabelElement>({
   kind: "label",
   measure: (_engine, ctx, node, max, _path, ast) => measurePlainTextNode(ctx, node, max, ast, node.overflow ?? "truncate"),
   mount: (engine, _ctx, node, ast, _path, active) => {
@@ -195,7 +195,7 @@ const labelHandler = primitiveHandler<LabelNode>({
   },
 })
 
-const richTextHandler = primitiveHandler<RichTextNode>({
+const richTextHandler = primitiveHandler<RichTextElement>({
   kind: "richText",
   runtimeKind: (node) => (node.selectable ? "widget" : "primitive"),
   measure: (engine, ctx, node, max, path, ast) => {
@@ -218,7 +218,7 @@ const richTextHandler = primitiveHandler<RichTextNode>({
   },
 })
 
-const buttonHandler = controlHandler<ButtonNode>({
+const buttonHandler = controlHandler<ButtonElement>({
   kind: "button",
   measure: (_engine, ctx, node, max) =>
     measureVisualNode(ctx, buildButtonVisual({ text: node.text, title: node.title, visualStyle: node.visualStyle, leadingIcon: node.leadingIcon, trailingIcon: node.trailingIcon }, { hover: false, pressed: false, dragging: false, disabled: !!node.disabled }, !!node.disabled), max, {
@@ -232,7 +232,7 @@ const buttonHandler = controlHandler<ButtonNode>({
     }),
 })
 
-const clickAreaHandler = controlHandler<ClickAreaNode>({
+const clickAreaHandler = controlHandler<ClickAreaElement>({
   kind: "clickArea",
   measure: () => ({ w: 0, h: 0 }),
   mountControl: (_engine, _ctx, node) => ({
@@ -242,7 +242,7 @@ const clickAreaHandler = controlHandler<ClickAreaNode>({
     }),
 })
 
-const checkboxHandler = controlHandler<CheckboxNode>({
+const checkboxHandler = controlHandler<CheckboxElement>({
   kind: "checkbox",
   measure: (_engine, ctx, node, max) =>
     measureVisualNode(ctx, buildCheckboxVisual({ label: node.label, checked: node.checked.peek(), visualStyle: node.visualStyle }, {
@@ -261,7 +261,7 @@ const checkboxHandler = controlHandler<CheckboxNode>({
     }),
 })
 
-const dropdownHandler = widgetHandler<DropdownNode, Parameters<typeof dropdownDescriptor.mount>[1]>({
+const dropdownHandler = widgetHandler<DropdownElement, Parameters<typeof dropdownDescriptor.mount>[1]>({
   kind: "dropdown",
   widgetType: "dropdown",
   measure: (_engine, ctx, node, max) => {
@@ -283,7 +283,7 @@ const dropdownHandler = widgetHandler<DropdownNode, Parameters<typeof dropdownDe
   }),
 })
 
-const radioHandler = controlHandler<RadioNode>({
+const radioHandler = controlHandler<RadioElement>({
   kind: "radio",
   measure: (_engine, ctx, node, max) =>
     measureVisualNode(ctx, buildRadioVisual({ label: node.label, value: node.value, selected: node.selected.peek(), visualStyle: node.visualStyle }, {
@@ -302,7 +302,7 @@ const radioHandler = controlHandler<RadioNode>({
     }),
 })
 
-const textBoxHandler = widgetHandler<TextBoxNode, Parameters<typeof textBoxDescriptor.mount>[1]>({
+const textBoxHandler = widgetHandler<TextBoxElement, Parameters<typeof textBoxDescriptor.mount>[1]>({
   kind: "textbox",
   widgetType: "textbox",
   measure: (_engine, ctx, node, max) => {
@@ -323,7 +323,7 @@ const textBoxHandler = widgetHandler<TextBoxNode, Parameters<typeof textBoxDescr
   }),
 })
 
-const rowItemHandler = controlHandler<RowNode>({
+const rowItemHandler = controlHandler<RowElement>({
   kind: "listRow",
   measure: (_engine, ctx, node, max) => {
     const measured = measureVisualNode(ctx, buildListRowVisual({
@@ -349,7 +349,7 @@ const rowItemHandler = controlHandler<RowNode>({
     }),
 })
 
-const treeViewHandler = primitiveHandler<TreeViewNode>({
+const treeViewHandler = primitiveHandler<TreeViewElement>({
   kind: "treeView",
   runtimeKind: "widget",
   measure: (_engine, _ctx, node, max) => {
@@ -361,7 +361,7 @@ const treeViewHandler = primitiveHandler<TreeViewNode>({
   },
 })
 
-const scrollAreaHandler = widgetHandler<ScrollAreaNode, { child: RenderElement; createTreeSurface: ReturnType<RenderEngine["runtime"]["treeSurfaceFactory"]>; measureCtx?: CanvasRenderingContext2D }>({
+const scrollAreaHandler = widgetHandler<ScrollAreaElement, { child: RenderElement; createTreeSurface: ReturnType<RenderEngine["runtime"]["treeSurfaceFactory"]>; measureCtx?: CanvasRenderingContext2D }>({
   kind: "scrollArea",
   widgetType: "scrollArea",
   measure: (engine, ctx, node, max, path, ast) => {
@@ -372,7 +372,7 @@ const scrollAreaHandler = widgetHandler<ScrollAreaNode, { child: RenderElement; 
   mountWidget: (engine, ctx, node) => ({ child: node.child, createTreeSurface: engine.runtime.treeSurfaceFactory(), measureCtx: ctx }),
 })
 
-const paintHandler = primitiveHandler<PaintNode>({
+const paintHandler = primitiveHandler<PaintElement>({
   kind: "paint",
   measure: (_engine, _ctx, node, max) => node.measure?.(max) ?? { w: max.w, h: 0 },
   mount: (engine, _ctx, node, ast, _path, active) => {
@@ -383,7 +383,7 @@ const paintHandler = primitiveHandler<PaintNode>({
   },
 })
 
-const sliderHandler = controlHandler<SliderNode>({
+const sliderHandler = controlHandler<SliderElement>({
   kind: "slider",
   measure: (_engine, ctx, node, max) => {
     return { w: max.w, h: 20 }
