@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
-import { Button, PanelActionRow, PanelColumn, PanelHeader, PanelSection, RichText, Spacer, Text, VStack } from "@tnl/canvas-interface/builder/components"
+import { Button, PanelActionRow, PanelBody, PanelColumn, PanelHeader, PanelSection, RichText, SectionStack, Text, VStack } from "@tnl/canvas-interface/builder/components"
 import { defineSurface, surfaceMount } from "@tnl/canvas-interface/builder/surface_builder"
 import { getRootCanvas, applyDocumentTheme, scheduleAnimationFrame, addWindowResizeListener } from "@tnl/canvas-interface/browser"
 import { createDeveloperToolsWindow, DEVELOPER_WINDOW_ID, type DeveloperContext } from "@tnl/canvas-interface/developer"
@@ -52,37 +52,36 @@ const DemoHomeSurface = defineSurface<DemoSurfaceProps>({
           ]}
         />
 
-        <VStack style={{ gap: theme.spacing.sm, fill: true }}>
-          <PanelSection title="What This Proves">
-            <RichText selectable>
-              <b>`canvas-interface`</b> can host its own <i>window manager</i>, <i>builder surface</i>, and <i>Developer</i> window without importing any `tnl-app` code.
-            </RichText>
-          </PanelSection>
+        <PanelBody>
+          <VStack style={{ gap: theme.spacing.sm, grow: 1, basis: 0 }}>
+            <PanelSection title="What This Proves">
+              <RichText selectable>
+                <b>`canvas-interface`</b> can host its own <i>window manager</i>, <i>builder surface</i>, and <i>Developer</i> window without importing any `tnl-app` code.
+              </RichText>
+            </PanelSection>
 
-          <PanelSection title="Live State">
-            <VStack style={{ gap: theme.spacing.xs }}>
-              <Text>{`Clicks: ${clicks.get()}`}</Text>
-              <Text tone="muted">{`Paint flash: ${props.isPaintFlashEnabled() ? "enabled" : "disabled"}`}</Text>
-              <Text tone="muted">{`Signals currently tracked: ${listSignals().length}`}</Text>
-            </VStack>
-          </PanelSection>
+            <PanelSection title="Live State">
+              <SectionStack>
+                <Text>{`Clicks: ${clicks.get()}`}</Text>
+                <Text tone="muted">{`Paint flash: ${props.isPaintFlashEnabled() ? "enabled" : "disabled"}`}</Text>
+                <Text tone="muted">{`Signals currently tracked: ${listSignals().length}`}</Text>
+              </SectionStack>
+            </PanelSection>
 
-          <PanelSection title="Suggested Checks">
-            <VStack style={{ gap: theme.spacing.xs }}>
-              <Text tone="muted">Drag and resize windows.</Text>
-              <Text tone="muted">Open Developer and inspect WM / Surface / Runtime / Data panels.</Text>
-              <Text tone="muted">Toggle paint flash and interact with this window.</Text>
-            </VStack>
-          </PanelSection>
-
-          <Spacer style={{ fill: true }} />
-
+            <PanelSection title="Suggested Checks">
+              <SectionStack>
+                <Text tone="muted">Drag and resize windows.</Text>
+                <Text tone="muted">Open Developer and inspect WM / Surface / Runtime / Data panels.</Text>
+                <Text tone="muted">Toggle paint flash and interact with this window.</Text>
+              </SectionStack>
+            </PanelSection>
+          </VStack>
           <PanelSection title="Notes">
             <Text tone="muted">
               Storage panel behavior still depends on browser OPFS availability, but the demo itself is framework-only.
             </Text>
           </PanelSection>
-        </VStack>
+        </PanelBody>
       </PanelColumn>
     )
   },

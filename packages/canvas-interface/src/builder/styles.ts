@@ -1,6 +1,6 @@
 import { theme } from "../theme"
 import type { RichTextStyle, TextEmphasis } from "../draw"
-import type { InheritedStyle, InheritedTextStyle, TextNode } from "./types"
+import type { NodeEnv, TextEnv, TextNode } from "./types"
 
 export function defaultBodyStyle(): RichTextStyle {
   return {
@@ -12,7 +12,7 @@ export function defaultBodyStyle(): RichTextStyle {
   }
 }
 
-export function defaultInheritedStyle(): InheritedStyle {
+export function defaultNodeEnv(): NodeEnv {
   return {
     text: {
       color: theme.colors.text,
@@ -24,7 +24,7 @@ export function defaultInheritedStyle(): InheritedStyle {
   }
 }
 
-function mergeTextStyle(base: InheritedTextStyle | undefined, patch: InheritedTextStyle | undefined): InheritedTextStyle | undefined {
+function mergeTextEnv(base: TextEnv | undefined, patch: TextEnv | undefined): TextEnv | undefined {
   if (!base && !patch) return undefined
   return {
     color: patch?.color ?? base?.color,
@@ -36,14 +36,14 @@ function mergeTextStyle(base: InheritedTextStyle | undefined, patch: InheritedTe
   }
 }
 
-export function mergeInheritedStyle(base: InheritedStyle, patch: Partial<InheritedStyle> | undefined): InheritedStyle {
+export function mergeNodeEnv(base: NodeEnv, patch: Partial<NodeEnv> | undefined): NodeEnv {
   if (!patch) return base
   return {
-    text: mergeTextStyle(base.text, patch.text),
+    text: mergeTextEnv(base.text, patch.text),
   }
 }
 
-export function inheritedTextToRichTextStyle(text: InheritedTextStyle | undefined): RichTextStyle {
+export function textEnvToRichTextStyle(text: TextEnv | undefined): RichTextStyle {
   return {
     fontFamily: text?.fontFamily ?? theme.typography.family,
     fontSize: text?.fontSize ?? theme.typography.body.size,
@@ -53,8 +53,8 @@ export function inheritedTextToRichTextStyle(text: InheritedTextStyle | undefine
   }
 }
 
-export function resolveTextStyle(inherited: InheritedStyle, node: TextNode): RichTextStyle {
-  const text = inherited.text
+export function resolveTextStyle(env: NodeEnv, node: TextNode): RichTextStyle {
+  const text = env.text
   return {
     fontFamily: text?.fontFamily ?? theme.typography.family,
     fontSize: text?.fontSize ?? theme.typography.body.size,
@@ -63,10 +63,10 @@ export function resolveTextStyle(inherited: InheritedStyle, node: TextNode): Ric
   }
 }
 
-export function resolveTextColor(inherited: InheritedStyle, node: TextNode) {
-  return node.color ?? inherited.text?.color ?? theme.colors.text
+export function resolveTextColor(env: NodeEnv, node: TextNode) {
+  return node.color ?? env.text?.color ?? theme.colors.text
 }
 
-export function resolveTextEmphasis(inherited: InheritedStyle, node: TextNode): TextEmphasis | undefined {
-  return node.emphasis ?? inherited.text?.emphasis
+export function resolveTextEmphasis(env: NodeEnv, node: TextNode): TextEmphasis | undefined {
+  return node.emphasis ?? env.text?.emphasis
 }

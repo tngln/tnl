@@ -22,10 +22,6 @@ export function stack(children: BuilderNode[], style?: LayoutStyle, base?: NodeB
   return { kind: "stack", children, style, ...base }
 }
 
-export function spacer(style?: LayoutStyle, base?: NodeBase): BuilderNode {
-  return { kind: "spacer", style, ...base }
-}
-
 export function textNode(text: string, opts: Omit<TextNode, "kind" | "text"> = {}): BuilderNode {
   return { kind: "text", text, ...opts }
 }

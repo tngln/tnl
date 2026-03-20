@@ -56,17 +56,26 @@ describe("layout", () => {
     expect(root.children?.[1].rect).toEqual({ x: 35, y: 20, w: 30, h: 10 })
   })
 
-  it("supports fill and fixed sizing shorthands", () => {
+  it("supports fixed sizing with grow and basis shorthands", () => {
     const root: LayoutNode = {
       style: { axis: "row" },
       children: [
         leaf("a", 10, 10, { fixed: 24 }),
-        leaf("b", 10, 10, { fill: true }),
+        leaf("b", 10, 10, { grow: 1, basis: 0 }),
       ],
     }
     layout(root, { x: 0, y: 0, w: 100, h: 20 })
     expect(root.children?.[0].rect).toEqual({ x: 0, y: 0, w: 24, h: 20 })
     expect(root.children?.[1].rect).toEqual({ x: 24, y: 0, w: 76, h: 20 })
+  })
+
+  it("stretches cross axis via alignSelf stretch", () => {
+    const root: LayoutNode = {
+      style: { axis: "row", align: "start" },
+      children: [leaf("a", 10, 10, { alignSelf: "stretch" })],
+    }
+    layout(root, { x: 0, y: 0, w: 100, h: 40 })
+    expect(root.children?.[0].rect).toEqual({ x: 0, y: 0, w: 10, h: 40 })
   })
 
   it("supports inset and child margin", () => {

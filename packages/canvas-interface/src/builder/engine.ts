@@ -5,8 +5,8 @@ import { createLayoutContext, layout, measureLayout, type Rect as LayoutRect } f
 import type { DebugRuntimeStateSnapshot, DebugTreeNodeSnapshot, DrawRuntime } from "../ui_base"
 import { BuilderRuntime } from "./runtime"
 import { createDefaultBuilderRegistry, type BuilderNodeRegistry } from "./registry"
-import { defaultInheritedStyle, mergeInheritedStyle } from "./styles"
-import type { AstNode, BoxStyle, BuilderNode, InheritedStyle } from "./types"
+import { defaultNodeEnv, mergeNodeEnv } from "./styles"
+import type { AstNode, BoxStyle, BuilderNode, NodeEnv } from "./types"
 
 export class BuilderEngine {
   readonly runtime: BuilderRuntime
@@ -41,15 +41,15 @@ export class BuilderEngine {
     return countAstRuntimeKinds(this.lastAst, this.registry)
   }
 
-  toAst(node: BuilderNode, ctx: CanvasRenderingContext2D, path: string, inherited: InheritedStyle): AstNode {
+  toAst(node: BuilderNode, ctx: CanvasRenderingContext2D, path: string, inheritedEnv: NodeEnv): AstNode {
     const handler = this.registry.get(node.kind)
-    const nextInherited = mergeInheritedStyle(inherited, node.provideStyle)
-    const resolved = mergeInheritedStyle(nextInherited, node.styleOverride)
+    const nextInheritedEnv = mergeNodeEnv(inheritedEnv, node.provideEnv)
+    const resolvedEnv = mergeNodeEnv(nextInheritedEnv, node.envOverride)
     const ast: AstNode = {
       id: nodeKey(node, path),
       builder: node,
-      inherited: nextInherited,
-      resolved,
+      inheritedEnv: nextInheritedEnv,
+      resolvedEnv,
       style: handler.getStyle?.(node as never) ?? node.style,
     }
     const children = handler.getChildren?.(node as never)
@@ -64,7 +64,7 @@ export class BuilderEngine {
           details: { parent: node.kind, axis: parentAxis, child: "listRow", path },
         })
       }
-      ast.children = children.filter(nodeVisible).map((child, index) => this.toAst(child, ctx, `${path}/${index}`, nextInherited))
+      ast.children = children.filter(nodeVisible).map((child, index) => this.toAst(child, ctx, `${path}/${index}`, nextInheritedEnv))
     } else {
       ast.measure = (max) => handler.measure?.(this, ctx, node as never, max, path, ast) ?? { w: 0, h: 0 }
     }
@@ -72,7 +72,7 @@ export class BuilderEngine {
   }
 
   measureContentWithContext(ctx: CanvasRenderingContext2D, viewportSize: Vec2, node: BuilderNode) {
-    const ast = this.toAst(node, ctx, "root", defaultInheritedStyle())
+    const ast = this.toAst(node, ctx, "root", defaultNodeEnv())
     const measured = measureLayout(ast, { w: viewportSize.x, h: Number.POSITIVE_INFINITY })
     return { x: Math.max(viewportSize.x, measured.w), y: Math.max(viewportSize.y, measured.h) }
   }
@@ -80,7 +80,7 @@ export class BuilderEngine {
   render(ctx: CanvasRenderingContext2D, size: Vec2, node: BuilderNode, rt?: DrawRuntime) {
     this.runtime.beginFrame()
     this.drawOps = []
-    const ast = this.toAst(node, ctx, "root", defaultInheritedStyle())
+    const ast = this.toAst(node, ctx, "root", defaultNodeEnv())
     const layoutContext = createLayoutContext()
     const measured = measureLayout(ast, { w: size.x, h: Number.POSITIVE_INFINITY }, layoutContext)
     const outer = { x: 0, y: 0, w: size.x, h: Math.max(size.y, measured.h) }

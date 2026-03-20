@@ -1,5 +1,5 @@
 import { createElement } from "../../jsx"
-import { PanelColumn, PanelScroll, PanelSection, PanelToolbar, RichText, Spacer, Text, VStack, defineSurface, mountSurface } from "../../builder"
+import { PanelColumn, PanelScroll, PanelSection, RichText, SplitRow, Text, VStack, defineSurface, mountSurface } from "../../builder"
 import type { DeveloperPanelSpec } from "../index"
 
 type InfoPanelSpec = {
@@ -15,11 +15,11 @@ export function createInfoPanel(spec: InfoPanelSpec): DeveloperPanelSpec {
     id: `${spec.id}.Surface`,
     setup: () => () => (
       <PanelColumn>
-        <PanelToolbar key={`${spec.id}.toolbar`}>
-          <Text key={`${spec.id}.title`} weight="bold">{spec.heading}</Text>
-          <Spacer style={{ fill: true }} />
-          <Text key={`${spec.id}.meta`} tone="muted" size="meta">Builder Panel</Text>
-        </PanelToolbar>
+        <SplitRow
+          key={`${spec.id}.toolbar`}
+          left={<Text key={`${spec.id}.title`} weight="bold">{spec.heading}</Text>}
+          right={<Text key={`${spec.id}.meta`} tone="muted" size="meta">Builder Panel</Text>}
+        />
         <PanelScroll key={`${spec.id}.scroll`}>
           <VStack style={{ padding: 6, gap: 10 }}>
               <PanelSection title="Status" key={`${spec.id}.status`}>

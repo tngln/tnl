@@ -36,7 +36,6 @@ export type LayoutStyle = {
   shrink?: number
   basis?: BasisSpec
   fixed?: number
-  fill?: boolean
 }
 
 export type Measure = (max: { w: number; h: number }) => { w: number; h: number }
@@ -122,18 +121,15 @@ function gapOf(style: LayoutStyle | undefined, axis: Axis) {
 }
 
 function growOf(style: LayoutStyle | undefined) {
-  if (style?.fill) return Math.max(1, safePos(style?.grow, 1))
   return Math.max(0, safePos(style?.grow, 0))
 }
 
 function shrinkOf(style: LayoutStyle | undefined) {
-  if (style?.fill) return Math.max(1, safePos(style?.shrink, 1))
   return Math.max(0, safePos(style?.shrink, 1))
 }
 
 function basisOf(style: LayoutStyle | undefined) {
   if (style?.fixed !== undefined) return style.fixed
-  if (style?.fill) return 0
   return style?.basis ?? "auto"
 }
 
@@ -386,17 +382,17 @@ function placeChildren(container: LayoutNode, box: Rect, cache: MeasureCache) {
       const margin = resolvePadding(child.style?.margin)
       const inner = applyMargin(box, margin)
       const m = intrinsicMeasure(child, { w: inner.w, h: inner.h }, cache)
+      const childAlign = child.style?.alignSelf ?? align
       const width = clamp(
-        typeof child.style?.w === "number" ? child.style.w : child.style?.fill ? inner.w : m.w,
+        typeof child.style?.w === "number" ? child.style.w : childAlign === "stretch" ? inner.w : m.w,
         safePos(child.style?.minW, 0),
         safePos(child.style?.maxW, Number.POSITIVE_INFINITY),
       )
       const height = clamp(
-        typeof child.style?.h === "number" ? child.style.h : child.style?.fill ? inner.h : m.h,
+        typeof child.style?.h === "number" ? child.style.h : childAlign === "stretch" ? inner.h : m.h,
         safePos(child.style?.minH, 0),
         safePos(child.style?.maxH, Number.POSITIVE_INFINITY),
       )
-      const childAlign = child.style?.alignSelf ?? align
       let x = inner.x
       let y = inner.y
       if (childAlign === "center") {
@@ -453,7 +449,7 @@ function placeChildren(container: LayoutNode, box: Rect, cache: MeasureCache) {
 
     const al = cs?.alignSelf ?? align
     alignSelf[i] = al
-    const csz = cs?.fill || al === "stretch" ? crossAvail : expCross ?? intrinsicCross
+    const csz = al === "stretch" ? crossAvail : expCross ?? intrinsicCross
     cross[i] = Math.max(0, csz)
     minCross[i] = minCrossOf(cs, axis) + (axis === "row" ? margin.t + margin.b : margin.l + margin.r)
     maxCross[i] = maxCrossOf(cs, axis) + (axis === "row" ? margin.t + margin.b : margin.l + margin.r)
@@ -471,7 +467,7 @@ function placeChildren(container: LayoutNode, box: Rect, cache: MeasureCache) {
 
   for (let i = 0; i < sizes.length; i++) sizes[i] = clamp(sizes[i], minMain[i], maxMain[i])
   for (let i = 0; i < cross.length; i++) cross[i] = clamp(cross[i], minCross[i], maxCross[i])
-  for (let i = 0; i < cross.length; i++) if (alignSelf[i] === "stretch" || children[i].style?.fill) cross[i] = crossAvail
+  for (let i = 0; i < cross.length; i++) if (alignSelf[i] === "stretch") cross[i] = crossAvail
 
   const usedMain = sizes.reduce((s, v) => s + v, 0)
   const usedGaps = gap * Math.max(0, children.length - 1)
@@ -530,10 +526,6 @@ function applyNodeSize(style: LayoutStyle | undefined, outer: Rect): Rect {
   let h = outer.h
   if (typeof style?.w === "number") w = style.w
   if (typeof style?.h === "number") h = style.h
-  if (style?.fill) {
-    w = outer.w
-    h = outer.h
-  }
   const minW = Math.max(0, safePos(style?.minW, 0))
   const minH = Math.max(0, safePos(style?.minH, 0))
   const maxW = safePos(style?.maxW, Number.POSITIVE_INFINITY)

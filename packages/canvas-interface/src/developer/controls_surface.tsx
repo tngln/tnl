@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "../jsx"
-import { Button, Checkbox, Dropdown, FormRow, PanelColumn, PanelSection, Radio, RichText, Row, Spacer, Text, TextBox, defineSurface } from "../builder"
+import { Button, Checkbox, Dropdown, FormRow, PanelColumn, PanelSection, Radio, RichText, Row, SectionStack, Text, TextBox, defineSurface } from "../builder"
 import { alertIcon, arrowRightIcon, checkCircleIcon, circleIcon, documentIcon, plusIcon, sparklesIcon, xMarkIcon } from "../icons"
 import { signal } from "../reactivity"
 
@@ -210,7 +210,7 @@ export const ControlsSurface = defineSurface({
                 key="controls.input.box"
                 value={input}
                 placeholder="Type here"
-                style={{ fill: true }}
+                style={{ grow: 1, basis: 0 }}
                 visualStyle={{
                   base: {
                     paint: { fill: "#121825" },
@@ -254,10 +254,11 @@ export const ControlsSurface = defineSurface({
               />
             }
           />
-          <Spacer style={{ fixed: 6 }} />
-          <Checkbox key="controls.checkbox" checked={checked}>Checkbox: enable something</Checkbox>
-          <Radio key="controls.radio.a" value="A" selected={radio}>Radio A</Radio>
-          <Radio key="controls.radio.b" value="B" selected={radio}>Radio B</Radio>
+          <SectionStack style={{ margin: { t: 6, r: 0, b: 0, l: 0 } }}>
+            <Checkbox key="controls.checkbox" checked={checked}>Checkbox: enable something</Checkbox>
+            <Radio key="controls.radio.a" value="A" selected={radio}>Radio A</Radio>
+            <Radio key="controls.radio.b" value="B" selected={radio}>Radio B</Radio>
+          </SectionStack>
         </PanelSection>
         <PanelSection title="Visual Style">
           <Text key="controls.visual.note" tone="muted">
@@ -400,7 +401,7 @@ export const ControlsSurface = defineSurface({
         <PanelSection title="Typography">
           <RichText
             key="controls.paragraph"
-            style={{ fill: true }}
+            style={{ alignSelf: "stretch" }}
             tone="muted"
           >
             Paragraph: <b>this should wrap automatically</b> when the window is resized narrower. <b>Bold</b>/<i>Italic</i>/<u>Underline</u> and colors are supported.

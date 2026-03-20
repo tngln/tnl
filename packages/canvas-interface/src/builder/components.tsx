@@ -19,7 +19,6 @@ import {
   scrollAreaNode,
   section,
   sliderNode,
-  spacer,
   stack,
   textBoxNode,
   treeViewNode,
@@ -28,7 +27,7 @@ import {
   type BoxStyle,
   type BuilderNode,
   type CommonNodeProps,
-  type InheritedStyle,
+  type NodeEnv,
   type RowVariant,
   type TreeItem,
 } from "./surface_builder"
@@ -151,6 +150,11 @@ type ToolbarRowProps = JSXNodeProps
 
 type PanelContainerProps = JSXNodeProps
 
+type SplitRowProps = Omit<JSXNodeProps, "children"> & {
+  left?: BuilderNode | BuilderNode[]
+  right?: BuilderNode | BuilderNode[]
+}
+
 export type PanelAction = {
   key?: string
   text: string
@@ -177,8 +181,8 @@ function common(base: {
   active?: boolean
   visible?: boolean
   box?: BoxStyle
-  provideStyle?: CommonNodeProps["provideStyle"]
-  styleOverride?: CommonNodeProps["styleOverride"]
+  provideEnv?: CommonNodeProps["provideEnv"]
+  envOverride?: CommonNodeProps["envOverride"]
 } | undefined): CommonNodeProps {
   return {
     key: base?.key,
@@ -186,8 +190,8 @@ function common(base: {
     active: base?.active,
     visible: base?.visible,
     box: base?.box,
-    provideStyle: base?.provideStyle,
-    styleOverride: base?.styleOverride,
+    provideEnv: base?.provideEnv,
+    envOverride: base?.envOverride,
   }
 }
 
@@ -197,15 +201,15 @@ function commonWithoutStyle(base: {
   active?: boolean
   visible?: boolean
   box?: BoxStyle
-  provideStyle?: CommonNodeProps["provideStyle"]
-  styleOverride?: CommonNodeProps["styleOverride"]
+  provideEnv?: CommonNodeProps["provideEnv"]
+  envOverride?: CommonNodeProps["envOverride"]
 } | undefined): Omit<CommonNodeProps, "style"> {
   const next = common(base)
   const { style: _style, ...rest } = next
   return rest
 }
 
-function mergeInherited(base: Partial<InheritedStyle> | undefined, patch: Partial<InheritedStyle> | undefined): Partial<InheritedStyle> | undefined {
+function mergeEnv(base: Partial<NodeEnv> | undefined, patch: Partial<NodeEnv> | undefined): Partial<NodeEnv> | undefined {
   if (!base && !patch) return undefined
   const text = {
     text: {
@@ -225,8 +229,8 @@ function mergeBox(base: BoxStyle, patch: BoxStyle | undefined): BoxStyle {
   return { ...base, ...(patch ?? {}) }
 }
 
-function inheritedTextPatch(props: { tone?: "primary" | "muted"; weight?: "normal" | "bold"; size?: "body" | "headline" | "meta"; color?: string; emphasis?: TextEmphasis }): Partial<InheritedStyle> | undefined {
-  const text: NonNullable<InheritedStyle["text"]> = {}
+function textEnvPatch(props: { tone?: "primary" | "muted"; weight?: "normal" | "bold"; size?: "body" | "headline" | "meta"; color?: string; emphasis?: TextEmphasis }): Partial<NodeEnv> | undefined {
+  const text: NonNullable<NodeEnv["text"]> = {}
   if (props.color) text.color = props.color
   else if (props.tone === "muted") text.color = theme.colors.textMuted
   else if (props.tone === "primary") text.color = theme.colors.text
@@ -274,17 +278,13 @@ export function Stack(props: ContainerProps) {
   return stack(resolveChildren(props), props.style, commonWithoutStyle(props))
 }
 
-export function Spacer(props: JSXNodeProps) {
-  return spacer(props.style, common(props))
-}
-
 export function Text(props: TextProps) {
   const text = props.text ?? resolveTextContent(props)
   return textNode(text, {
     ...common(props),
     color: props.color,
     emphasis: props.emphasis,
-    styleOverride: mergeInherited(props.styleOverride, inheritedTextPatch(props)),
+    envOverride: mergeEnv(props.envOverride, textEnvPatch(props)),
   })
 }
 
@@ -299,7 +299,7 @@ export function RichText(props: RichTextProps) {
     textStyle: props.textStyle,
     align: props.align,
     selectable: props.selectable,
-    styleOverride: mergeInherited(props.styleOverride, inheritedTextPatch(props)),
+    envOverride: mergeEnv(props.envOverride, textEnvPatch(props)),
   })
 }
 
@@ -355,7 +355,7 @@ export function ListRow(props: RowItemProps) {
 
 export function ScrollArea(props: ScrollAreaProps) {
   const children = resolveChildren(props)
-  const child = children.length <= 1 ? (children[0] ?? spacer()) : column(children)
+  const child = children.length <= 1 ? (children[0] ?? column([])) : column(children)
   return scrollAreaNode(child, common(props))
 }
 
@@ -402,12 +402,41 @@ export function ToolbarRow(props: ToolbarRowProps) {
   return toolbarRow(resolveChildren(props), { ...common(props), style: props.style })
 }
 
+function resolveSplitChildren(children: BuilderNode | BuilderNode[] | undefined) {
+  if (children === undefined) return [] as BuilderNode[]
+  return Array.isArray(children) ? children : [children]
+}
+
+export function SplitRow(props: SplitRowProps) {
+  const leftChildren = resolveSplitChildren(props.left)
+  const rightChildren = resolveSplitChildren(props.right)
+  const left = leftChildren.length <= 1
+    ? (leftChildren[0] ?? undefined)
+    : Row({ key: props.key ? `${props.key}.left` : undefined, style: { align: "center", gap: theme.spacing.sm, grow: 1, basis: 0 }, children: leftChildren })
+  const right = rightChildren.length <= 1
+    ? (rightChildren[0] ?? undefined)
+    : Row({ key: props.key ? `${props.key}.right` : undefined, style: { align: "center", gap: theme.spacing.sm }, children: rightChildren })
+  const children = [left, right].filter((child): child is BuilderNode => child !== undefined)
+  return Row({
+    ...props,
+    style: mergeLayout({ align: "center", justify: "space-between", gap: theme.spacing.sm }, props.style),
+    children,
+  })
+}
+
+export function SectionStack(props: ContainerProps) {
+  return VStack({
+    ...props,
+    style: mergeLayout({ gap: theme.spacing.xs }, props.style),
+  })
+}
+
 export function PanelColumn(props: PanelContainerProps) {
   return Column({
     ...props,
     style: mergeLayout({ padding: theme.spacing.sm, gap: theme.spacing.sm }, props.style),
     box: props.box,
-    provideStyle: mergeInherited(
+    provideEnv: mergeEnv(
       {
         text: {
           color: theme.colors.text,
@@ -417,7 +446,7 @@ export function PanelColumn(props: PanelContainerProps) {
           lineHeight: theme.spacing.lg,
         },
       },
-      props.provideStyle,
+      props.provideEnv,
     ),
   })
 }
@@ -430,14 +459,15 @@ export function PanelToolbar(props: ToolbarRowProps) {
 }
 
 export function PanelHeader(props: PanelHeaderProps) {
-  return PanelToolbar({
+  const trailing = [
+    ...(props.meta ? [Text({ key: props.key ? `${props.key}.meta` : undefined, tone: "muted", size: "meta", children: [props.meta] })] : []),
+    ...resolveChildren(props),
+  ]
+  return SplitRow({
     ...props,
-    children: [
-      Text({ key: props.key ? `${props.key}.title` : undefined, weight: "bold", children: [props.title] }),
-      Spacer({ style: { fill: true } }),
-      ...(props.meta ? [Text({ key: props.key ? `${props.key}.meta` : undefined, tone: "muted", size: "meta", children: [props.meta] })] : []),
-      ...resolveChildren(props),
-    ],
+    style: mergeLayout({ align: "center" }, props.style),
+    left: Text({ key: props.key ? `${props.key}.title` : undefined, weight: "bold", children: [props.title] }),
+    right: trailing,
   })
 }
 
@@ -467,9 +497,16 @@ export function PanelActionRow(props: PanelActionRowProps) {
 export function PanelScroll(props: PanelContainerProps) {
   return ScrollArea({
     ...props,
-    style: mergeLayout({ fill: true }, props.style),
+    style: mergeLayout({ grow: 1, basis: 0, alignSelf: "stretch" }, props.style),
     box: mergeBox({ fill: neutral[800] }, props.box),
-    provideStyle: props.provideStyle,
+    provideEnv: props.provideEnv,
+  })
+}
+
+export function PanelBody(props: PanelContainerProps) {
+  return VStack({
+    ...props,
+    style: mergeLayout({ grow: 1, basis: 0, alignSelf: "stretch", gap: theme.spacing.sm }, props.style),
   })
 }
 
@@ -483,7 +520,7 @@ export function PanelSection(props: SectionProps) {
       },
       props.box,
     ),
-    provideStyle: mergeInherited(
+    provideEnv: mergeEnv(
       {
         text: {
           color: theme.colors.text,
@@ -493,7 +530,7 @@ export function PanelSection(props: SectionProps) {
           lineHeight: theme.spacing.lg,
         },
       },
-      props.provideStyle,
+      props.provideEnv,
     ),
   })
 }

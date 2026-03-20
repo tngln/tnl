@@ -21,8 +21,8 @@ export function section(title: string, body: BuilderNode[], opts: PatternBase = 
       box: opts.box ?? { fill: neutral[750], stroke: neutral[500] },
       active: opts.active,
       visible: opts.visible,
-      provideStyle: opts.provideStyle,
-      styleOverride: opts.styleOverride,
+      provideEnv: opts.provideEnv,
+      envOverride: opts.envOverride,
     },
   )
 }
@@ -34,10 +34,10 @@ export function formRow(label: string, field: BuilderNode, opts: PatternBase & {
       field,
     ],
     { align: "center", gap: theme.spacing.sm, ...(opts.style ?? {}) },
-    { key: opts.key, active: opts.active, visible: opts.visible, provideStyle: opts.provideStyle, styleOverride: opts.styleOverride, box: opts.box },
+    { key: opts.key, active: opts.active, visible: opts.visible, provideEnv: opts.provideEnv, envOverride: opts.envOverride, box: opts.box },
   )
 }
 
 export function toolbarRow(children: BuilderNode[], opts: PatternBase & { key?: string } = {}): BuilderNode {
-  return row(children, { align: "center", gap: theme.spacing.sm, ...(opts.style ?? {}) }, { key: opts.key, active: opts.active, visible: opts.visible, provideStyle: opts.provideStyle, styleOverride: opts.styleOverride, box: opts.box })
+  return row(children, { align: "center", gap: theme.spacing.sm, ...(opts.style ?? {}) }, { key: opts.key, active: opts.active, visible: opts.visible, provideEnv: opts.provideEnv, envOverride: opts.envOverride, box: opts.box })
 }

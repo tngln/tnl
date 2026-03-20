@@ -32,7 +32,6 @@
 ### 尺寸分配
 
 - `fixed`
-- `fill`
 - `grow`
 - `shrink`
 - `basis`
@@ -73,11 +72,10 @@
 ### 左右分布
 
 ```tsx
-<Row style={{ align: "center", gap: 8 }}>
-  <Text tone="muted">Label</Text>
-  <Spacer style={{ fill: true }} />
-  <Text>Value</Text>
-</Row>
+<SplitRow
+  left={<Text tone="muted">Label</Text>}
+  right={<Text>Value</Text>}
+/>
 ```
 
 ### 固定标签 + 自适应字段
@@ -94,6 +92,8 @@
 
 - 普通面板先用 Builder 组件，不先算坐标
 - 优先尝试 `PanelColumn` / `PanelScroll` / `PanelSection`
-- 需要占满剩余空间时优先用 `fill` 或 `Spacer`
+- 需要占满主轴剩余空间时优先用 `grow: 1, basis: 0`
+- 需要交叉轴铺满时优先用 `align: "stretch"` / `alignSelf: "stretch"`
+- 左右分布优先用 `SplitRow` 或明确的左右分组
 - 普通页面滚动用 `ScrollArea` / `PanelScroll`
 - 只有复杂编辑器控件才脱离 Builder 自管局部布局

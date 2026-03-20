@@ -11,10 +11,10 @@ import { TREE_ROW_HEIGHT, treeRowDescriptor } from "../widgets/tree_row"
 import { fontString } from "../text"
 import { buildButtonVisual, buildCheckboxVisual, buildListRowVisual, buildRadioVisual, drawButton, drawCheckbox, drawListRow, drawRadio } from "./draw_controls"
 import { drawSlider, resolveSliderValueFromPointer } from "./slider_control"
-import { inheritedTextToRichTextStyle, resolveTextColor, resolveTextEmphasis, resolveTextStyle } from "./styles"
+import { resolveTextColor, resolveTextEmphasis, resolveTextStyle, textEnvToRichTextStyle } from "./styles"
 import type { BuilderEngine } from "./engine"
 import type { ControlMountOpts } from "./runtime"
-import type { AstNode, BuilderNode, BuilderNodeRuntimeKind, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, DropdownNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, SpacerNode, TextBoxNode, TextNode, TreeViewNode } from "./types"
+import type { AstNode, BuilderNode, BuilderNodeRuntimeKind, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, DropdownNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, TextBoxNode, TextNode, TreeViewNode } from "./types"
 import { flattenTreeItems } from "./runtime"
 import { measureVisualNode } from "./visual"
 import { resolveDropdownVisualModel } from "./widget_visuals"
@@ -132,15 +132,15 @@ const containerHandler = primitiveHandler<ContainerNode>({
 const textHandler = primitiveHandler<TextNode>({
   kind: "text",
   measure: (_engine, ctx, node, max, _path, ast) => {
-    const style = resolveTextStyle(ast.resolved, node)
-    const f = fontString(style, resolveTextEmphasis(ast.resolved, node))
+    const style = resolveTextStyle(ast.resolvedEnv, node)
+    const f = fontString(style, resolveTextEmphasis(ast.resolvedEnv, node))
     return { w: Math.min(max.w, measureTextWidth(ctx, node.text, f)), h: style.lineHeight }
   },
   mount: (engine, _ctx, node, ast, _path, active) => {
     if (!active) return
     const rect = ast.rect ?? ZERO_RECT
     engine.drawOps.push((canvas) => {
-      const style = resolveTextStyle(ast.resolved, node)
+      const style = resolveTextStyle(ast.resolvedEnv, node)
       draw(
         canvas,
         TextOp({
@@ -148,8 +148,8 @@ const textHandler = primitiveHandler<TextNode>({
           y: rect.y,
           text: node.text,
           style: {
-            color: resolveTextColor(ast.resolved, node),
-            font: fontString(style, resolveTextEmphasis(ast.resolved, node)),
+            color: resolveTextColor(ast.resolvedEnv, node),
+            font: fontString(style, resolveTextEmphasis(ast.resolvedEnv, node)),
             baseline: "top",
           },
         }),
@@ -162,19 +162,19 @@ const richTextHandler = primitiveHandler<RichTextNode>({
   kind: "richText",
   runtimeKind: (node) => (node.selectable ? "widget" : "primitive"),
   measure: (engine, ctx, node, max, path, ast) => {
-    const block = engine.runtime.ensureRichBlock(path, node.spans, node.textStyle ?? inheritedTextToRichTextStyle(ast.resolved.text), node.align)
+    const block = engine.runtime.ensureRichBlock(path, node.spans, node.textStyle ?? textEnvToRichTextStyle(ast.resolvedEnv.text), node.align)
     return block.measure(ctx, Math.max(0, max.w))
   },
   mount: (engine, _ctx, node, ast, path, active) => {
     const rect = ast.rect ?? ZERO_RECT
     if (node.selectable) {
-      const block = engine.runtime.ensureRichBlock(path, node.spans, node.textStyle ?? inheritedTextToRichTextStyle(ast.resolved.text), node.align)
+      const block = engine.runtime.ensureRichBlock(path, node.spans, node.textStyle ?? textEnvToRichTextStyle(ast.resolvedEnv.text), node.align)
       engine.runtime.mountWidget("richTextSelectable", path, rect, { block, topLayer: engine.runtime.topLayer }, active)
       return
     }
     if (!active) return
     engine.drawOps.push((canvas) => {
-      const block = engine.runtime.ensureRichBlock(path, node.spans, node.textStyle ?? inheritedTextToRichTextStyle(ast.resolved.text), node.align)
+      const block = engine.runtime.ensureRichBlock(path, node.spans, node.textStyle ?? textEnvToRichTextStyle(ast.resolvedEnv.text), node.align)
       block.measure(canvas, rect.w)
       block.draw(canvas, { x: rect.x, y: rect.y })
     })
@@ -328,7 +328,7 @@ const scrollAreaHandler = widgetHandler<ScrollAreaNode, { child: BuilderNode; cr
   kind: "scrollArea",
   widgetType: "scrollArea",
   measure: (engine, ctx, node, max, path, ast) => {
-    const childAst = engine.toAst(node.child, ctx, `${path}/content`, ast.inherited)
+    const childAst = engine.toAst(node.child, ctx, `${path}/content`, ast.inheritedEnv)
     const child = measureLayout(childAst, { w: max.w, h: Number.POSITIVE_INFINITY })
     return { w: max.w, h: Math.min(max.h, child.h) }
   },
@@ -376,11 +376,6 @@ const sliderHandler = controlHandler<SliderNode>({
   },
 })
 
-const spacerHandler = primitiveHandler<SpacerNode>({
-  kind: "spacer",
-  measure: () => ({ w: 0, h: 0 }),
-})
-
 export function createDefaultBuilderRegistry() {
   const registry = new BuilderNodeRegistry()
   registry.register(containerHandler)
@@ -401,6 +396,5 @@ export function createDefaultBuilderRegistry() {
   registry.register(scrollAreaHandler)
   registry.register(paintHandler)
   registry.register(sliderHandler)
-  registry.register(spacerHandler)
   return registry
 }

@@ -11,7 +11,7 @@ export type BoxStyle = {
   radius?: number
 }
 
-export type InheritedTextStyle = {
+export type TextEnv = {
   color?: string
   fontFamily?: string
   fontSize?: number
@@ -20,8 +20,8 @@ export type InheritedTextStyle = {
   emphasis?: TextEmphasis
 }
 
-export type InheritedStyle = {
-  text?: InheritedTextStyle
+export type NodeEnv = {
+  text?: TextEnv
 }
 
 export type BuilderNodeRuntimeKind = "primitive" | "control" | "widget"
@@ -32,8 +32,8 @@ type NodeBase = {
   active?: boolean
   visible?: boolean
   box?: BoxStyle
-  provideStyle?: Partial<InheritedStyle>
-  styleOverride?: Partial<InheritedStyle>
+  provideEnv?: Partial<NodeEnv>
+  envOverride?: Partial<NodeEnv>
 }
 
 export type CommonNodeProps = NodeBase
@@ -41,10 +41,6 @@ export type CommonNodeProps = NodeBase
 export type ContainerNode = NodeBase & {
   kind: "flex" | "row" | "column" | "stack"
   children: BuilderNode[]
-}
-
-export type SpacerNode = NodeBase & {
-  kind: "spacer"
 }
 
 export type TextNode = NodeBase & {
@@ -166,7 +162,6 @@ export type SliderNode = NodeBase & {
 
 export type BuilderNode =
   | ContainerNode
-  | SpacerNode
   | TextNode
   | RichTextNode
   | ButtonNode
@@ -183,8 +178,8 @@ export type BuilderNode =
 
 export type AstNode = LayoutNode & {
   builder: BuilderNode
-  inherited: InheritedStyle
-  resolved: InheritedStyle
+  inheritedEnv: NodeEnv
+  resolvedEnv: NodeEnv
   children?: AstNode[]
 }
 

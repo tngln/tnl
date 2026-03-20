@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
-import { PanelColumn, RichText, Spacer, Text } from "@tnl/canvas-interface/builder/components"
+import { PanelColumn, RichText, SectionStack, Text } from "@tnl/canvas-interface/builder/components"
 import { defineSurface, surfaceMount } from "@tnl/canvas-interface/builder/surface_builder"
 import { theme } from "@tnl/canvas-interface/theme"
 import { SurfaceWindow } from "@tnl/canvas-interface/window"
@@ -9,14 +9,14 @@ export const ABOUT_DIALOG_ID = "Help.About"
 const AboutBodySurface = defineSurface({
   id: "About.Body",
   setup: () => () => (
-      <PanelColumn>
-        <Text key="about.headline" size="headline" weight="bold">tnl - Tung's Non-Linear Editor</Text>
-        <Spacer style={{ fixed: 10 }} />
-        <Text key="about.license" tone="muted">MIT License</Text>
-        <Spacer style={{ fixed: theme.spacing.xs }} />
-        <RichText key="about.copy" tone="muted" selectable>
-          Copyright (c) <b>Tung Leen</b> & <u>tnl contributors</u>. <i>All rights reserved.</i> This message is here mostly to fill space.
-        </RichText>
+    <PanelColumn>
+        <SectionStack style={{ gap: theme.spacing.sm }}>
+          <Text key="about.headline" size="headline" weight="bold">tnl - Tung's Non-Linear Editor</Text>
+          <Text key="about.license" tone="muted">MIT License</Text>
+          <RichText key="about.copy" tone="muted" selectable>
+            Copyright (c) <b>Tung Leen</b> & <u>tnl contributors</u>. <i>All rights reserved.</i> This message is here mostly to fill space.
+          </RichText>
+        </SectionStack>
       </PanelColumn>
     ),
 })

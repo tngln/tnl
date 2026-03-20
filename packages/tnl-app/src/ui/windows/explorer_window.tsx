@@ -5,7 +5,7 @@ import { getSeekableEnd, probeVideoDuration, resolvePlaybackDuration } from "@tn
 import { buildAcceptString } from "@tnl/app/platform"
 import { baseName, dirName, formatBytes, formatLocalTime } from "@tnl/canvas-interface/util"
 import type { Surface } from "@tnl/canvas-interface/viewport"
-import { Button, ClickArea, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelToolbar, Spacer, Stack, Text, TextBox, VStack } from "@tnl/canvas-interface/builder/components"
+import { Button, ClickArea, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelToolbar, SplitRow, Stack, Text, TextBox, VStack } from "@tnl/canvas-interface/builder/components"
 import { defineSurface, mountSurface } from "@tnl/canvas-interface/builder/surface_builder"
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { createAsyncJobState } from "@tnl/canvas-interface/async_state"
@@ -831,7 +831,7 @@ export const ExplorerSurface = defineSurface({
                         </VStack>
                         <ClickArea
                           key={`explorer.thumb.click.${e.id}`}
-                          style={{ fill: true }}
+                          style={{ alignSelf: "stretch" }}
                           onClick={() => {
                             selected = item
                             requestRender()
@@ -840,7 +840,7 @@ export const ExplorerSurface = defineSurface({
                       </Stack>
                     )
                   })}
-                  {row.length < cols ? Array.from({ length: cols - row.length }).map((_, i) => <Spacer key={`explorer.thumb.pad.${ridx}.${i}`} style={{ fixed: 168 }} />) : null}
+                  {row.length < cols ? Array.from({ length: cols - row.length }).map((_, i) => <VStack key={`explorer.thumb.pad.${ridx}.${i}`} style={{ fixed: 168 }} />) : null}
                 </HStack>
               ))
             })()}
@@ -912,32 +912,37 @@ export const ExplorerSurface = defineSurface({
               {statusText}
             </Text>
           </PanelHeader>
-          <PanelToolbar key="explorer.address" style={{ gap: theme.spacing.xs }}>
-            <Button text="←" title="Back" style={{ fixed: 32 }} disabled={!canBack || busy} onClick={() => void goBack()} />
-            <Button text="→" title="Forward" style={{ fixed: 32 }} disabled={!canForward || busy} onClick={() => void goForward()} />
-            <Button text="↑" title="Up" style={{ fixed: 32 }} disabled={!cwdPrefix || busy} onClick={() => void goUp()} />
-            <TextBox value={address} placeholder="path (empty = root)" style={{ fill: true }} disabled={busy} />
-            <Button text="Go" title="Go" style={{ fixed: 44 }} disabled={busy} onClick={() => void navigateToAddress()} />
-            <Spacer style={{ fixed: theme.spacing.xs }} />
-            <Button
-              text="List"
-              title="List view"
-              style={{ fixed: 52 }}
-              disabled={busy || currentViewMode === "list"}
-              onClick={() => {
-                viewMode.set("list")
-              }}
-            />
-            <Button
-              text="Thumb"
-              title="Thumbnail view"
-              style={{ fixed: 64 }}
-              disabled={busy || currentViewMode === "thumbs"}
-              onClick={() => {
-                viewMode.set("thumbs")
-              }}
-            />
-          </PanelToolbar>
+          <SplitRow
+            key="explorer.address"
+            style={{ gap: theme.spacing.xs }}
+            left={[
+              <Button text="←" title="Back" style={{ fixed: 32 }} disabled={!canBack || busy} onClick={() => void goBack()} />,
+              <Button text="→" title="Forward" style={{ fixed: 32 }} disabled={!canForward || busy} onClick={() => void goForward()} />,
+              <Button text="↑" title="Up" style={{ fixed: 32 }} disabled={!cwdPrefix || busy} onClick={() => void goUp()} />,
+              <TextBox value={address} placeholder="path (empty = root)" style={{ grow: 1, basis: 0 }} disabled={busy} />,
+              <Button text="Go" title="Go" style={{ fixed: 44 }} disabled={busy} onClick={() => void navigateToAddress()} />,
+            ]}
+            right={[
+              <Button
+                text="List"
+                title="List view"
+                style={{ fixed: 52 }}
+                disabled={busy || currentViewMode === "list"}
+                onClick={() => {
+                  viewMode.set("list")
+                }}
+              />,
+              <Button
+                text="Thumb"
+                title="Thumbnail view"
+                style={{ fixed: 64 }}
+                disabled={busy || currentViewMode === "thumbs"}
+                onClick={() => {
+                  viewMode.set("thumbs")
+                }}
+              />,
+            ]}
+          />
           <PanelToolbar key="explorer.breadcrumb" style={{ gap: theme.spacing.xs }}>
             {breadcrumbNodes}
           </PanelToolbar>
@@ -953,7 +958,7 @@ export const ExplorerSurface = defineSurface({
               { key: "delete", icon: "X", text: "Delete", title: "Delete selected", onClick: () => void deleteSelected(), disabled: busy || !selectedIsFile },
             ]}
           />
-          <HStack key="explorer.body" style={{ gap: theme.spacing.sm, fill: true }}>
+          <HStack key="explorer.body" style={{ gap: theme.spacing.sm, align: "start", grow: 1, basis: 0, alignSelf: "stretch" }}>
             <PanelScroll key="explorer.content">{content}</PanelScroll>
             <VStack
               key="explorer.details"

@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "../../jsx"
-import { Button, ListRow, PanelColumn, PanelScroll, PanelSection, PanelToolbar, Spacer, Text, TextBox, VStack, defineSurface, mountSurface } from "../../builder"
+import { Button, ListRow, PanelColumn, PanelScroll, PanelSection, SplitRow, Text, TextBox, VStack, defineSurface, mountSurface } from "../../builder"
 import { signal } from "../../reactivity"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 import type { DebugBlitInfo, DebugLayerInfo } from "../../ui"
@@ -80,40 +80,38 @@ export const SurfacePanelSurface = defineSurface<Props>({
 
       return (
         <PanelColumn>
-          <PanelToolbar key="surface.toolbar">
-            <Text key="surface.title" weight="bold">Compositor</Text>
-            <Spacer style={{ fixed: 8 }} />
-            <TextBox key="surface.filter" value={filter} placeholder="Filter (id / surface)" />
-            <Spacer style={{ fixed: 8 }} />
-            <Button
-              key="surface.freeze"
-              text={frozen ? "Unfreeze" : "Freeze"}
-              onClick={() => {
-                frozen = !frozen
-              }}
-            />
-            <Spacer style={{ fixed: 8 }} />
-            <Button
-              key="surface.clear"
-              text="Clear"
-              onClick={() => {
-                selectedId.set(null)
-                applyOverlay(null)
-              }}
-            />
-            <Spacer style={{ fixed: 8 }} />
-            <Button
-              key="surface.paintFlash"
-              text={paintFlash.peek() ? "Paint Flash: On" : "Paint Flash: Off"}
-              onClick={() => {
-                const next = !paintFlash.peek()
-                paintFlash.set(next)
-                ctx.surface?.setPaintFlash?.(next)
-              }}
-            />
-            <Spacer style={{ fill: true }} />
-            <Text key="surface.meta" tone="muted" size="meta">{`${visible.length}/${layers.length} layers · ${blits.length} blits`}</Text>
-          </PanelToolbar>
+          <SplitRow
+            key="surface.toolbar"
+            left={[
+              <Text key="surface.title" weight="bold">Compositor</Text>,
+              <TextBox key="surface.filter" value={filter} placeholder="Filter (id / surface)" style={{ grow: 1, basis: 0 }} />,
+              <Button
+                key="surface.freeze"
+                text={frozen ? "Unfreeze" : "Freeze"}
+                onClick={() => {
+                  frozen = !frozen
+                }}
+              />,
+              <Button
+                key="surface.clear"
+                text="Clear"
+                onClick={() => {
+                  selectedId.set(null)
+                  applyOverlay(null)
+                }}
+              />,
+              <Button
+                key="surface.paintFlash"
+                text={paintFlash.peek() ? "Paint Flash: On" : "Paint Flash: Off"}
+                onClick={() => {
+                  const next = !paintFlash.peek()
+                  paintFlash.set(next)
+                  ctx.surface?.setPaintFlash?.(next)
+                }}
+              />,
+            ]}
+            right={<Text key="surface.meta" tone="muted" size="meta">{`${visible.length}/${layers.length} layers · ${blits.length} blits`}</Text>}
+          />
 
           <PanelSection title="Selection" key="surface.selection">
             <VStack style={{ gap: 4 }}>

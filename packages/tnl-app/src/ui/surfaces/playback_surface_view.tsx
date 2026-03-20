@@ -3,7 +3,7 @@ import { draw, RectOp, TextOp as DrawTextOp } from "@tnl/canvas-interface/draw"
 import { getDebugLevel, listDebugEntries, setDebugLevel, type DebugEntry, type DebugLevel } from "@tnl/canvas-interface/debug"
 import { signal } from "@tnl/canvas-interface/reactivity"
 import { baseNameOr } from "@tnl/canvas-interface/util"
-import { Button, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, SliderField, Spacer, Text, VStack } from "@tnl/canvas-interface/builder/components"
+import { Button, HStack, ListRow, Paint, PanelActionRow, PanelBody, PanelColumn, PanelHeader, PanelScroll, PanelSection, SectionStack, SliderField, SplitRow, Text, VStack } from "@tnl/canvas-interface/builder/components"
 import { defineSurface } from "@tnl/canvas-interface/builder/surface_builder"
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { getPlaybackSession } from "@tnl/app/playback"
@@ -139,7 +139,7 @@ export const PlaybackSurface = defineSurface({
                 </PanelSection>
               </VStack>
 
-              <VStack style={{ gap: 10, grow: 1, basis: 0, fill: true }}>
+              <PanelBody style={{ gap: 10 }}>
                 <PanelSection key="playback.preview" title="Preview">
                   <Paint
                     key="playback.preview.canvas"
@@ -194,11 +194,11 @@ export const PlaybackSurface = defineSurface({
                       )
                     }}
                   />
-                  <HStack style={{ align: "center", gap: 8, margin: { t: 8, r: 0, b: 0, l: 0 } }}>
-                    <Text weight="bold">{timecode}</Text>
-                    <Spacer style={{ fill: true }} />
-                    <Text tone="muted">{timeText}</Text>
-                  </HStack>
+                  <SplitRow
+                    style={{ margin: { t: 8, r: 0, b: 0, l: 0 } }}
+                    left={<Text weight="bold">{timecode}</Text>}
+                    right={<Text tone="muted">{timeText}</Text>}
+                  />
                 </PanelSection>
 
                 <PanelSection key="playback.transport" title="Transport">
@@ -212,18 +212,20 @@ export const PlaybackSurface = defineSurface({
                     onChange={(next) => session.seekTo(next)}
                     disabled={!runtime.ready || state.busy}
                   />
-                  <HStack style={{ align: "center", gap: 8, margin: { t: 10, r: 0, b: 0, l: 0 } }}>
-                    <Button text="Prev" onClick={() => session.stepFrame(-1)} disabled={!runtime.ready || state.busy} style={{ fixed: 64 }} />
-                    <Button text={runtime.playing ? "Pause" : "Play"} onClick={() => void session.togglePlayPause()} disabled={!runtime.ready || state.busy} style={{ fixed: 72 }} />
-                    <Button text="Next" onClick={() => session.stepFrame(1)} disabled={!runtime.ready || state.busy} style={{ fixed: 64 }} />
-                    <Spacer style={{ fill: true }} />
-                    <Text tone="muted">{timeText}</Text>
-                  </HStack>
+                  <SplitRow
+                    style={{ margin: { t: 10, r: 0, b: 0, l: 0 } }}
+                    left={[
+                      <Button text="Prev" onClick={() => session.stepFrame(-1)} disabled={!runtime.ready || state.busy} style={{ fixed: 64 }} />,
+                      <Button text={runtime.playing ? "Pause" : "Play"} onClick={() => void session.togglePlayPause()} disabled={!runtime.ready || state.busy} style={{ fixed: 72 }} />,
+                      <Button text="Next" onClick={() => session.stepFrame(1)} disabled={!runtime.ready || state.busy} style={{ fixed: 64 }} />,
+                    ]}
+                    right={<Text tone="muted">{timeText}</Text>}
+                  />
                   <HStack style={{ align: "center", gap: 8, margin: { t: 10, r: 0, b: 0, l: 0 } }}>
                     <Text tone="muted" size="meta" style={{ fixed: 52 }}>Volume</Text>
                     <SliderField
                       key="playback.transport.volume"
-                      style={{ grow: 1, basis: 0, fill: true }}
+                      style={{ grow: 1, basis: 0 }}
                       min={0}
                       max={1}
                       value={runtime.volume}
@@ -232,22 +234,24 @@ export const PlaybackSurface = defineSurface({
                     />
                     <Button text={runtime.muted ? "Unmute" : "Mute"} onClick={() => session.toggleMuted()} disabled={state.busy} style={{ fixed: 84 }} />
                   </HStack>
-                  <HStack style={{ align: "center", gap: 8, margin: { t: 10, r: 0, b: 0, l: 0 } }}>
-                    <Text tone="muted" size="meta" style={{ fixed: 52 }}>Rate</Text>
-                    <Button text="-" onClick={() => session.setPlaybackRate(runtime.playbackRate / 2)} disabled={state.busy} style={{ fixed: 32 }} />
-                    <Text style={{ fixed: 64 }}>{runtime.playbackRate.toFixed(2)}x</Text>
-                    <Button text="+" onClick={() => session.setPlaybackRate(runtime.playbackRate * 2)} disabled={state.busy} style={{ fixed: 32 }} />
-                    <Spacer style={{ fill: true }} />
-                    <Text tone="muted" size="meta">{runtime.ready ? `${runtime.width}x${runtime.height}` : "No media"}</Text>
-                  </HStack>
+                  <SplitRow
+                    style={{ margin: { t: 10, r: 0, b: 0, l: 0 } }}
+                    left={[
+                      <Text tone="muted" size="meta" style={{ fixed: 52 }}>Rate</Text>,
+                      <Button text="-" onClick={() => session.setPlaybackRate(runtime.playbackRate / 2)} disabled={state.busy} style={{ fixed: 32 }} />,
+                      <Text style={{ fixed: 64 }}>{runtime.playbackRate.toFixed(2)}x</Text>,
+                      <Button text="+" onClick={() => session.setPlaybackRate(runtime.playbackRate * 2)} disabled={state.busy} style={{ fixed: 32 }} />,
+                    ]}
+                    right={<Text tone="muted" size="meta">{runtime.ready ? `${runtime.width}x${runtime.height}` : "No media"}</Text>}
+                  />
                 </PanelSection>
 
                 <PanelSection key="playback.diagnostics" title="Diagnostics">
-                  <VStack>
+                  <SectionStack>
                     {diagnostics.map((row) => (
                       <ListRow key={row.id} leftText={row.left} rightText={row.right} />
                     ))}
-                  </VStack>
+                  </SectionStack>
                   {runtime.error ? (
                     <Text color={theme.colors.danger} size="meta" style={{ margin: { t: 8, r: 0, b: 0, l: 0 } }}>{runtime.error}</Text>
                   ) : null}
@@ -276,7 +280,7 @@ export const PlaybackSurface = defineSurface({
                     )}
                   </VStack>
                 </PanelSection>
-              </VStack>
+              </PanelBody>
             </HStack>
           </PanelScroll>
         </PanelColumn>

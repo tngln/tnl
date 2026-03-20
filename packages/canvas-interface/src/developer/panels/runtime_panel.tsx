@@ -1,5 +1,5 @@
 import { createElement } from "../../jsx"
-import { PanelColumn, PanelScroll, PanelSection, PanelToolbar, Spacer, Text, VStack, defineSurface, mountSurface } from "../../builder"
+import { PanelColumn, PanelScroll, PanelSection, SplitRow, Text, VStack, defineSurface, mountSurface } from "../../builder"
 import type { DebugCanvasRuntimeSnapshot } from "../../ui"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 
@@ -27,11 +27,11 @@ const RuntimePanelSurface = defineSurface({
       const runtime = ctx.surface?.getRuntime?.() ?? null
       return (
         <PanelColumn>
-          <PanelToolbar key="runtime.toolbar">
-            <Text weight="bold">Interaction Runtime</Text>
-            <Spacer style={{ fill: true }} />
-            <Text tone="muted" size="meta">{runtime ? `${runtime.recentEvents.length} events · ${runtime.invalidations.length} invalidations` : "No runtime"}</Text>
-          </PanelToolbar>
+          <SplitRow
+            key="runtime.toolbar"
+            left={<Text weight="bold">Interaction Runtime</Text>}
+            right={<Text tone="muted" size="meta">{runtime ? `${runtime.recentEvents.length} events · ${runtime.invalidations.length} invalidations` : "No runtime"}</Text>}
+          />
           <PanelSection title="Sessions" key="runtime.sessions">
             {runtime ? <SessionSummary runtime={runtime} /> : <Text tone="muted" size="meta">Runtime snapshot is not connected.</Text>}
           </PanelSection>

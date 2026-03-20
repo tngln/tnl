@@ -13,7 +13,7 @@ export const TextSurfaceDefinition: SurfaceDefinition<TextSurfaceProps> = define
       <RichText
         key="body"
         tone="muted"
-        style={{ fill: true }}
+        style={{ grow: 1, basis: 0 }}
         spans={[{ text: props.body }]}
       />
     </PanelColumn>

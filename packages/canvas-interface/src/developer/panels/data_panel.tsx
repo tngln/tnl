@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "../../jsx"
-import { Button, PanelColumn, PanelScroll, PanelSection, PanelToolbar, Spacer, Text, TreeView, VStack, defineSurface, mountSurface, type TreeItem } from "../../builder"
+import { Button, PanelColumn, PanelScroll, PanelSection, SplitRow, Text, TreeView, VStack, defineSurface, mountSurface, type TreeItem } from "../../builder"
 import type { DeveloperPanelSpec } from "../index"
 import { getStateTreeItems } from "../states"
 import { listSignals, type DebugSignalRecord } from "../../reactivity"
@@ -81,26 +81,27 @@ export const DataPanelSurface = defineSurface({
       const selectedStack = selected ? formatStack(selected.createdStack) : ""
       return (
         <PanelColumn>
-          <PanelToolbar key="data.toolbar">
-            <Text key="data.title" weight="bold">State Tree</Text>
-            <Spacer style={{ fixed: 8 }} />
-            <Button
-              key="data.expandCollapse"
-              text={hasCollapsed ? "Expand All" : "Collapse All"}
-              title={hasCollapsed ? "Expand all groups" : "Collapse all groups"}
-              style={{ fixed: 110 }}
-              disabled={!expandableIds.size}
-              onClick={() => {
-                if (hasCollapsed) {
-                  for (const id of expandableIds) expanded.add(id)
-                } else {
-                  expanded.clear()
-                }
-              }}
-            />
-            <Spacer style={{ fill: true }} />
-            <Text key="data.meta" tone="muted" size="meta">{`${items.length} roots`}</Text>
-          </PanelToolbar>
+          <SplitRow
+            key="data.toolbar"
+            left={[
+              <Text key="data.title" weight="bold">State Tree</Text>,
+              <Button
+                key="data.expandCollapse"
+                text={hasCollapsed ? "Expand All" : "Collapse All"}
+                title={hasCollapsed ? "Expand all groups" : "Collapse all groups"}
+                style={{ fixed: 110 }}
+                disabled={!expandableIds.size}
+                onClick={() => {
+                  if (hasCollapsed) {
+                    for (const id of expandableIds) expanded.add(id)
+                  } else {
+                    expanded.clear()
+                  }
+                }}
+              />,
+            ]}
+            right={<Text key="data.meta" tone="muted" size="meta">{`${items.length} roots`}</Text>}
+          />
           <PanelSection title="Selection" key="data.selection">
             <VStack style={{ gap: 4 }}>
               {selected ? (

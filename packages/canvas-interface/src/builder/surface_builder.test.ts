@@ -337,7 +337,7 @@ describe("surface builder", () => {
       id: "Builder.Inherit.Custom",
       build: () =>
         column([textNode("MMMM")], undefined, {
-          provideStyle: { text: { fontSize: 20, lineHeight: 24 } },
+          provideEnv: { text: { fontSize: 20, lineHeight: 24 } },
         }),
     })
 
@@ -348,7 +348,7 @@ describe("surface builder", () => {
     })
   })
 
-  it("does not propagate styleOverride to descendants", () => {
+  it("does not propagate envOverride to descendants", () => {
     const surface = new BuilderSurface({
       id: "Builder.Override.Scope",
       build: () =>
@@ -358,11 +358,11 @@ describe("surface builder", () => {
             column(
               [textNode("MMMM", { key: "nested" })],
               { axis: "column" },
-              { styleOverride: { text: { fontSize: 8, lineHeight: 10 } } },
+              { envOverride: { text: { fontSize: 8, lineHeight: 10 } } },
             ),
           ],
           { axis: "column" },
-          { provideStyle: { text: { fontSize: 20, lineHeight: 24 } } },
+          { provideEnv: { text: { fontSize: 20, lineHeight: 24 } } },
         ),
     })
 
@@ -383,7 +383,7 @@ describe("surface builder", () => {
             }),
           ],
           { axis: "column" },
-          { provideStyle: { text: { fontSize: 14, lineHeight: 20 } } },
+          { provideEnv: { text: { fontSize: 14, lineHeight: 20 } } },
         ),
     })
 
