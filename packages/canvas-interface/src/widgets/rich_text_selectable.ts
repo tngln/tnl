@@ -6,18 +6,13 @@ import { createMeasureContext } from "../platform/web/canvas"
 import { UIElement } from "../ui_base"
 import type { TopLayerController } from "../top_layer"
 import { clamp } from "../builder/utils"
+import { blurTextSession, blurTextSessionBridge, createSessionBridgeState, createTextSessionState, focusTextSession, focusTextSessionBridge, normalizedTextSessionSelection, setSessionSelection, syncTextSessionBridge, type TextSessionState } from "../text"
 import type { MenuItem } from "./menu"
 import { MenuStack } from "./menu_stack"
 import type { WidgetDescriptor } from "../builder/widget_registry"
 
 function hasShortcutModifier(e: { ctrlKey: boolean; metaKey: boolean }) {
   return e.ctrlKey || e.metaKey
-}
-
-function normalizeSelection(a: number, b: number) {
-  const start = Math.min(a, b)
-  const end = Math.max(a, b)
-  return { start, end }
 }
 
 function layoutPlainText(layout: RichTextLayout) {
@@ -102,10 +97,8 @@ export class RichTextSelectable extends UIElement {
   private lineStartIndex: number[] = []
   private linesText: string[] = []
 
-  private focused = false
   private dragAnchor: number | null = null
-  private selectionStart = 0
-  private selectionEnd = 0
+  private readonly session: TextSessionState = createTextSessionState()
 
   private readonly menuId: string
   private stack: MenuStack | null = null
@@ -130,42 +123,39 @@ export class RichTextSelectable extends UIElement {
 
     this.on("focus", () => {
       if (!this.active) return
-      this.focused = true
+      focusTextSession(this.session)
       const b = get1pxTextareaBridge()
-      const selection = normalizeSelection(this.selectionStart, this.selectionEnd)
-      b.focus(
+      focusTextSessionBridge(
+        b,
         {
           id: this.sessionId,
           onStateChange: (next) => {
             if (next.value !== this.text) return
-            this.selectionStart = next.selectionStart
-            this.selectionEnd = next.selectionEnd
+            setSessionSelection(this.session, next.value, next.selectionStart, next.selectionEnd)
             this.invalidateSelf({ pad: 8 })
           },
           onBlur: () => {
-            if (!this.focused) return
-            this.focused = false
+            if (!this.session.focused) return
+            blurTextSession(this.session)
             this.dragAnchor = null
             this.invalidateSelf({ pad: 8 })
           },
         },
-        { value: this.text, selectionStart: selection.start, selectionEnd: selection.end },
+        createSessionBridgeState(this.text, this.session, { x: this.rect.x, y: this.rect.y, w: 1, h: this.rect.h }),
       )
       this.invalidateSelf({ pad: 8 })
     })
     this.on("blur", () => {
-      this.focused = false
+      blurTextSession(this.session)
       this.dragAnchor = null
-      const collapsed = Math.max(0, Math.min(this.text.length, Math.max(this.selectionStart, this.selectionEnd)))
-      this.selectionStart = collapsed
-      this.selectionEnd = collapsed
-      get1pxTextareaBridge().blur(this.sessionId)
+      blurTextSessionBridge(get1pxTextareaBridge(), this.sessionId)
       this.invalidateSelf({ pad: 8 })
     })
     this.on("pointerdown", (e) => {
       if (!this.active) return
       if (e.button === 2) {
-        if (this.selectionStart !== this.selectionEnd) {
+        const selection = normalizedTextSessionSelection(this.session)
+        if (selection.selectionStart !== selection.selectionEnd) {
           this.openContextMenu({ x: e.x, y: e.y })
           e.handle()
           e.stopPropagation()
@@ -221,7 +211,7 @@ export class RichTextSelectable extends UIElement {
       this.dragAnchor = null
     })
     this.on("keydown", (e) => {
-      if (!this.focused || !this.active) return
+      if (!this.session.focused || !this.active) return
       if (hasShortcutModifier(e) && e.code === "KeyA") {
         this.setSelection(0, this.text.length)
         this.syncBridge()
@@ -255,16 +245,13 @@ export class RichTextSelectable extends UIElement {
   }
 
   private syncBridge() {
-    if (!this.focused) return
+    if (!this.session.focused) return
     const b = get1pxTextareaBridge()
-    const selection = normalizeSelection(this.selectionStart, this.selectionEnd)
-    b.sync(this.sessionId, { value: this.text, selectionStart: selection.start, selectionEnd: selection.end })
+    syncTextSessionBridge(b, this.sessionId, createSessionBridgeState(this.text, this.session, { x: this.rect.x, y: this.rect.y, w: 1, h: this.rect.h }))
   }
 
   private setSelection(a: number, b: number) {
-    const max = this.text.length
-    this.selectionStart = clamp(a, 0, max)
-    this.selectionEnd = clamp(b, 0, max)
+    setSessionSelection(this.session, this.text, a, b)
   }
 
   private indexFromPoint(ctx: Any2DContext, p: Vec2, layout: RichTextLayout) {
@@ -282,8 +269,8 @@ export class RichTextSelectable extends UIElement {
   }
 
   private selectedText() {
-    const s = normalizeSelection(this.selectionStart, this.selectionEnd)
-    return this.text.slice(s.start, s.end)
+    const selection = normalizedTextSessionSelection(this.session)
+    return this.text.slice(selection.selectionStart, selection.selectionEnd)
   }
 
   private syncTextFromLayout(layout: RichTextLayout) {
@@ -292,7 +279,8 @@ export class RichTextSelectable extends UIElement {
     this.text = snapshot.text
     this.linesText = snapshot.linesText
     this.lineStartIndex = snapshot.lineStartIndex
-    this.setSelection(this.selectionStart, this.selectionEnd)
+    const selection = normalizedTextSessionSelection(this.session)
+    this.setSelection(selection.selectionStart, selection.selectionEnd)
     this.syncBridge()
   }
 
@@ -324,18 +312,18 @@ export class RichTextSelectable extends UIElement {
     if (!layout) return
     this.syncTextFromLayout(layout)
 
-    if (this.selectionStart !== this.selectionEnd) {
-      const s = normalizeSelection(this.selectionStart, this.selectionEnd)
+    const selection = normalizedTextSessionSelection(this.session)
+    if (selection.selectionStart !== selection.selectionEnd) {
       const lh = layout.lines.length ? layout.h / layout.lines.length : 0
       for (let i = 0; i < layout.lines.length; i++) {
         const line = layout.lines[i]!
         const lineText = this.linesText[i] ?? ""
         const start = this.lineStartIndex[i] ?? 0
         const end = start + lineText.length
-        const has = s.end > start && s.start < end
+        const has = selection.selectionEnd > start && selection.selectionStart < end
         if (!has) continue
-        const startOff = clamp(s.start - start, 0, lineText.length)
-        const endOff = clamp(s.end - start, 0, lineText.length)
+        const startOff = clamp(selection.selectionStart - start, 0, lineText.length)
+        const endOff = clamp(selection.selectionEnd - start, 0, lineText.length)
         if (startOff === endOff) continue
         const x0 = xForLineOffset(ctx, line, startOff)
         const x1 = xForLineOffset(ctx, line, endOff)

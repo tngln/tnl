@@ -1,4 +1,4 @@
-import type { RichTextStyle, TextEmphasis } from "../draw"
+import type { RichTextStyle, TextEmphasis } from "./rich"
 
 export function textFont(style: RichTextStyle, emphasis?: TextEmphasis) {
   const weight = emphasis?.bold ? 700 : (style.fontWeight ?? 400)

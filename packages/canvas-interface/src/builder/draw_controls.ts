@@ -1,8 +1,9 @@
 import type { IconDef } from "../icons"
 import type { Rect } from "../draw"
 import type { ControlState } from "./control"
-import { choiceIndicator, controlFrame, iconLabelContent, rowSurface } from "./visual.presets"
-import { drawVisualNode, normalizeImageSource, styled, type VisualContext, type VisualImageSource, type VisualNode, type VisualStyleInput } from "./visual"
+import { controlFrame, iconLabelContent, rowSurface } from "./visual.presets"
+import { buildChoiceIndicatorVisual, buildChoiceRootVisual } from "./widget_visuals"
+import { drawVisualNode, mergeVisualStyles, normalizeImageSource, styled, type VisualContext, type VisualImageSource, type VisualNode, type VisualStyleInput } from "./visual"
 
 type VisualControlCtx = {
   state: ControlState
@@ -82,19 +83,17 @@ export function buildButtonVisual(props: {
   return {
     kind: "box",
     style: styled({
-      visualStyle: {
-        ...baseStyle,
-        ...props.visualStyle as any,
-        base: {
-          ...(baseStyle.base ?? {}),
-          ...(((props.visualStyle as any)?.base) ?? {}),
-          layout: {
-            ...((baseStyle.base?.layout) ?? {}),
-            ...((((props.visualStyle as any)?.base?.layout) ?? {})),
-            axis: "overlay",
+      visualStyle: mergeVisualStyles(
+        baseStyle,
+        props.visualStyle,
+        {
+          base: {
+            layout: {
+              axis: "overlay",
+            },
           },
         },
-      },
+      ),
     }, visualCtx),
     children: [
       {
@@ -124,16 +123,11 @@ export function drawButton(
 }
 
 function choiceRootStyle(visualStyle?: VisualStyleInput, visualCtx?: VisualContext): VisualStyleInput | undefined {
-  return styled({
-    visualStyle: {
-      ...iconLabelContent({ gap: 8, justify: "start" }),
-      ...(visualStyle as any ?? {}),
-    },
-  }, visualCtx ?? { state: { hover: false, pressed: false, dragging: false, disabled: false } })
+  return styled({ visualStyle: buildChoiceRootVisual(visualStyle, 8) }, visualCtx ?? { state: { hover: false, pressed: false, dragging: false, disabled: false } })
 }
 
 function indicatorStyle(checkedFill = false): VisualStyleInput {
-  return choiceIndicator({ radius: checkedFill ? 999 : 4 })
+  return buildChoiceIndicatorVisual(checkedFill)
 }
 
 export function buildCheckboxVisual(props: { label: string; checked: boolean; visualStyle?: VisualStyleInput }, visualCtx: VisualContext): VisualNode {
@@ -226,14 +220,16 @@ export function buildListRowVisual(props: ListRowDrawProps, visualCtx: VisualCon
   return {
     kind: "box",
     style: styled({
-      visualStyle: {
-        ...rowSurface({ minH: 22, selectedFill: "rgba(255,255,255,0.055)" }),
-        base: {
-          ...(rowSurface({ minH: 22, selectedFill: "rgba(255,255,255,0.055)" }) as any).base,
-          layout: { ...((rowSurface({ minH: 22, selectedFill: "rgba(255,255,255,0.055)" }) as any).base.layout), padding: { left: 8 + Math.max(0, props.indent ?? 0), right: 8 } },
-          text: { color: props.variant === "group" ? "#e9edf3" : "rgba(233,237,243,0.40)", baseline: "middle" as const },
+      visualStyle: mergeVisualStyles(
+        rowSurface({ minH: 22, selectedFill: "rgba(255,255,255,0.055)" }),
+        {
+          base: {
+            layout: { padding: { left: 8 + Math.max(0, props.indent ?? 0), right: 8 } },
+            text: { color: props.variant === "group" ? "#e9edf3" : "rgba(233,237,243,0.40)", baseline: "middle" as const },
+          },
         },
-      },
+        props.visualStyle,
+      ),
     }, visualCtx),
     children: [
       {

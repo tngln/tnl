@@ -8,7 +8,7 @@ import { scrollAreaDescriptor } from "../widgets/scroll_area"
 import { scrollbarDescriptor } from "../widgets/scrollbar"
 import { textBoxDescriptor } from "../widgets/textbox"
 import { TREE_ROW_HEIGHT, treeRowDescriptor } from "../widgets/tree_row"
-import { textFont } from "./text"
+import { textFont } from "../text"
 import { buildButtonVisual, buildCheckboxVisual, buildListRowVisual, buildRadioVisual, drawButton, drawCheckbox, drawListRow, drawRadio } from "./draw_controls"
 import { drawSlider, resolveSliderValueFromPointer } from "./slider_control"
 import { inheritedTextToRichTextStyle, resolveTextColor, resolveTextEmphasis, resolveTextStyle } from "./styles"
@@ -17,6 +17,7 @@ import type { ControlMountOpts } from "./runtime"
 import type { AstNode, BuilderNode, BuilderNodeRuntimeKind, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, DropdownNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, SpacerNode, TextBoxNode, TextNode, TreeViewNode } from "./types"
 import { flattenTreeItems } from "./runtime"
 import { measureVisualNode } from "./visual"
+import { resolveDropdownVisualModel } from "./widget_visuals"
 import { widgetRegistry } from "./widget_registry"
 
 widgetRegistry.register(dropdownDescriptor)
@@ -223,7 +224,7 @@ const checkboxHandler = controlHandler<CheckboxNode>({
     }),
 })
 
-const dropdownHandler = widgetHandler<DropdownNode, { options: DropdownNode["options"]; selected: DropdownNode["selected"]; disabled?: boolean; topLayer: BuilderEngine["runtime"]["topLayer"]; visualStyle?: DropdownNode["visualStyle"] }>({
+const dropdownHandler = widgetHandler<DropdownNode, Parameters<typeof dropdownDescriptor.mount>[1]>({
   kind: "dropdown",
   widgetType: "dropdown",
   measure: (_engine, ctx, node, max) => {
@@ -237,7 +238,12 @@ const dropdownHandler = widgetHandler<DropdownNode, { options: DropdownNode["opt
     for (const opt of node.options) w = Math.max(w, measureTextWidth(ctx, opt.label, f))
     return { w: Math.min(max.w, Math.max(theme.ui.controls.minFieldWidth, w + 28)), h: theme.ui.controls.inputHeight }
   },
-  mountWidget: (engine, _ctx, node) => ({ options: node.options, selected: node.selected, disabled: node.disabled, topLayer: engine.runtime.topLayer, visualStyle: node.visualStyle }),
+  mountWidget: (engine, _ctx, node, _ast, path) => ({
+    behavior: { options: node.options, selected: node.selected, topLayer: engine.runtime.topLayer },
+    visual: resolveDropdownVisualModel({ options: node.options, selectedValue: node.selected.peek(), visualStyle: node.visualStyle }),
+    disabled: node.disabled,
+    runtimeState: { key: path, store: engine.runtime.nodeStateStore },
+  }),
 })
 
 const radioHandler = controlHandler<RadioNode>({
@@ -259,7 +265,7 @@ const radioHandler = controlHandler<RadioNode>({
     }),
 })
 
-const textBoxHandler = widgetHandler<TextBoxNode, TextBoxNode>({
+const textBoxHandler = widgetHandler<TextBoxNode, Parameters<typeof textBoxDescriptor.mount>[1]>({
   kind: "textbox",
   widgetType: "textbox",
   measure: (_engine, ctx, node, max) => {
@@ -272,7 +278,12 @@ const textBoxHandler = widgetHandler<TextBoxNode, TextBoxNode>({
     }))
     return { w: Math.min(max.w, Math.max(theme.ui.controls.minFieldWidth, w + 16)), h: theme.ui.controls.inputHeight }
   },
-  mountWidget: (_engine, _ctx, node) => node,
+  mountWidget: (engine, _ctx, node, _ast, path) => ({
+    behavior: { value: node.value, placeholder: node.placeholder },
+    visual: { fieldStyle: node.visualStyle },
+    disabled: node.disabled,
+    runtimeState: { key: path, store: engine.runtime.nodeStateStore },
+  }),
 })
 
 const rowItemHandler = controlHandler<RowNode>({

@@ -26,6 +26,7 @@
     "./builder": "./src/builder/index.ts",
     "./builder/components": "./src/builder/components.tsx",
     "./builder/surface_builder": "./src/builder/surface_builder.ts",
+    "./text": "./src/text/index.ts",
     "./browser": "./src/browser/index.ts",
     "./theme": "./src/theme/index.ts",
     "./jsx": "./src/jsx/index.ts",

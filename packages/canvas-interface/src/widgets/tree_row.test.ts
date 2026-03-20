@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test"
+import { NodeRuntimeStateStore } from "@tnl/canvas-interface/builder"
 import { PointerUIEvent } from "@tnl/canvas-interface/ui"
 import { chevronDownIcon, chevronRightIcon } from "@tnl/canvas-interface/icons"
-import { TREE_ROW_DISCLOSURE_SLOT, TREE_ROW_HEIGHT, TREE_ROW_INDENT_STEP, TreeRow, treeRowDisclosureIcon } from "@tnl/canvas-interface/widgets"
+import { TREE_ROW_DISCLOSURE_SLOT, TREE_ROW_HEIGHT, TREE_ROW_INDENT_STEP, TreeRow, treeRowDescriptor, treeRowDisclosureIcon } from "@tnl/canvas-interface/widgets"
 
 function pointer(x: number, y: number) {
   return new PointerUIEvent({
@@ -245,5 +246,39 @@ describe("tree row", () => {
     const after = fakeCtx()
     row.draw(after.ctx)
     expect(after.fills.length).toBe(0)
+  })
+
+  it("writes disclosure region into runtime state snapshot", () => {
+    const store = new NodeRuntimeStateStore()
+    const row = new TreeRow()
+    row.bindRuntimeState({ key: "row", store })
+    row.set({
+      rect: { x: 10, y: 4, w: 200, h: TREE_ROW_HEIGHT },
+      depth: 2,
+      expandable: true,
+      expanded: false,
+      leftText: "Node",
+    })
+    row.draw(fakeCtx().ctx)
+    const snapshot = store.read<any>("row")
+    expect(snapshot?.primaryRect).toEqual({ x: 10, y: 4, w: 200, h: TREE_ROW_HEIGHT })
+    expect(snapshot?.hitRegions?.disclosure).toEqual(row.disclosureRect())
+  })
+
+  it("descriptor payload follows behavior/visual/runtimeState contract", () => {
+    expect(treeRowDescriptor.capabilityShape).toEqual({ behavior: true, visual: true, layout: true })
+    const store = new NodeRuntimeStateStore()
+    const state = treeRowDescriptor.create("payload")
+    treeRowDescriptor.mount(state, {
+      behavior: {},
+      visual: {
+        depth: 0,
+        expandable: true,
+        expanded: false,
+        leftText: "Node",
+      },
+      runtimeState: { key: "payload", store },
+    }, { x: 0, y: 0, w: 180, h: TREE_ROW_HEIGHT }, true)
+    expect(state.widget).toBeTruthy()
   })
 })

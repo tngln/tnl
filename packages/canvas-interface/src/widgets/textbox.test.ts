@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test"
 import { signal } from "@tnl/canvas-interface/reactivity"
+import { NodeRuntimeStateStore } from "@tnl/canvas-interface/builder"
 import { KeyUIEvent, PointerUIEvent } from "@tnl/canvas-interface/ui"
-import { TextBox } from "@tnl/canvas-interface/widgets"
+import { TextBox, textBoxDescriptor } from "@tnl/canvas-interface/widgets"
 import type { OnePxTextboxBridge, OnePxTextboxSession, OnePxTextboxSyncState } from "./../platform/web/1px_textbox"
 import { fakeCtx, withFakeDocument } from "../builder/test_utils"
 
@@ -192,5 +193,18 @@ describe("textbox", () => {
     textbox.draw(ctx)
 
     expect(ctx.calls.some((call) => call.op === "fillText" && call.args[0] === "Type here")).toBe(true)
+  })
+
+  it("descriptor payload follows behavior/visual/runtimeState contract", () => {
+    expect(textBoxDescriptor.capabilityShape).toEqual({ behavior: true, visual: true, layout: true })
+    const value = signal("hello", { debugLabel: "test.textbox.payload.value" })
+    const store = new NodeRuntimeStateStore()
+    const state = textBoxDescriptor.create("payload")
+    textBoxDescriptor.mount(state, {
+      behavior: { value, placeholder: "Type here" },
+      visual: {},
+      runtimeState: { key: "payload", store },
+    }, { x: 0, y: 0, w: 120, h: 28 }, true)
+    expect(state.widget).toBeTruthy()
   })
 })

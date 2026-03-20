@@ -200,6 +200,33 @@ function mergeLayer(base: VisualStyleLayer | undefined, patch: VisualStyleLayer 
   }
 }
 
+export function mergeVisualStyles(...styles: Array<VisualStyleInput | undefined>): VisualStyleInput | undefined {
+  let baseLayer: VisualStyleLayer | undefined
+  let baseVariants: VisualStyle | undefined
+  for (const style of styles) {
+    if (!style) continue
+    if (isVariantStyle(style)) {
+      baseVariants = {
+        base: mergeLayer(baseVariants?.base, style.base),
+        hover: mergeLayer(baseVariants?.hover, style.hover),
+        pressed: mergeLayer(baseVariants?.pressed, style.pressed),
+        disabled: mergeLayer(baseVariants?.disabled, style.disabled),
+        selected: mergeLayer(baseVariants?.selected, style.selected),
+        checked: mergeLayer(baseVariants?.checked, style.checked),
+      }
+      continue
+    }
+    baseLayer = mergeLayer(baseLayer, style)
+  }
+  if (baseVariants) {
+    return {
+      ...baseVariants,
+      base: mergeLayer(baseLayer, baseVariants.base),
+    }
+  }
+  return baseLayer
+}
+
 function isVariantStyle(style: VisualStyleInput | undefined): style is VisualStyle {
   if (!style) return false
   return "base" in style || "hover" in style || "pressed" in style || "disabled" in style || "selected" in style || "checked" in style

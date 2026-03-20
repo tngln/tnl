@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test"
 import { signal } from "@tnl/canvas-interface/reactivity"
 import { PointerUIEvent, TopLayerController } from "@tnl/canvas-interface/ui"
-import { Dropdown } from "@tnl/canvas-interface/widgets"
+import { Dropdown, dropdownDescriptor } from "@tnl/canvas-interface/widgets"
+import { NodeRuntimeStateStore } from "@tnl/canvas-interface/builder"
 import { fakeCtx } from "../builder/test_utils"
 
 function pointer(x: number, y: number, buttons = 1) {
@@ -118,5 +119,26 @@ describe("dropdown", () => {
     dd.draw(ctx)
 
     expect(ctx.calls.some((call) => call.op === "fillText" && call.args[0] === "Option B")).toBe(true)
+  })
+
+  it("descriptor payload follows behavior/visual/runtimeState contract", () => {
+    expect(dropdownDescriptor.capabilityShape).toEqual({ behavior: true, visual: true, layout: true })
+    const store = new NodeRuntimeStateStore()
+    const selected = signal("A", { debugLabel: "test.dropdown.payload.selected" })
+    const state = dropdownDescriptor.create("payload")
+    dropdownDescriptor.mount(state, {
+      behavior: {
+        options: [{ value: "A", label: "Option A" }],
+        selected,
+      },
+      visual: {
+        label: "Option A",
+      },
+      runtimeState: {
+        key: "payload",
+        store,
+      },
+    }, { x: 0, y: 0, w: 120, h: 28 }, true)
+    expect(state.widget).toBeTruthy()
   })
 })

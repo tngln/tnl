@@ -1,12 +1,15 @@
 import { theme } from "../theme"
 import { ZERO_RECT, type Rect } from "../draw"
 import type { RowVariant } from "../builder/types"
-import { drawVisualNode, type VisualNode } from "../builder/visual"
-import { rowSurface } from "../builder/visual.presets"
+import { createVisualHostState, drawVisualHost, syncVisualHostState } from "../builder/visual_host"
+import type { RuntimeStateBinding } from "../builder/runtime_state"
+import { writeRuntimeRegions } from "../builder/runtime_state"
+import { resolveTreeRowRegions } from "../builder/widget_regions"
+import { buildTreeRowVisual, treeRowDisclosureIcon as resolveTreeRowDisclosureIcon, type TreeRowVisualModel } from "../builder/widget_visuals"
 import { UIElement, pointInRect } from "../ui_base"
-import { chevronDownIcon, chevronRightIcon, type IconDef } from "../icons"
+import type { IconDef } from "../icons"
 import { usePress, type PressBinding } from "../use/use_press"
-import type { WidgetDescriptor } from "../builder/widget_registry"
+import type { RetainedPayload, WidgetDescriptor } from "../builder/widget_registry"
 
 export const TREE_ROW_HEIGHT = theme.ui.controls.treeRowHeight
 export const TREE_ROW_INDENT_STEP = theme.ui.controls.treeRow.indentStep
@@ -15,101 +18,26 @@ const TREE_ROW_DISCLOSURE_GAP = theme.ui.controls.treeRow.disclosureGap
 const TREE_ROW_LEFT_PAD = theme.ui.controls.treeRow.leftPad
 const TREE_ROW_RIGHT_PAD = theme.ui.controls.treeRow.rightPad
 
-export type TreeRowLayout = {
+export type TreeRowLayout = TreeRowVisualModel & {
   rect: Rect
-  depth: number
-  expandable: boolean
-  expanded: boolean
-  leftText: string
-  rightText?: string
-  variant?: RowVariant
-  selected?: boolean
 }
+
+export type TreeRowBehaviorProps = {
+  onSelect?: () => void
+  onToggle?: () => void
+  onDoubleClick?: () => void
+}
+
+export type TreeRowWidgetProps = RetainedPayload<TreeRowBehaviorProps, TreeRowVisualModel>
 
 export function treeRowDisclosureIcon(expanded: boolean): IconDef {
-  return expanded ? chevronDownIcon : chevronRightIcon
-}
-
-export function buildTreeRowVisual(layout: TreeRowLayout, state: { hover: boolean; pressed: boolean }): VisualNode {
-  const disclosureRect = {
-    kind: "box" as const,
-    style: {
-      base: {
-        layout: { fixedW: TREE_ROW_DISCLOSURE_SLOT, fixedH: TREE_ROW_DISCLOSURE_SLOT },
-      },
-    },
-    children: layout.expandable
-      ? [{
-          kind: "image" as const,
-          source: { kind: "icon" as const, icon: treeRowDisclosureIcon(layout.expanded) },
-          style: {
-            base: {
-              image: { color: theme.colors.textMuted, width: Math.max(0, TREE_ROW_DISCLOSURE_SLOT - 4), height: Math.max(0, TREE_ROW_DISCLOSURE_SLOT - 4) },
-              layout: { fixedW: TREE_ROW_DISCLOSURE_SLOT, fixedH: TREE_ROW_DISCLOSURE_SLOT },
-            },
-          },
-        }]
-      : [],
-  }
-
-  return {
-    kind: "box",
-    style: {
-      ...rowSurface({ minH: TREE_ROW_HEIGHT }),
-      base: {
-        ...((rowSurface({ minH: TREE_ROW_HEIGHT }) as any).base ?? {}),
-        layout: {
-          ...((rowSurface({ minH: TREE_ROW_HEIGHT }) as any).base?.layout ?? {}),
-          padding: { left: TREE_ROW_LEFT_PAD + Math.max(0, layout.depth) * TREE_ROW_INDENT_STEP, right: TREE_ROW_RIGHT_PAD },
-          gap: TREE_ROW_DISCLOSURE_GAP,
-        },
-      },
-    },
-    children: [
-      disclosureRect,
-      {
-        kind: "text",
-        text: layout.leftText,
-        style: {
-          base: {
-            text: {
-              color: (layout.variant ?? "item") === "group" ? theme.colors.text : theme.colors.textMuted,
-              fontSize: Math.max(10, theme.typography.body.size - 1),
-              fontWeight: (layout.variant ?? "item") === "group" ? 600 : 500,
-              lineHeight: TREE_ROW_HEIGHT,
-              baseline: "middle",
-              truncate: true,
-            },
-            layout: { grow: true, minH: TREE_ROW_HEIGHT },
-          },
-        },
-      },
-      ...(layout.rightText
-        ? [{
-            kind: "text" as const,
-            text: layout.rightText,
-            style: {
-              base: {
-                text: {
-                  color: theme.colors.textMuted,
-                  fontSize: Math.max(10, theme.typography.body.size - 2),
-                  fontWeight: 400,
-                  lineHeight: TREE_ROW_HEIGHT,
-                  align: "end" as const,
-                  baseline: "middle" as const,
-                  truncate: true,
-                },
-                layout: { minH: TREE_ROW_HEIGHT },
-              },
-            },
-          }]
-        : []),
-    ],
-  }
+  return resolveTreeRowDisclosureIcon(expanded)
 }
 
 export class TreeRow extends UIElement {
   private activeValue: boolean = true
+  private runtimeState?: RuntimeStateBinding
+  private readonly visualHost = createVisualHostState<TreeRowVisualModel>()
   private layout: TreeRowLayout = {
     rect: ZERO_RECT,
     depth: 0,
@@ -135,7 +63,7 @@ export class TreeRow extends UIElement {
     this.press = usePress(this, {
       enabled: () => this.activeValue,
       onActivateEvent: (e) => {
-        if (this.layout.expandable && pointInRect({ x: e.x, y: e.y }, this.disclosureRect())) {
+        if (this.layout.expandable && pointInRect({ x: e.x, y: e.y }, resolveTreeRowRegions(this.layout).disclosureRect)) {
           this.onToggle?.()
           this.invalidateSelf({ force: true })
           return
@@ -153,7 +81,7 @@ export class TreeRow extends UIElement {
     this.on("doubleclick", (e) => {
       if (!this.hover) return
       if (e.button !== 0) return
-      if (this.layout.expandable && pointInRect({ x: e.x, y: e.y }, this.disclosureRect())) return
+      if (this.layout.expandable && pointInRect({ x: e.x, y: e.y }, resolveTreeRowRegions(this.layout).disclosureRect)) return
       this.onDoubleClickHandler?.()
     })
   }
@@ -164,23 +92,57 @@ export class TreeRow extends UIElement {
     this.onToggle = handlers?.onToggle
     this.onDoubleClickHandler = handlers?.onDoubleClick
     if (active !== undefined) this.activeValue = active
+    syncVisualHostState(this.visualHost, {
+      rect: layout.rect,
+      model: { ...layout },
+      context: {
+        state: { hover: this.hover, pressed: this.press.pressed(), dragging: false, disabled: false },
+        selected: layout.selected,
+      },
+    })
+    const disclosure = resolveTreeRowRegions(layout).disclosureRect
+    writeRuntimeRegions(this.runtimeState, {
+      primaryRect: layout.rect,
+      anchorRect: disclosure,
+      hitRegions: { disclosure },
+    }, {
+      active: this.activeValue,
+      hover: this.hover,
+      pressed: this.press.pressed(),
+    })
+  }
+
+  bindRuntimeState(binding: RuntimeStateBinding | undefined) {
+    this.runtimeState = binding
   }
 
   disclosureRect() {
-    const r = this.layout.rect
-    const x = r.x + TREE_ROW_LEFT_PAD + Math.max(0, this.layout.depth) * TREE_ROW_INDENT_STEP
-    const y = r.y + Math.floor((r.h - TREE_ROW_DISCLOSURE_SLOT) / 2)
-    return { x, y, w: TREE_ROW_DISCLOSURE_SLOT, h: TREE_ROW_DISCLOSURE_SLOT }
+    return resolveTreeRowRegions(this.layout).disclosureRect
   }
 
   protected onDraw(ctx: CanvasRenderingContext2D) {
     if (!this.activeValue) return
     const r = this.layout.rect
     if (r.w <= 0 || r.h <= 0) return
-    drawVisualNode(ctx, buildTreeRowVisual(this.layout, { hover: this.hover, pressed: this.press.pressed() }), r, {
-      state: { hover: this.hover, pressed: this.press.pressed(), dragging: false, disabled: false },
-      selected: this.layout.selected,
+    syncVisualHostState(this.visualHost, {
+      rect: r,
+      model: { ...this.layout },
+      context: {
+        state: { hover: this.hover, pressed: this.press.pressed(), dragging: false, disabled: false },
+        selected: this.layout.selected,
+      },
     })
+    const disclosure = resolveTreeRowRegions(this.layout).disclosureRect
+    writeRuntimeRegions(this.runtimeState, {
+      primaryRect: r,
+      anchorRect: disclosure,
+      hitRegions: { disclosure },
+    }, {
+      active: this.activeValue,
+      hover: this.hover,
+      pressed: this.press.pressed(),
+    })
+    drawVisualHost(ctx, this.visualHost, buildTreeRowVisual)
   }
 
 }
@@ -195,20 +157,10 @@ type TreeRowState = {
   onDoubleClick?: () => void
 }
 
-export const treeRowDescriptor: WidgetDescriptor<TreeRowState, {
-  depth: number
-  expandable: boolean
-  expanded: boolean
-  leftText: string
-  rightText?: string
-  variant?: RowVariant
-  selected?: boolean
-  onSelect?: () => void
-  onToggle?: () => void
-  onDoubleClick?: () => void
-}> = {
+export const treeRowDescriptor: WidgetDescriptor<TreeRowState, TreeRowWidgetProps> = {
   id: "treeRow",
   retainedKind: "widget",
+  capabilityShape: { behavior: true, visual: true, layout: true },
   initialZIndex: 10,
   create: () => {
     const state = {
@@ -229,19 +181,20 @@ export const treeRowDescriptor: WidgetDescriptor<TreeRowState, {
   mount: (state, props, rect, active) => {
     state.rect = rect
     state.active = active
-    state.onSelect = props.onSelect
-    state.onToggle = props.onToggle
-    state.onDoubleClick = props.onDoubleClick
+    state.onSelect = props.behavior.onSelect
+    state.onToggle = props.behavior.onToggle
+    state.onDoubleClick = props.behavior.onDoubleClick
     state.layout = {
       rect: active ? rect : ZERO_RECT,
-      depth: active ? props.depth : 0,
-      expandable: active ? props.expandable : false,
-      expanded: active ? props.expanded : false,
-      leftText: active ? props.leftText : "",
-      rightText: active ? props.rightText : undefined,
-      variant: active ? props.variant : undefined,
-      selected: active ? props.selected : undefined,
+      depth: active ? props.visual.depth : 0,
+      expandable: active ? props.visual.expandable : false,
+      expanded: active ? props.visual.expanded : false,
+      leftText: active ? props.visual.leftText : "",
+      rightText: active ? props.visual.rightText : undefined,
+      variant: active ? props.visual.variant : undefined,
+      selected: active ? props.visual.selected : undefined,
     }
+    state.widget.bindRuntimeState(props.runtimeState)
     state.widget.set(state.layout, active ? { onSelect: state.onSelect, onToggle: state.onToggle, onDoubleClick: state.onDoubleClick } : undefined, active)
   },
   unmount: (state) => {

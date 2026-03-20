@@ -8,6 +8,7 @@ import { widgetRegistry, type WidgetDescriptor } from "./widget_registry"
 import { TREE_ROW_HEIGHT } from "../widgets/tree_row"
 import type { BuilderNode, TreeItem, TreeViewNode } from "./types"
 import { ControlElement, type ControlDrawFn } from "./control"
+import { NodeRuntimeStateStore } from "./runtime_state"
 
 export type BuilderTreeSurfaceLike = Surface & {
   setNode(node: BuilderNode | null): void
@@ -70,6 +71,7 @@ const controlDescriptor: WidgetDescriptor<ControlCellState, ControlMountOpts> = 
 export class BuilderRuntime {
   readonly root = new SurfaceRoot()
   readonly topLayer = new TopLayerController({ rect: () => this.root.bounds(), invalidate: invalidateAll, z: 8_000_000 })
+  readonly nodeStateStore = new NodeRuntimeStateStore()
   private readonly retained = new Map<string, Map<string, RetainedCell>>()
   private readonly richBlocks = new Map<string, ReturnType<typeof createRichTextBlock>>()
   private invalidateSurface: () => void = invalidateAll
@@ -169,6 +171,7 @@ export class BuilderRuntime {
         rowKey,
         rowRect,
         {
+          runtimeState: { key: rowKey, store: this.nodeStateStore },
           depth: row.depth,
           expandable: row.expandable,
           expanded: row.expanded,
@@ -196,6 +199,7 @@ export class BuilderRuntime {
   }
 
   mountTreeRow(key: string, rect: Rect, node: {
+    runtimeState?: { key: string; store: NodeRuntimeStateStore }
     depth: number
     expandable: boolean
     expanded: boolean
@@ -206,7 +210,22 @@ export class BuilderRuntime {
     onSelect?: () => void
     onToggle?: () => void
   }, active: boolean) {
-    this.mountWidget("treeRow", key, rect, node, active)
+    this.mountWidget("treeRow", key, rect, {
+      behavior: {
+        onSelect: node.onSelect,
+        onToggle: node.onToggle,
+      },
+      visual: {
+        depth: node.depth,
+        expandable: node.expandable,
+        expanded: node.expanded,
+        leftText: node.leftText,
+        rightText: node.rightText,
+        variant: node.variant,
+        selected: node.selected,
+      },
+      runtimeState: node.runtimeState,
+    }, active)
   }
 
   private mountRetained<TState, TProps>(descriptor: WidgetDescriptor<TState, TProps>, key: string, rect: Rect, props: TProps, active: boolean) {

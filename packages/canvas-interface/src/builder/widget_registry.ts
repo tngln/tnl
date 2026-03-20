@@ -1,7 +1,20 @@
 import type { Rect } from "../draw"
+import type { RuntimeStateBinding } from "./runtime_state"
 import type { UIElement } from "../ui_base"
 
 export type RetainedNodeKind = "control" | "widget"
+export type WidgetCapabilityShape = {
+  behavior?: boolean
+  visual?: boolean
+  layout?: boolean
+}
+
+export type RetainedPayload<TBehavior = unknown, TVisual = unknown> = {
+  behavior: TBehavior
+  visual: TVisual
+  runtimeState?: RuntimeStateBinding
+  disabled?: boolean
+}
 
 /**
  * Descriptor for a retained builder node.
@@ -14,6 +27,9 @@ export interface WidgetDescriptor<TState = unknown, TProps = unknown> {
 
   /** Runtime category used by BuilderRuntime for pooling and debug stats. */
   retainedKind?: RetainedNodeKind
+
+  /** Declares which capability domains this host expects from runtime payloads. */
+  capabilityShape?: WidgetCapabilityShape
 
   /** Create a new instance of the widget state */
   create: (id: string) => TState

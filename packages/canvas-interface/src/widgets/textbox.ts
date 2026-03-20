@@ -1,12 +1,17 @@
 import { font, theme } from "../theme"
-import { measureTextWidth, ZERO_RECT, type Rect } from "../draw"
+import { ZERO_RECT, type Rect } from "../draw"
 import { signal, type Signal } from "../reactivity"
 import { getTextInputBridge, type TextInputBridge, type TextInputSyncState } from "../platform/web/text_input"
 import { createMeasureContext } from "../platform/web/canvas"
-import { drawVisualNode, type VisualStyleInput } from "../builder/visual"
-import { textControlFrame } from "../builder/visual.presets"
+import { createVisualHostState, drawVisualHost, syncVisualHostState } from "../builder/visual_host"
+import type { RuntimeStateBinding } from "../builder/runtime_state"
+import { writeRuntimeRegions } from "../builder/runtime_state"
+import { ensureTextCaretVisible, measureTextPrefix, resolveTextIndexFromPoint, blurTextSession, blurTextSessionBridge, createSessionBridgeState, createTextSessionState, focusTextSession, focusTextSessionBridge, moveSessionCaret, moveSessionCaretTo, normalizedTextSessionSelection, setSessionSelection, syncTextSessionBridge, type TextSessionState } from "../text"
+import { resolveTextBoxRegions } from "../builder/widget_regions"
+import type { VisualStyleInput } from "../builder/visual"
+import { buildTextBoxChromeVisual, buildTextBoxTextVisual, type TextBoxChromeVisualModel, type TextBoxTextVisualModel, type TextBoxVisualModel } from "../builder/widget_visuals"
 import { CursorRegion, KeyUIEvent, UIElement, type DebugRuntimeStateSnapshot } from "../ui_base"
-import type { WidgetDescriptor } from "../builder/widget_registry"
+import type { RetainedPayload, WidgetDescriptor } from "../builder/widget_registry"
 
 const TEXTBOX_HEIGHT = theme.ui.controls.inputHeight
 const PAD_X = 8
@@ -14,12 +19,12 @@ const SESSION_PREFIX = "textbox"
 const CARET_BLINK_MS = 530
 let nextSessionId = 1
 
-function clampSelection(value: string, start: number, end: number) {
-  const max = value.length
-  const selectionStart = Math.max(0, Math.min(max, start))
-  const selectionEnd = Math.max(selectionStart, Math.min(max, end))
-  return { selectionStart, selectionEnd }
+export type TextBoxBehaviorProps = {
+  value: Signal<string>
+  placeholder?: string
 }
+
+export type TextBoxWidgetProps = RetainedPayload<TextBoxBehaviorProps, TextBoxVisualModel | undefined>
 
 function hasShortcutModifier(e: { ctrlKey: boolean; metaKey: boolean }) {
   return e.ctrlKey || e.metaKey
@@ -31,19 +36,16 @@ export class TextBox extends UIElement {
   private placeholderValue: string = ""
   private activeValue: boolean = true
   private disabledValue: boolean = false
-  private visualStyleValue: VisualStyleInput | undefined
+  private runtimeState?: RuntimeStateBinding
+  private chromeVisualModel: TextBoxChromeVisualModel = { focused: false }
+  private readonly chromeVisualHost = createVisualHostState<TextBoxChromeVisualModel>()
+  private readonly textVisualHost = createVisualHostState<TextBoxTextVisualModel>()
   private inputBridge: TextInputBridge
   private readonly sessionId = `${SESSION_PREFIX}.${nextSessionId++}`
-
-  private focused = false
   private dragAnchor: number | null = null
-  private selectionStart = 0
-  private selectionEnd = 0
-  private scrollX = 0
+  private readonly session: TextSessionState = createTextSessionState()
   private readonly measureCtx = createMeasureContext()
-  private caretVisible = false
   private caretBlinkTimer: ReturnType<typeof setTimeout> | null = null
-  private caretBlinkHoldUntil = 0
 
   constructor(opts: {
     rect: () => Rect
@@ -69,29 +71,26 @@ export class TextBox extends UIElement {
 
     this.on("focus", () => {
       if (!this.interactive()) return
-      this.focused = true
-      const caret = this.selectionEnd
-      this.selectionStart = caret
-      this.selectionEnd = caret
+      focusTextSession(this.session)
+      const caret = this.session.selectionEnd
+      this.session.selectionStart = caret
+      this.session.selectionEnd = caret
       this.resetCaretBlink()
       this.syncBridge()
       this.invalidateSelf({ source: "textbox.focus" })
     })
     this.on("blur", () => {
-      const caret = this.selectionEnd
-      this.focused = false
       this.dragAnchor = null
-      this.selectionStart = caret
-      this.selectionEnd = caret
+      blurTextSession(this.session)
       this.stopCaretBlink()
-      this.inputBridge.blur(this.sessionId)
+      blurTextSessionBridge(this.inputBridge, this.sessionId)
       this.invalidateSelf({ source: "textbox.blur" })
     })
     this.on("pointerdown", (e) => {
       if (!this.interactive() || e.button !== 0) return
       e.requestFocus(this)
-      if (!this.focused) {
-        this.focused = true
+      if (!this.session.focused) {
+        focusTextSession(this.session)
         this.resetCaretBlink()
       }
       const index = this.indexFromPoint(e.x)
@@ -122,7 +121,7 @@ export class TextBox extends UIElement {
       this.dragAnchor = null
     })
     this.on("keydown", (e) => {
-      if (!this.focused || !this.interactive()) return
+      if (!this.session.focused || !this.interactive()) return
 
       if (hasShortcutModifier(e) && e.code === "KeyA") {
         const value = this.value.get()
@@ -191,8 +190,12 @@ export class TextBox extends UIElement {
     this.placeholderValue = typeof opts.placeholder === "function" ? opts.placeholder() : (opts.placeholder ?? "")
     this.activeValue = opts.active ? opts.active() : true
     this.disabledValue = opts.disabled ? opts.disabled() : false
-    this.visualStyleValue = opts.visualStyle
+    this.chromeVisualModel = { focused: this.session.focused && !this.disabledValue, visualStyle: opts.visualStyle }
     if (opts.inputBridge) this.inputBridge = opts.inputBridge
+  }
+
+  bindRuntimeState(binding: RuntimeStateBinding | undefined) {
+    this.runtimeState = binding
   }
 
   canFocus() {
@@ -205,30 +208,32 @@ export class TextBox extends UIElement {
     if (!this.activeValue) return
     const rect = this.rectValue
     const disabled = this.disabledValue
-    const focused = this.focused && !disabled
+    const focused = this.session.focused && !disabled
     const textValue = this.value.get()
     const placeholder = this.placeholderValue
     const display = textValue || placeholder
     const isPlaceholder = !textValue
-    const fontSpec = font(theme, theme.typography.body)
     const innerX = rect.x + PAD_X
-    const innerY = rect.y + rect.h / 2 + 0.5
     const innerW = Math.max(0, rect.w - PAD_X * 2)
     const selection = this.normalizedSelection()
 
-    this.ensureCaretVisible(ctx, innerW)
+    this.session.scrollX = ensureTextCaretVisible(ctx, {
+      value: textValue,
+      rect,
+      padX: PAD_X,
+      scrollX: this.session.scrollX,
+    }, this.session.selectionEnd, innerW)
 
-    drawVisualNode(ctx, {
-      kind: "box",
-      style: {
-        ...(textControlFrame() as any),
-        ...((this.visualStyleValue as any) ?? {}),
-        ...(focused ? { base: { border: { color: theme.colors.borderFocus, radius: theme.radii.sm } } } : {}),
+    this.chromeVisualModel = { focused, visualStyle: this.chromeVisualModel.visualStyle }
+    syncVisualHostState(this.chromeVisualHost, {
+      rect,
+      model: this.chromeVisualModel,
+      context: {
+        state: { hover: this.hover, pressed: false, dragging: this.dragAnchor !== null, disabled },
+        disabled,
       },
-    }, rect, {
-      state: { hover: this.hover, pressed: false, dragging: this.dragAnchor !== null, disabled },
-      disabled,
     })
+    drawVisualHost(ctx, this.chromeVisualHost, buildTextBoxChromeVisual)
 
     ctx.save()
     ctx.beginPath()
@@ -236,37 +241,43 @@ export class TextBox extends UIElement {
     ctx.clip()
 
     if (focused && selection.selectionStart !== selection.selectionEnd && textValue) {
-      const selectionX = innerX + this.measurePrefix(ctx, selection.selectionStart) - this.scrollX
-      const selectionW = this.measurePrefix(ctx, selection.selectionEnd) - this.measurePrefix(ctx, selection.selectionStart)
+      const selectionX = innerX + measureTextPrefix(ctx, textValue, selection.selectionStart) - this.session.scrollX
+      const selectionW = measureTextPrefix(ctx, textValue, selection.selectionEnd) - measureTextPrefix(ctx, textValue, selection.selectionStart)
       ctx.fillStyle = theme.colors.inputSelection
       ctx.fillRect(selectionX, rect.y + 4, selectionW, rect.h - 8)
     }
 
-    drawVisualNode(ctx, {
-      kind: "text",
-      text: display,
-      style: {
-        base: {
-          text: {
-            color: isPlaceholder ? theme.colors.textMuted : theme.colors.text,
-            fontFamily: theme.typography.family,
-            fontSize: theme.typography.body.size,
-            fontWeight: theme.typography.body.weight,
-            lineHeight: theme.spacing.lg,
-            baseline: "middle",
-          },
-        },
+    const textVisualModel: TextBoxTextVisualModel = { text: display, placeholder: isPlaceholder }
+    syncVisualHostState(this.textVisualHost, {
+      rect: { x: innerX - this.session.scrollX, y: rect.y, w: innerW + this.session.scrollX, h: rect.h },
+      model: textVisualModel,
+      context: {
+        state: { hover: this.hover, pressed: false, dragging: this.dragAnchor !== null, disabled },
+        disabled,
       },
-    }, { x: innerX - this.scrollX, y: rect.y, w: innerW + this.scrollX, h: rect.h }, {
-      state: { hover: this.hover, pressed: false, dragging: this.dragAnchor !== null, disabled },
-      disabled,
     })
+    drawVisualHost(ctx, this.textVisualHost, buildTextBoxTextVisual)
 
-    if (focused && this.caretVisible && selection.selectionStart === selection.selectionEnd) {
-      const caretX = innerX + this.measurePrefix(ctx, this.selectionEnd) - this.scrollX
+    if (focused && this.session.caretVisible && selection.selectionStart === selection.selectionEnd) {
+      const caretX = innerX + measureTextPrefix(ctx, textValue, this.session.selectionEnd) - this.session.scrollX
       ctx.fillStyle = theme.colors.text
       ctx.fillRect(caretX, rect.y + 5, 1, rect.h - 10)
     }
+
+    const regions = resolveTextBoxRegions({
+      rect,
+      padX: PAD_X,
+      scrollX: this.session.scrollX,
+      caretX: innerX + measureTextPrefix(ctx, textValue, this.session.selectionEnd) - this.session.scrollX,
+    })
+    writeRuntimeRegions(this.runtimeState, regions, {
+      active: this.activeValue,
+      disabled,
+      focused,
+      selectionStart: selection.selectionStart,
+      selectionEnd: selection.selectionEnd,
+      scrollX: this.session.scrollX,
+    })
 
     ctx.restore()
   }
@@ -276,71 +287,34 @@ export class TextBox extends UIElement {
   }
 
   private normalizedSelection() {
-    return this.selectionStart <= this.selectionEnd
-      ? { selectionStart: this.selectionStart, selectionEnd: this.selectionEnd }
-      : { selectionStart: this.selectionEnd, selectionEnd: this.selectionStart }
-  }
-
-  private measurePrefix(ctx: CanvasRenderingContext2D, index: number) {
-    const value = this.value.get().slice(0, index)
-    return measureTextWidth(ctx, value, font(theme, theme.typography.body))
+    return normalizedTextSessionSelection(this.session)
   }
 
   private indexFromPoint(x: number) {
-    const rect = this.rectValue
-    const value = this.value.get()
-    const localX = x - rect.x - PAD_X + this.scrollX
-    const context = this.measureCtx
-    if (!context) return localX <= 0 ? 0 : value.length
-    context.font = font(theme, theme.typography.body)
-    let bestIndex = 0
-    let bestDistance = Number.POSITIVE_INFINITY
-    for (let i = 0; i <= value.length; i++) {
-      const width = measureTextWidth(context as CanvasRenderingContext2D, value.slice(0, i), context.font)
-      const distance = Math.abs(width - localX)
-      if (distance < bestDistance) {
-        bestDistance = distance
-        bestIndex = i
-      }
-    }
-    return bestIndex
+    const context = this.measureCtx as CanvasRenderingContext2D | null
+    if (!context) return this.value.get().length
+    return resolveTextIndexFromPoint(context, {
+      value: this.value.get(),
+      rect: this.rectValue,
+      padX: PAD_X,
+      scrollX: this.session.scrollX,
+    }, x)
   }
 
   private setSelection(start: number, end: number) {
-    const next = clampSelection(this.value.get(), start, end)
-    this.selectionStart = next.selectionStart
-    this.selectionEnd = next.selectionEnd
+    setSessionSelection(this.session, this.value.get(), start, end)
   }
 
   private moveCaret(delta: number, extend: boolean) {
-    const selection = this.normalizedSelection()
-    if (!extend && selection.selectionStart !== selection.selectionEnd) {
-      const caret = delta < 0 ? selection.selectionStart : selection.selectionEnd
-      this.setSelection(caret, caret)
-      return
-    }
-    const anchor = extend ? this.selectionStart : this.selectionEnd
-    const next = Math.max(0, Math.min(this.value.get().length, this.selectionEnd + delta))
-    this.setSelection(extend ? anchor : next, next)
+    moveSessionCaret(this.session, this.value.get(), delta, extend)
   }
 
   private moveCaretTo(next: number, extend: boolean) {
-    if (!extend) {
-      this.setSelection(next, next)
-      return
-    }
-    this.setSelection(this.selectionStart, next)
-  }
-
-  private ensureCaretVisible(ctx: CanvasRenderingContext2D, innerW: number) {
-    const caretX = this.measurePrefix(ctx, this.selectionEnd)
-    if (caretX - this.scrollX > innerW) this.scrollX = caretX - innerW
-    if (caretX - this.scrollX < 0) this.scrollX = caretX
-    this.scrollX = Math.max(0, this.scrollX)
+    moveSessionCaretTo(this.session, this.value.get(), next, extend)
   }
 
   private syncBridge() {
-    if (!this.focused || !this.interactive()) return
+    if (!this.session.focused || !this.interactive()) return
     const rect = this.rectValue
     const caretRectCss = {
       x: rect.x + PAD_X,
@@ -348,27 +322,24 @@ export class TextBox extends UIElement {
       w: 1,
       h: rect.h,
     }
-    const state = {
-      value: this.value.get(),
-      selectionStart: this.normalizedSelection().selectionStart,
-      selectionEnd: this.normalizedSelection().selectionEnd,
+    const state = createSessionBridgeState(
+      this.value.get(),
+      this.session,
       caretRectCss,
-    }
-    if (this.inputBridge.isFocused(this.sessionId)) {
-      this.inputBridge.sync(this.sessionId, state)
-      return
-    }
-    this.inputBridge.focus(
+    )
+    if (syncTextSessionBridge(this.inputBridge, this.sessionId, state)) return
+    focusTextSessionBridge(
+      this.inputBridge,
       {
         id: this.sessionId,
         onStateChange: (next: TextInputSyncState) => {
           this.value.set(next.value)
-          this.setSelection(next.selectionStart, next.selectionEnd)
+          setSessionSelection(this.session, next.value, next.selectionStart, next.selectionEnd)
           this.resetCaretBlink()
           this.invalidateSelf({ source: "textbox.bridge" })
         },
         onBlur: () => {
-          this.focused = false
+          blurTextSession(this.session)
           this.stopCaretBlink()
           this.invalidateSelf({ source: "textbox.bridgeBlur" })
         },
@@ -382,7 +353,7 @@ export class TextBox extends UIElement {
   }
 
   private resetCaretBlink() {
-    this.caretBlinkHoldUntil = Date.now() + CARET_BLINK_MS
+    this.session.caretBlinkHoldUntil = Date.now() + CARET_BLINK_MS
     this.updateCaretBlinkState(true)
     this.scheduleCaretBlink()
   }
@@ -392,13 +363,13 @@ export class TextBox extends UIElement {
       clearTimeout(this.caretBlinkTimer)
       this.caretBlinkTimer = null
     }
-    this.caretVisible = false
-    this.caretBlinkHoldUntil = 0
+    this.session.caretVisible = false
+    this.session.caretBlinkHoldUntil = 0
   }
 
   private scheduleCaretBlink() {
     if (this.caretBlinkTimer !== null) clearTimeout(this.caretBlinkTimer)
-    if (!this.focused) {
+    if (!this.session.focused) {
       this.caretBlinkTimer = null
       return
     }
@@ -407,7 +378,7 @@ export class TextBox extends UIElement {
     const delay = Math.max(16, nextAt - now)
     this.caretBlinkTimer = setTimeout(() => {
       this.caretBlinkTimer = null
-      if (!this.focused) {
+      if (!this.session.focused) {
         this.stopCaretBlink()
         return
       }
@@ -417,19 +388,19 @@ export class TextBox extends UIElement {
   }
 
   private nextCaretBlinkAt(now: number) {
-    if (now < this.caretBlinkHoldUntil) return this.caretBlinkHoldUntil
-    const elapsed = now - this.caretBlinkHoldUntil
+    if (now < this.session.caretBlinkHoldUntil) return this.session.caretBlinkHoldUntil
+    const elapsed = now - this.session.caretBlinkHoldUntil
     const phase = Math.floor(elapsed / CARET_BLINK_MS)
-    return this.caretBlinkHoldUntil + (phase + 1) * CARET_BLINK_MS
+    return this.session.caretBlinkHoldUntil + (phase + 1) * CARET_BLINK_MS
   }
 
   updateCaretBlinkState(forceVisible = false) {
     const now = Date.now()
-    const nextVisible = forceVisible || now < this.caretBlinkHoldUntil
+    const nextVisible = forceVisible || now < this.session.caretBlinkHoldUntil
       ? true
-      : Math.floor((now - this.caretBlinkHoldUntil) / CARET_BLINK_MS) % 2 === 1
-    if (this.caretVisible === nextVisible) return
-    this.caretVisible = nextVisible
+      : Math.floor((now - this.session.caretBlinkHoldUntil) / CARET_BLINK_MS) % 2 === 1
+    if (this.session.caretVisible === nextVisible) return
+    this.session.caretVisible = nextVisible
     this.invalidateSelf({ source: "textbox.caret" })
   }
 
@@ -444,9 +415,9 @@ export class TextBox extends UIElement {
       fields: [
         { label: "active", value: String(this.activeValue) },
         { label: "disabled", value: String(this.disabledValue) },
-        { label: "focused", value: String(this.focused) },
+        { label: "focused", value: String(this.session.focused) },
         { label: "selection", value: `${selection.selectionStart}-${selection.selectionEnd}` },
-        { label: "scrollX", value: `${Math.round(this.scrollX)}` },
+        { label: "scrollX", value: `${Math.round(this.session.scrollX)}` },
         { label: "bridge", value: this.inputBridge.isFocused(this.sessionId) ? "focused" : "idle" },
       ],
     }
@@ -455,9 +426,9 @@ export class TextBox extends UIElement {
   onRuntimeDeactivate() {
     this.hover = false
     this.dragAnchor = null
-    if (this.focused) {
-      this.focused = false
-      this.inputBridge.blur(this.sessionId)
+    if (this.session.focused) {
+      blurTextSession(this.session)
+      blurTextSessionBridge(this.inputBridge, this.sessionId)
     }
     this.stopCaretBlink()
   }
@@ -470,9 +441,10 @@ type TextBoxState = {
   disabled: boolean
 }
 
-export const textBoxDescriptor: WidgetDescriptor<TextBoxState, { value: Signal<string>; placeholder?: string; disabled?: boolean; visualStyle?: VisualStyleInput }> = {
+export const textBoxDescriptor: WidgetDescriptor<TextBoxState, TextBoxWidgetProps> = {
   id: "textbox",
   retainedKind: "widget",
+  capabilityShape: { behavior: true, visual: true, layout: true },
   create: () => {
     const state = { rect: ZERO_RECT, active: false, disabled: false } as TextBoxState
     state.widget = new TextBox({
@@ -485,17 +457,18 @@ export const textBoxDescriptor: WidgetDescriptor<TextBoxState, { value: Signal<s
     return state
   },
   getWidget: (state) => state.widget,
-  mount: (state, props: { value: Signal<string>; placeholder?: string; disabled?: boolean; visualStyle?: VisualStyleInput }, rect, active) => {
+  mount: (state, props: TextBoxWidgetProps, rect, active) => {
     state.rect = rect
     state.active = active
     state.disabled = props.disabled ?? false
+    state.widget.bindRuntimeState(props.runtimeState)
     state.widget.update({
       rect: () => state.rect,
-      value: props.value,
-      placeholder: props.placeholder,
+      value: props.behavior.value,
+      placeholder: props.behavior.placeholder,
       active: () => state.active,
       disabled: () => state.disabled,
-      visualStyle: props.visualStyle,
+      visualStyle: props.visual?.fieldStyle,
     })
   },
 }

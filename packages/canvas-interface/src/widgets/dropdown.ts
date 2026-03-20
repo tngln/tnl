@@ -4,20 +4,32 @@ import { PointerUIEvent } from "../ui_base"
 import type { TopLayerController } from "../top_layer"
 import { useClickOutsideHandler } from "../top_layer"
 import type { WidgetDescriptor } from "../builder/widget_registry"
-import { caretDownIcon } from "../icons"
-import { drawVisualNode, type VisualStyleInput } from "../builder/visual"
-import { textControlFrame } from "../builder/visual.presets"
+import { createVisualHostState, drawVisualHost, syncVisualHostState } from "../builder/visual_host"
+import type { RuntimeStateBinding } from "../builder/runtime_state"
+import { writeRuntimeRegions } from "../builder/runtime_state"
+import { resolveDropdownRegions } from "../builder/widget_regions"
+import { buildDropdownVisual, resolveDropdownVisualModel, type DropdownVisualModel } from "../builder/widget_visuals"
 import { DropdownMenu, DROPDOWN_MENU_ROW_HEIGHT } from "./dropdown_menu"
 import { InteractiveElement } from "./interactive"
+import type { RetainedPayload } from "../builder/widget_registry"
 
 export type DropdownOption = { value: string; label: string }
+export type DropdownBehaviorProps = {
+  options: DropdownOption[]
+  selected: Signal<string>
+  topLayer?: TopLayerController
+}
+
+export type DropdownWidgetProps = RetainedPayload<DropdownBehaviorProps, DropdownVisualModel>
 
 export class Dropdown extends InteractiveElement {
   private idValue: string = ""
   private optionsValue: DropdownOption[] = []
-  private selected: any
+  private selected: Signal<string>
   private topLayer?: TopLayerController
-  private visualStyleValue: VisualStyleInput | undefined
+  private runtimeState?: RuntimeStateBinding
+  private visualModelValue: DropdownVisualModel = { label: "" }
+  private readonly visualHost = createVisualHostState<DropdownVisualModel>()
 
   private menu: DropdownMenu | null = null
   private menuRectCache: Rect = ZERO_RECT
@@ -27,15 +39,19 @@ export class Dropdown extends InteractiveElement {
     id: string
     rect: () => Rect
     options: DropdownOption[] | (() => DropdownOption[])
-    selected: any
+    selected: Signal<string>
     topLayer?: TopLayerController
     active?: () => boolean
     disabled?: () => boolean
-    visualStyle?: VisualStyleInput
   }) {
     super(opts)
     this.selected = opts.selected
-    this.update(opts)
+    const options = typeof opts.options === "function" ? opts.options() : opts.options
+    this.update({
+      id: opts.id,
+      behavior: { options, selected: opts.selected, topLayer: opts.topLayer },
+      visual: resolveDropdownVisualModel({ options, selectedValue: opts.selected.peek() }),
+    })
 
     this.on("blur", () => {
       this.closeMenu()
@@ -47,12 +63,16 @@ export class Dropdown extends InteractiveElement {
     })
   }
 
-  update(opts: { id: string; options: DropdownOption[] | (() => DropdownOption[]); selected: any; topLayer?: TopLayerController; visualStyle?: VisualStyleInput }) {
+  update(opts: { id: string; behavior: DropdownBehaviorProps; visual: DropdownVisualModel }) {
     this.idValue = opts.id
-    this.optionsValue = typeof opts.options === "function" ? opts.options() : opts.options
-    this.selected = opts.selected
-    this.visualStyleValue = opts.visualStyle
-    if (opts.topLayer) this.topLayer = opts.topLayer
+    this.optionsValue = opts.behavior.options
+    this.selected = opts.behavior.selected
+    this.visualModelValue = opts.visual
+    if (opts.behavior.topLayer) this.topLayer = opts.behavior.topLayer
+  }
+
+  bindRuntimeState(binding: RuntimeStateBinding | undefined) {
+    this.runtimeState = binding
   }
 
   private mainRect() {
@@ -73,10 +93,7 @@ export class Dropdown extends InteractiveElement {
   }
 
   private computeMenuRect() {
-    const r = this.mainRect()
-    const options = this.optionsValue
-    const h = Math.max(0, options.length * DROPDOWN_MENU_ROW_HEIGHT)
-    return { x: r.x, y: r.y + r.h + 2, w: r.w, h }
+    return resolveDropdownRegions({ rect: this.mainRect(), optionCount: this.optionsValue.length }).overlayRect
   }
 
   protected onActivate() {
@@ -116,51 +133,28 @@ export class Dropdown extends InteractiveElement {
     const disabled = this._disabled()
     const pressed = this.pressed()
 
-    const options = this.optionsValue
-    const current = options.find((o) => o.value === this.selected.peek())
-    const label = current ? current.label : ""
-    drawVisualNode(ctx, {
-      kind: "box",
-      style: {
-        ...(textControlFrame() as any),
-        ...((this.visualStyleValue as any) ?? {}),
+    syncVisualHostState(this.visualHost, {
+      rect: r,
+      model: this.visualModelValue,
+      context: {
+        state: { hover: this.hover, pressed, dragging: false, disabled },
+        disabled,
       },
-      children: [
-        {
-          kind: "box",
-          style: {
-            base: {
-              layout: { axis: "row", align: "center", justify: "between", grow: true },
-            },
-          },
-          children: [
-            {
-              kind: "text",
-              text: label,
-              style: {
-                base: {
-                  text: { baseline: "middle", truncate: true },
-                  layout: { grow: true, minH: r.h },
-                },
-              },
-            },
-            {
-              kind: "image",
-              source: { kind: "icon", icon: caretDownIcon },
-              style: {
-                base: {
-                  image: { color: "rgba(233,237,243,0.40)", width: 10, height: 10 },
-                  layout: { fixedW: 10, fixedH: 10 },
-                },
-              },
-            },
-          ],
-        },
-      ],
-    }, r, {
-      state: { hover: this.hover, pressed, dragging: false, disabled },
-      disabled,
     })
+    const regions = resolveDropdownRegions({ rect: r, optionCount: this.optionsValue.length })
+    const menuRect = this.topLayer?.isOpen(this.menuId()) ? regions.overlayRect : undefined
+    writeRuntimeRegions(this.runtimeState, {
+      primaryRect: regions.primaryRect,
+      anchorRect: regions.anchorRect,
+      overlayRect: menuRect,
+    }, {
+      active: this._active(),
+      disabled,
+      hover: this.hover,
+      pressed,
+      open: this.topLayer?.isOpen(this.menuId()) ?? false,
+    })
+    drawVisualHost(ctx, this.visualHost, buildDropdownVisual)
 
     if (this.topLayer?.isOpen(this.menuId())) this.menuRectCache = this.computeMenuRect()
   }
@@ -174,9 +168,10 @@ type DropdownState = {
   disabled: boolean
 }
 
-export const dropdownDescriptor: WidgetDescriptor<DropdownState, { options: DropdownOption[]; selected: Signal<string>; disabled?: boolean; topLayer?: TopLayerController; visualStyle?: VisualStyleInput }> = {
+export const dropdownDescriptor: WidgetDescriptor<DropdownState, DropdownWidgetProps> = {
   id: "dropdown",
   retainedKind: "widget",
+  capabilityShape: { behavior: true, visual: true, layout: true },
   create: (id) => {
     const state = { id, rect: ZERO_RECT, active: false, disabled: false } as DropdownState
     state.widget = new Dropdown({
@@ -186,21 +181,19 @@ export const dropdownDescriptor: WidgetDescriptor<DropdownState, { options: Drop
       selected: signal(""),
       active: () => state.active,
       disabled: () => state.disabled,
-      visualStyle: undefined,
     })
     return state
   },
   getWidget: (state) => state.widget,
-  mount: (state, props, rect, active) => {
+  mount: (state, props: DropdownWidgetProps, rect, active) => {
     state.rect = rect
     state.active = active
     state.disabled = props.disabled ?? false
+    state.widget.bindRuntimeState(props.runtimeState)
     state.widget.update({
       id: state.id,
-      options: props.options,
-      selected: props.selected,
-      topLayer: props.topLayer,
-      visualStyle: props.visualStyle,
+      behavior: props.behavior,
+      visual: props.visual,
     })
   },
 }
