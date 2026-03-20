@@ -9,7 +9,7 @@ export class Paragraph extends UIElement {
   constructor(opts: { rect: () => Rect; spans: RichTextSpan[]; style: RichTextStyle; active?: () => boolean }) {
     super()
     this.rect = opts.rect
-    this.block = createRichTextBlock(opts.spans, opts.style, { align: "start", wrap: "word" })
+    this.block = createRichTextBlock(opts.spans, opts.style, { align: "start" })
     this.active = opts.active ?? (() => true)
     this.setBounds(this.rect, this.active)
   }

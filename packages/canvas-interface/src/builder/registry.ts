@@ -8,7 +8,7 @@ import { scrollAreaDescriptor } from "../widgets/scroll_area"
 import { scrollbarDescriptor } from "../widgets/scrollbar"
 import { textBoxDescriptor } from "../widgets/textbox"
 import { TREE_ROW_HEIGHT, treeRowDescriptor } from "../widgets/tree_row"
-import { textFont } from "../text"
+import { fontString } from "../text"
 import { buildButtonVisual, buildCheckboxVisual, buildListRowVisual, buildRadioVisual, drawButton, drawCheckbox, drawListRow, drawRadio } from "./draw_controls"
 import { drawSlider, resolveSliderValueFromPointer } from "./slider_control"
 import { inheritedTextToRichTextStyle, resolveTextColor, resolveTextEmphasis, resolveTextStyle } from "./styles"
@@ -133,7 +133,7 @@ const textHandler = primitiveHandler<TextNode>({
   kind: "text",
   measure: (_engine, ctx, node, max, _path, ast) => {
     const style = resolveTextStyle(ast.resolved, node)
-    const f = textFont(style, resolveTextEmphasis(ast.resolved, node))
+    const f = fontString(style, resolveTextEmphasis(ast.resolved, node))
     return { w: Math.min(max.w, measureTextWidth(ctx, node.text, f)), h: style.lineHeight }
   },
   mount: (engine, _ctx, node, ast, _path, active) => {
@@ -149,7 +149,7 @@ const textHandler = primitiveHandler<TextNode>({
           text: node.text,
           style: {
             color: resolveTextColor(ast.resolved, node),
-            font: textFont(style, resolveTextEmphasis(ast.resolved, node)),
+            font: fontString(style, resolveTextEmphasis(ast.resolved, node)),
             baseline: "top",
           },
         }),
@@ -228,7 +228,7 @@ const dropdownHandler = widgetHandler<DropdownNode, Parameters<typeof dropdownDe
   kind: "dropdown",
   widgetType: "dropdown",
   measure: (_engine, ctx, node, max) => {
-    const f = textFont({
+    const f = fontString({
       fontFamily: theme.typography.family,
       fontSize: theme.typography.body.size,
       fontWeight: theme.typography.body.weight,
@@ -270,7 +270,7 @@ const textBoxHandler = widgetHandler<TextBoxNode, Parameters<typeof textBoxDescr
   widgetType: "textbox",
   measure: (_engine, ctx, node, max) => {
     const basis = node.placeholder && !node.value.peek() ? node.placeholder : node.value.peek()
-    const w = measureTextWidth(ctx, basis || " ", textFont({
+    const w = measureTextWidth(ctx, basis || " ", fontString({
       fontFamily: theme.typography.family,
       fontSize: theme.typography.body.size,
       fontWeight: theme.typography.body.weight,

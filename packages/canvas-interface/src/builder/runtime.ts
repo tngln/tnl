@@ -137,7 +137,7 @@ export class BuilderRuntime {
   ensureRichBlock(key: string, spans: Parameters<typeof createRichTextBlock>[0], style: Parameters<typeof createRichTextBlock>[1], align?: "start" | "center" | "end") {
     const hit = this.richBlocks.get(key)
     if (hit) return hit
-    const next = createRichTextBlock(spans, style, { align: align ?? "start", wrap: "word" })
+    const next = createRichTextBlock(spans, style, { align: align ?? "start" })
     this.richBlocks.set(key, next)
     return next
   }

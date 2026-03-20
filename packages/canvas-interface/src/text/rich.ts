@@ -10,7 +10,6 @@ export type RichTextStyle = { fontFamily: string; fontSize: number; fontWeight?:
 
 export type RichTextLayoutOptions = {
   maxWidth: number
-  wrap?: "word"
   align?: "start" | "center" | "end"
 }
 
@@ -125,11 +124,6 @@ export function measureTextWidth(ctx: Any2DContext, text: string, font: string) 
   return w
 }
 
-export function measureTextLine(ctx: Any2DContext, text: string, font: string, lineHeight: number) {
-  const w = measureTextWidth(ctx, text, font)
-  return { w, h: lineHeight }
-}
-
 export function truncateToWidth(ctx: Any2DContext, text: string, maxWidth: number) {
   if (maxWidth <= 0) return ""
   if (ctx.measureText(text).width <= maxWidth) return text
@@ -169,7 +163,7 @@ function fontMetrics(ctx: Any2DContext, font: string): FontMetrics {
 
 type Token = { text: string; spanIndex: number; font: string; color: string; underline?: boolean; isSpace: boolean }
 
-function tokenize(ctx: Any2DContext, spans: RichTextSpan[], base: RichTextStyle) {
+function tokenize(spans: RichTextSpan[], base: RichTextStyle) {
   const tokens: Token[] = []
   for (let i = 0; i < spans.length; i++) {
     const span = spans[i]
@@ -204,7 +198,7 @@ export function layoutRichText(
   const align = opts.align ?? "start"
   const lh = Math.max(0, base.lineHeight)
 
-  const tokens = tokenize(ctx, spans, base)
+  const tokens = tokenize(spans, base)
   const lines: RichTextLine[] = [newLine(0)]
   let line = lines[0]
   let cursor = 0

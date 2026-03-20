@@ -1,5 +1,5 @@
 export * from "./rich"
-export * from "./style"
+export * from "./rich_selection"
 export * from "./geometry"
 export * from "./interaction"
 export * from "./session"
