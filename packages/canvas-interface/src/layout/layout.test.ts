@@ -69,6 +69,19 @@ describe("layout", () => {
     expect(root.children?.[1].rect).toEqual({ x: 24, y: 0, w: 76, h: 20 })
   })
 
+  it("applies space-between after grow distribution", () => {
+    const root: LayoutNode = {
+      style: { axis: "row", justify: "space-between" },
+      children: [
+        leaf("a", 20, 10, { grow: 1, shrink: 1, basis: 0 }),
+        leaf("b", 20, 10),
+      ],
+    }
+    layout(root, { x: 0, y: 0, w: 100, h: 20 })
+    expect(root.children?.[0].rect).toEqual({ x: 0, y: 0, w: 80, h: 20 })
+    expect(root.children?.[1].rect).toEqual({ x: 80, y: 0, w: 20, h: 20 })
+  })
+
   it("stretches cross axis via alignSelf stretch", () => {
     const root: LayoutNode = {
       style: { axis: "row", align: "start" },

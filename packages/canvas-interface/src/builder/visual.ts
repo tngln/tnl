@@ -1,5 +1,6 @@
 import { LineOp, RectOp, TextOp, draw, measureTextWidth, truncateToWidth, type FillStyle, type Paint, type Rect, type ShadowStyle, type StrokeStyle } from "../draw"
 import { iconToShape, type IconDef } from "../icons"
+import { distributeMainAxis } from "../layout/main_axis"
 import { font, theme } from "../theme"
 import type { ControlState } from "./control"
 
@@ -421,39 +422,35 @@ function layoutChildren(ctx: CanvasRenderingContext2D, node: Extract<VisualNode,
     for (const child of normalChildren) out.set(child, contentRect)
   } else {
     const measures = normalChildren.map((child) => childMeasure(child, ctx, { w: contentRect.w, h: contentRect.h }, visualCtx))
-    const growCount = normalChildren.filter((child) => resolveStyle(child.style, visualCtx).layout.grow).length
-    const totalMain = measures.reduce((sum, item) => sum + (resolved.layout.axis === "row" ? item.w : item.h), 0) + Math.max(0, normalChildren.length - 1) * resolved.layout.gap
+    const childStyles = normalChildren.map((child) => resolveStyle(child.style, visualCtx))
     const availableMain = resolved.layout.axis === "row" ? contentRect.w : contentRect.h
-    const extra = Math.max(0, availableMain - totalMain)
-    const grownMain = measures.map((size, index) => {
-      const child = normalChildren[index]!
-      const childResolved = resolveStyle(child.style, visualCtx)
-      const growDelta = childResolved.layout.grow && growCount > 0 ? extra / growCount : 0
-      return resolved.layout.axis === "row" ? size.w + growDelta : size.h + growDelta
+    const distribution = distributeMainAxis({
+      baseSizes: measures.map((size) => resolved.layout.axis === "row" ? size.w : size.h),
+      availableMain,
+      gap: resolved.layout.gap,
+      justify: resolved.layout.justify === "between" ? "space-between" : resolved.layout.justify,
+      growWeights: childStyles.map((style) => style.layout.grow ? 1 : 0),
+      shrinkWeights: childStyles.map((style) => style.layout.grow ? 1 : 0),
+      minSizes: childStyles.map((style) => resolved.layout.axis === "row" ? (style.layout.fixedW ?? style.layout.minW ?? 0) : (style.layout.fixedH ?? style.layout.minH ?? 0)),
+      maxSizes: childStyles.map((style) => resolved.layout.axis === "row" ? (style.layout.fixedW ?? Number.POSITIVE_INFINITY) : (style.layout.fixedH ?? Number.POSITIVE_INFINITY)),
     })
-    const usedMain = grownMain.reduce((sum, item) => sum + item, 0)
-    const remainingMain = Math.max(0, availableMain - usedMain - Math.max(0, normalChildren.length - 1) * resolved.layout.gap)
-    let cursor = resolved.layout.axis === "row" ? contentRect.x : contentRect.y
-    let betweenGap = resolved.layout.gap
-    if (resolved.layout.justify === "center") cursor += remainingMain / 2
-    else if (resolved.layout.justify === "end") cursor += remainingMain
-    else if (resolved.layout.justify === "between" && normalChildren.length > 1) betweenGap += remainingMain / (normalChildren.length - 1)
+    let cursor = (resolved.layout.axis === "row" ? contentRect.x : contentRect.y) + distribution.startOffset
     for (let i = 0; i < normalChildren.length; i++) {
       const child = normalChildren[i]!
-      const childResolved = resolveStyle(child.style, visualCtx)
+      const childResolved = childStyles[i]!
       const size = measures[i]!
       if (resolved.layout.axis === "row") {
-        const w = grownMain[i]!
+        const w = distribution.sizes[i]!
         const h = Math.min(contentRect.h, childResolved.layout.fixedH ?? size.h)
         const y = resolved.layout.align === "center" ? contentRect.y + (contentRect.h - h) / 2 : resolved.layout.align === "end" ? contentRect.y + contentRect.h - h : contentRect.y
         out.set(child, { x: cursor, y, w, h })
-        cursor += w + betweenGap
+        cursor += w + distribution.gap
       } else {
-        const h = grownMain[i]!
+        const h = distribution.sizes[i]!
         const w = Math.min(contentRect.w, childResolved.layout.fixedW ?? size.w)
         const x = resolved.layout.align === "center" ? contentRect.x + (contentRect.w - w) / 2 : resolved.layout.align === "end" ? contentRect.x + contentRect.w - w : contentRect.x
         out.set(child, { x, y: cursor, w, h })
-        cursor += h + betweenGap
+        cursor += h + distribution.gap
       }
     }
   }

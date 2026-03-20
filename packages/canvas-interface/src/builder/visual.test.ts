@@ -62,7 +62,7 @@ describe("visual fragments", () => {
     expect(ctx.calls.some((call) => call.op === "drawImage")).toBe(true)
   })
 
-  it("keeps trailing text inside bounds when grow and justify-between are combined", () => {
+  it("keeps trailing text inside bounds when flexible leading text must grow or shrink", () => {
     const ctx = fakeCtx() as CanvasRenderingContext2D & { calls: Array<{ op: string; args: any[] }> }
     drawVisualNode(ctx, {
       kind: "box",
@@ -70,7 +70,7 @@ describe("visual fragments", () => {
       children: [
         {
           kind: "text",
-          text: "Primary label",
+          text: "Primary label that is intentionally long enough to need truncation in a narrow row",
           style: {
             base: {
               text: { lineHeight: 20, truncate: true },

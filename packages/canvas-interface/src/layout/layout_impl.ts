@@ -1,4 +1,5 @@
 import { clamp, type Rect } from "../draw/rect"
+import { distributeMainAxis } from "./main_axis"
 
 export type { Rect }
 
@@ -313,54 +314,6 @@ function measureContainer(node: LayoutNode, max: { w: number; h: number }, cache
   return outerSizeFromMeasured(style, inner)
 }
 
-function distributeGrow(sizes: number[], weights: number[], maxes: number[], extra: number) {
-  let remaining = extra
-  let active: number[] = []
-  for (let i = 0; i < sizes.length; i++) if (weights[i] > 0 && sizes[i] < maxes[i]) active.push(i)
-  for (let iter = 0; iter < 8 && remaining > 1e-6 && active.length > 0; iter++) {
-    const total = active.reduce((s, i) => s + weights[i], 0)
-    if (total <= 0) break
-    const startRemaining = remaining
-    let changed = 0
-    for (const i of active) {
-      const add = (startRemaining * weights[i]) / total
-      const next = Math.min(maxes[i], sizes[i] + add)
-      const delta = next - sizes[i]
-      if (delta > 0) {
-        sizes[i] = next
-        remaining -= delta
-        changed += delta
-      }
-    }
-    if (changed <= 1e-6) break
-    active = active.filter((i) => sizes[i] < maxes[i] - 1e-9)
-  }
-}
-
-function distributeShrink(sizes: number[], weights: number[], mins: number[], deficit: number) {
-  let remaining = deficit
-  let active: number[] = []
-  for (let i = 0; i < sizes.length; i++) if (weights[i] > 0 && sizes[i] > mins[i]) active.push(i)
-  for (let iter = 0; iter < 8 && remaining > 1e-6 && active.length > 0; iter++) {
-    const total = active.reduce((s, i) => s + weights[i], 0)
-    if (total <= 0) break
-    const startRemaining = remaining
-    let changed = 0
-    for (const i of active) {
-      const sub = (startRemaining * weights[i]) / total
-      const next = Math.max(mins[i], sizes[i] - sub)
-      const delta = sizes[i] - next
-      if (delta > 0) {
-        sizes[i] = next
-        remaining -= delta
-        changed += delta
-      }
-    }
-    if (changed <= 1e-6) break
-    active = active.filter((i) => sizes[i] > mins[i] + 1e-9)
-  }
-}
-
 function applyMargin(rect: Rect, margin: PaddingRect) {
   return {
     x: rect.x + margin.l,
@@ -455,40 +408,21 @@ function placeChildren(container: LayoutNode, box: Rect, cache: MeasureCache) {
     maxCross[i] = maxCrossOf(cs, axis) + (axis === "row" ? margin.t + margin.b : margin.l + margin.r)
   }
 
-  const sizes = base.slice()
-  const baseSum = sizes.reduce((s, v) => s + v, 0)
-  const gapSum = gap * Math.max(0, children.length - 1)
-  const totalBase = baseSum + gapSum
-  const totalGrow = grow.reduce((s, v) => s + v, 0)
-  const totalShrink = shrink.reduce((s, v) => s + v, 0)
-
-  if (totalBase < mainAvail && totalGrow > 0) distributeGrow(sizes, grow, maxMain, mainAvail - totalBase)
-  if (totalBase > mainAvail && totalShrink > 0) distributeShrink(sizes, shrink, minMain, totalBase - mainAvail)
-
-  for (let i = 0; i < sizes.length; i++) sizes[i] = clamp(sizes[i], minMain[i], maxMain[i])
+  const distribution = distributeMainAxis({
+    baseSizes: base,
+    availableMain: mainAvail,
+    gap,
+    justify: justify === "space-between" ? "space-between" : justify,
+    growWeights: grow,
+    shrinkWeights: shrink,
+    minSizes: minMain,
+    maxSizes: maxMain,
+  })
+  const sizes = distribution.sizes
   for (let i = 0; i < cross.length; i++) cross[i] = clamp(cross[i], minCross[i], maxCross[i])
   for (let i = 0; i < cross.length; i++) if (alignSelf[i] === "stretch") cross[i] = crossAvail
 
-  const usedMain = sizes.reduce((s, v) => s + v, 0)
-  const usedGaps = gap * Math.max(0, children.length - 1)
-  const usedTotal = usedMain + usedGaps
-
-  let startOffset = 0
-  let gapActual = gap
-  if (justify === "center") startOffset = (mainAvail - usedTotal) / 2
-  else if (justify === "end") startOffset = mainAvail - usedTotal
-  else if (justify === "space-between") {
-    if (children.length > 1 && mainAvail > usedMain) {
-      gapActual = (mainAvail - usedMain) / (children.length - 1)
-      startOffset = 0
-    } else {
-      gapActual = 0
-      startOffset = 0
-    }
-  }
-  if (!Number.isFinite(startOffset)) startOffset = 0
-
-  let cursor = startOffset
+  let cursor = distribution.startOffset
   for (let i = 0; i < children.length; i++) {
     const child = children[i]
     const mainSize = sizes[i]
@@ -517,7 +451,7 @@ function placeChildren(container: LayoutNode, box: Rect, cache: MeasureCache) {
       }
     }
     layoutInternal(child, childRect, cache)
-    cursor += mainSize + gapActual
+    cursor += mainSize + distribution.gap
   }
 }
 
