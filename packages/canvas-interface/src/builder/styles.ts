@@ -1,6 +1,6 @@
 import { theme } from "../theme"
 import type { RichTextStyle, TextEmphasis } from "../draw"
-import type { NodeEnv, TextEnv, TextNode } from "./types"
+import type { LabelNode, NodeEnv, TextEnv, TextNode } from "./types"
 
 export function defaultBodyStyle(): RichTextStyle {
   return {
@@ -53,7 +53,9 @@ export function textEnvToRichTextStyle(text: TextEnv | undefined): RichTextStyle
   }
 }
 
-export function resolveTextStyle(env: NodeEnv, node: TextNode): RichTextStyle {
+type StyledTextNode = TextNode | LabelNode
+
+export function resolveTextStyle(env: NodeEnv, node: StyledTextNode): RichTextStyle {
   const text = env.text
   return {
     fontFamily: text?.fontFamily ?? theme.typography.family,
@@ -63,10 +65,10 @@ export function resolveTextStyle(env: NodeEnv, node: TextNode): RichTextStyle {
   }
 }
 
-export function resolveTextColor(env: NodeEnv, node: TextNode) {
+export function resolveTextColor(env: NodeEnv, node: StyledTextNode) {
   return node.color ?? env.text?.color ?? theme.colors.text
 }
 
-export function resolveTextEmphasis(env: NodeEnv, node: TextNode): TextEmphasis | undefined {
+export function resolveTextEmphasis(env: NodeEnv, node: StyledTextNode): TextEmphasis | undefined {
   return node.emphasis ?? env.text?.emphasis
 }

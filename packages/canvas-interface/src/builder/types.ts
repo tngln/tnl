@@ -24,6 +24,8 @@ export type NodeEnv = {
   text?: TextEnv
 }
 
+export type TextOverflow = "visible" | "truncate" | "clip"
+
 export type BuilderNodeRuntimeKind = "primitive" | "control" | "widget"
 
 type NodeBase = {
@@ -48,6 +50,14 @@ export type TextNode = NodeBase & {
   text: string
   color?: string
   emphasis?: TextEmphasis
+}
+
+export type LabelNode = NodeBase & {
+  kind: "label"
+  text: string
+  color?: string
+  emphasis?: TextEmphasis
+  overflow?: TextOverflow
 }
 
 export type RichTextNode = NodeBase & {
@@ -163,6 +173,7 @@ export type SliderNode = NodeBase & {
 export type BuilderNode =
   | ContainerNode
   | TextNode
+  | LabelNode
   | RichTextNode
   | ButtonNode
   | ClickAreaNode

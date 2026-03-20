@@ -13,6 +13,7 @@ import {
   formRow,
   paintNode,
   radioNode,
+  labelNode,
   richTextNode,
   row,
   rowItemNode,
@@ -29,6 +30,7 @@ import {
   type CommonNodeProps,
   type NodeEnv,
   type RowVariant,
+  type TextOverflow,
   type TreeItem,
 } from "./surface_builder"
 import type { RichTextSpan, RichTextStyle, TextEmphasis } from "../draw"
@@ -44,6 +46,10 @@ type TextProps = JSXNodeProps & {
   tone?: "primary" | "muted"
   weight?: "normal" | "bold"
   size?: "body" | "headline" | "meta"
+}
+
+type LabelProps = TextProps & {
+  overflow?: TextOverflow
 }
 
 type RichTextProps = Omit<JSXNodeProps, "children"> & {
@@ -288,6 +294,17 @@ export function Text(props: TextProps) {
   })
 }
 
+export function Label(props: LabelProps) {
+  const text = props.text ?? resolveTextContent(props)
+  return labelNode(text, {
+    ...common(props),
+    color: props.color,
+    emphasis: props.emphasis,
+    overflow: props.overflow,
+    envOverride: mergeEnv(props.envOverride, textEnvPatch(props)),
+  })
+}
+
 export function RichText(props: RichTextProps) {
   const hasSpans = props.spans !== undefined
   const hasChildren = props.children !== undefined && (!Array.isArray(props.children) || props.children.length > 0)
@@ -460,13 +477,13 @@ export function PanelToolbar(props: ToolbarRowProps) {
 
 export function PanelHeader(props: PanelHeaderProps) {
   const trailing = [
-    ...(props.meta ? [Text({ key: props.key ? `${props.key}.meta` : undefined, tone: "muted", size: "meta", children: [props.meta] })] : []),
+    ...(props.meta ? [Label({ key: props.key ? `${props.key}.meta` : undefined, tone: "muted", size: "meta", children: [props.meta] })] : []),
     ...resolveChildren(props),
   ]
   return SplitRow({
     ...props,
     style: mergeLayout({ align: "center" }, props.style),
-    left: Text({ key: props.key ? `${props.key}.title` : undefined, weight: "bold", children: [props.title] }),
+    left: Label({ key: props.key ? `${props.key}.title` : undefined, weight: "bold", children: [props.title] }),
     right: trailing,
   })
 }

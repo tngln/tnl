@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import { signal } from "@tnl/canvas-interface/reactivity"
 import { theme } from "@tnl/canvas-interface/theme"
-import { BuilderSurface, buttonNode, checkboxNode, column, defineSurface, flattenTreeItems, mountSurface, richTextNode, row, rowItemNode, scrollAreaNode, textBoxNode, textNode, treeItem, treeViewNode } from "@tnl/canvas-interface/builder"
+import { BuilderSurface, buttonNode, checkboxNode, column, defineSurface, flattenTreeItems, labelNode, mountSurface, richTextNode, row, rowItemNode, scrollAreaNode, textBoxNode, textNode, treeItem, treeViewNode } from "@tnl/canvas-interface/builder"
 import { PointerUIEvent } from "@tnl/canvas-interface/ui"
 import { fakeCtx, withFakeDocument } from "./test_utils"
 
@@ -346,6 +346,62 @@ describe("surface builder", () => {
       const inherited = inheritedSurface.contentSize({ x: 180, y: 0 })
       expect(inherited.y).toBeGreaterThan(base.y)
     })
+  })
+
+  it("measures text nodes by intrinsic width even under narrow constraints", () => {
+    const surface = new BuilderSurface({
+      id: "Builder.Text.IntrinsicWidth",
+      build: () => column([textNode("MMMMMMMM")]),
+    })
+
+    withFakeDocument(() => {
+      const narrow = surface.contentSize({ x: 10, y: 0 })
+      expect(narrow.x).toBeGreaterThan(10)
+    })
+  })
+
+  it("truncates labels by default when constrained", () => {
+    const surface = new BuilderSurface({
+      id: "Builder.Label.Truncate",
+      build: () => column([labelNode("MMMMMMMM", { style: { w: 30 } })]),
+    })
+    const ctx = fakeCtx() as CanvasRenderingContext2D & { calls: Array<{ op: string; args: any[] }> }
+    const viewport = {
+      rect: { x: 0, y: 0, w: 80, h: 40 },
+      contentRect: { x: 0, y: 0, w: 80, h: 40 },
+      clip: false,
+      scroll: { x: 0, y: 0 },
+      toSurface: (p: { x: number; y: number }) => p,
+      dpr: 1,
+    }
+
+    surface.render(ctx, viewport)
+
+    const fillTextCalls = ctx.calls.filter((call) => call.op === "fillText")
+    expect(fillTextCalls).toHaveLength(1)
+    expect(fillTextCalls[0]?.args[0]).toContain("...")
+  })
+
+  it("lets labels opt into visible overflow", () => {
+    const surface = new BuilderSurface({
+      id: "Builder.Label.Visible",
+      build: () => column([labelNode("MMMMMMMM", { overflow: "visible", style: { w: 30 } })]),
+    })
+    const ctx = fakeCtx() as CanvasRenderingContext2D & { calls: Array<{ op: string; args: any[] }> }
+    const viewport = {
+      rect: { x: 0, y: 0, w: 80, h: 40 },
+      contentRect: { x: 0, y: 0, w: 80, h: 40 },
+      clip: false,
+      scroll: { x: 0, y: 0 },
+      toSurface: (p: { x: number; y: number }) => p,
+      dpr: 1,
+    }
+
+    surface.render(ctx, viewport)
+
+    const fillTextCalls = ctx.calls.filter((call) => call.op === "fillText")
+    expect(fillTextCalls).toHaveLength(1)
+    expect(fillTextCalls[0]?.args[0]).toBe("MMMMMMMM")
   })
 
   it("does not propagate envOverride to descendants", () => {

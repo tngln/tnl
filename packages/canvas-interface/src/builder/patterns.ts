@@ -1,5 +1,5 @@
 import { theme, neutral } from "../theme"
-import { column, row, textNode } from "./nodes"
+import { column, labelNode, row, textNode } from "./nodes"
 import type { BuilderNode, CommonNodeProps } from "./types"
 import type { LayoutStyle } from "../layout"
 
@@ -30,7 +30,7 @@ export function section(title: string, body: BuilderNode[], opts: PatternBase = 
 export function formRow(label: string, field: BuilderNode, opts: PatternBase & { key?: string; labelWidth?: number } = {}): BuilderNode {
   return row(
     [
-      textNode(label, { key: opts.key ? `${opts.key}.label` : undefined, color: theme.colors.textMuted, style: { fixed: opts.labelWidth ?? 92 } }),
+      labelNode(label, { key: opts.key ? `${opts.key}.label` : undefined, color: theme.colors.textMuted, style: { w: opts.labelWidth ?? 92 } }),
       field,
     ],
     { align: "center", gap: theme.spacing.sm, ...(opts.style ?? {}) },

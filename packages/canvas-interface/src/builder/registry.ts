@@ -1,5 +1,5 @@
 import { theme } from "../theme"
-import { draw, TextOp, measureTextWidth, ZERO_RECT } from "../draw"
+import { draw, TextOp, measureTextWidth, truncateToWidth, ZERO_RECT } from "../draw"
 import { AppError } from "../errors"
 import { measureLayout, type LayoutStyle } from "../layout"
 import { dropdownDescriptor } from "../widgets/dropdown"
@@ -14,7 +14,7 @@ import { drawSlider, resolveSliderValueFromPointer } from "./slider_control"
 import { resolveTextColor, resolveTextEmphasis, resolveTextStyle, textEnvToRichTextStyle } from "./styles"
 import type { BuilderEngine } from "./engine"
 import type { ControlMountOpts } from "./runtime"
-import type { AstNode, BuilderNode, BuilderNodeRuntimeKind, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, DropdownNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, TextBoxNode, TextNode, TreeViewNode } from "./types"
+import type { AstNode, BuilderNode, BuilderNodeRuntimeKind, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, DropdownNode, LabelNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, TextBoxNode, TextNode, TextOverflow, TreeViewNode } from "./types"
 import { flattenTreeItems } from "./runtime"
 import { measureVisualNode } from "./visual"
 import { resolveDropdownVisualModel } from "./widget_visuals"
@@ -129,32 +129,69 @@ const containerHandler = primitiveHandler<ContainerNode>({
   getStyle: containerStyle,
 })
 
+type PlainTextNode = TextNode | LabelNode
+
+function measurePlainTextNode(ctx: CanvasRenderingContext2D, node: PlainTextNode, max: MeasureSize, ast: AstNode, overflow: TextOverflow) {
+  const style = resolveTextStyle(ast.resolvedEnv, node)
+  const font = fontString(style, resolveTextEmphasis(ast.resolvedEnv, node))
+  const width = measureTextWidth(ctx, node.text, font)
+  return {
+    w: overflow === "visible" ? width : Math.min(max.w, width),
+    h: style.lineHeight,
+  }
+}
+
+function mountPlainTextNode(engine: BuilderEngine, node: PlainTextNode, ast: AstNode, active: boolean, overflow: TextOverflow) {
+  if (!active) return
+  const rect = ast.rect ?? ZERO_RECT
+  engine.drawOps.push((canvas) => {
+    const style = resolveTextStyle(ast.resolvedEnv, node)
+    const font = fontString(style, resolveTextEmphasis(ast.resolvedEnv, node))
+    let text = node.text
+    if (overflow === "truncate") {
+      canvas.save()
+      canvas.font = font
+      text = truncateToWidth(canvas, text, rect.w)
+      canvas.restore()
+    }
+    const op = TextOp({
+      x: rect.x,
+      y: rect.y,
+      text,
+      style: {
+        color: resolveTextColor(ast.resolvedEnv, node),
+        font,
+        baseline: "top",
+      },
+    })
+    if (overflow === "clip") {
+      canvas.save()
+      canvas.beginPath()
+      canvas.rect(rect.x, rect.y, rect.w, rect.h)
+      canvas.clip()
+      draw(canvas, op)
+      canvas.restore()
+      return
+    }
+    draw(canvas, op)
+  })
+}
+
 const textHandler = primitiveHandler<TextNode>({
   kind: "text",
   measure: (_engine, ctx, node, max, _path, ast) => {
-    const style = resolveTextStyle(ast.resolvedEnv, node)
-    const f = fontString(style, resolveTextEmphasis(ast.resolvedEnv, node))
-    return { w: Math.min(max.w, measureTextWidth(ctx, node.text, f)), h: style.lineHeight }
+    return measurePlainTextNode(ctx, node, max, ast, "visible")
   },
   mount: (engine, _ctx, node, ast, _path, active) => {
-    if (!active) return
-    const rect = ast.rect ?? ZERO_RECT
-    engine.drawOps.push((canvas) => {
-      const style = resolveTextStyle(ast.resolvedEnv, node)
-      draw(
-        canvas,
-        TextOp({
-          x: rect.x,
-          y: rect.y,
-          text: node.text,
-          style: {
-            color: resolveTextColor(ast.resolvedEnv, node),
-            font: fontString(style, resolveTextEmphasis(ast.resolvedEnv, node)),
-            baseline: "top",
-          },
-        }),
-      )
-    })
+    mountPlainTextNode(engine, node, ast, active, "visible")
+  },
+})
+
+const labelHandler = primitiveHandler<LabelNode>({
+  kind: "label",
+  measure: (_engine, ctx, node, max, _path, ast) => measurePlainTextNode(ctx, node, max, ast, node.overflow ?? "truncate"),
+  mount: (engine, _ctx, node, ast, _path, active) => {
+    mountPlainTextNode(engine, node, ast, active, node.overflow ?? "truncate")
   },
 })
 
@@ -383,6 +420,7 @@ export function createDefaultBuilderRegistry() {
   registry.register({ ...containerHandler, kind: "column" })
   registry.register({ ...containerHandler, kind: "stack" })
   registry.register(textHandler)
+  registry.register(labelHandler)
   registry.register(richTextHandler)
   registry.register(buttonHandler)
   registry.register(clickAreaHandler)
