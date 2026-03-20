@@ -14,7 +14,7 @@ import { drawSlider, resolveSliderValueFromPointer } from "./slider_control"
 import { resolveTextColor, resolveTextEmphasis, resolveTextStyle, textEnvToRichTextStyle } from "./styles"
 import type { BuilderEngine } from "./engine"
 import type { ControlMountOpts } from "./runtime"
-import type { AstNode, BuilderNode, BuilderNodeRuntimeKind, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, DropdownNode, LabelNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, TextBoxNode, TextNode, TextOverflow, TreeViewNode } from "./types"
+import type { AstNode, BuilderNode, BuilderNodeRuntimeKind, ButtonNode, CheckboxNode, ClickAreaNode, ContainerNode, DropdownNode, LabelNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, TextBoxNode, TextOverflow, TreeViewNode } from "./types"
 import { flattenTreeItems } from "./runtime"
 import { measureVisualNode } from "./visual"
 import { resolveDropdownVisualModel } from "./widget_visuals"
@@ -129,7 +129,7 @@ const containerHandler = primitiveHandler<ContainerNode>({
   getStyle: containerStyle,
 })
 
-type PlainTextNode = TextNode | LabelNode
+type PlainTextNode = Extract<BuilderNode, { kind: "text" }> | LabelNode
 
 function measurePlainTextNode(ctx: CanvasRenderingContext2D, node: PlainTextNode, max: MeasureSize, ast: AstNode, overflow: TextOverflow) {
   const style = resolveTextStyle(ast.resolvedEnv, node)
@@ -177,7 +177,7 @@ function mountPlainTextNode(engine: BuilderEngine, node: PlainTextNode, ast: Ast
   })
 }
 
-const textHandler = primitiveHandler<TextNode>({
+const textHandler = primitiveHandler<Extract<BuilderNode, { kind: "text" }>>({
   kind: "text",
   measure: (_engine, ctx, node, max, _path, ast) => {
     return measurePlainTextNode(ctx, node, max, ast, "visible")

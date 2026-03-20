@@ -1,8 +1,7 @@
-import { theme } from "../theme"
 import type { Signal } from "../reactivity"
 import type { RichTextSpan } from "../draw"
 import type { LayoutStyle } from "../layout"
-import type { BuilderNode, ButtonNode, CheckboxNode, ClickAreaNode, CommonNodeProps, DropdownNode, LabelNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, TextBoxNode, TextNode, TreeItem, TreeViewNode } from "./types"
+import type { BuilderNode, ButtonNode, CheckboxNode, ClickAreaNode, CommonNodeProps, DropdownNode, LabelNode, PaintNode, RadioNode, RichTextNode, RowNode, ScrollAreaNode, SliderNode, TextBoxNode, TreeItem, TreeViewNode } from "./types"
 
 type NodeBase = Omit<CommonNodeProps, "style">
 
@@ -20,10 +19,6 @@ export function flex(children: BuilderNode[], style?: LayoutStyle, base?: NodeBa
 
 export function stack(children: BuilderNode[], style?: LayoutStyle, base?: NodeBase): BuilderNode {
   return { kind: "stack", children, style, ...base }
-}
-
-export function textNode(text: string, opts: Omit<TextNode, "kind" | "text"> = {}): BuilderNode {
-  return { kind: "text", text, ...opts }
 }
 
 export function labelNode(text: string, opts: Omit<LabelNode, "kind" | "text"> = {}): BuilderNode {

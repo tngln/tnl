@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
-import { Button, Section, SectionStack, SplitRow, Text, VStack } from "@tnl/canvas-interface/builder/components"
+import { Button, Label, Section, SectionStack, SplitRow, VStack } from "@tnl/canvas-interface/builder/components"
 import { defineSurface } from "@tnl/canvas-interface/builder/surface_builder"
 import { signal } from "@tnl/canvas-interface/reactivity"
 import { theme } from "@tnl/canvas-interface/theme"
@@ -12,12 +12,12 @@ export const JsxDemoSurface = defineSurface({
     return () => (
       <VStack style={{ padding: theme.spacing.md, gap: theme.spacing.md }}>
         <SplitRow
-          left={<Text color={theme.colors.text} emphasis={{ bold: true }}>JSX Builder Demo</Text>}
-          right={<Text color={theme.colors.textMuted}>{`Clicks: ${clicks.get()}`}</Text>}
+          left={<Label color={theme.colors.text} emphasis={{ bold: true }}>JSX Builder Demo</Label>}
+          right={<Label color={theme.colors.textMuted}>{`Clicks: ${clicks.get()}`}</Label>}
         />
         <Section title="Authoring">
           <SectionStack>
-            <Text color={theme.colors.textMuted}>This surface exists to validate TSX authoring on top of BuilderNode.</Text>
+            <Label color={theme.colors.textMuted}>This surface exists to validate TSX authoring on top of BuilderNode.</Label>
             <Button text="Increment" onClick={() => clicks.set((v) => v + 1)} style={{ fixed: 120 }} />
           </SectionStack>
         </Section>

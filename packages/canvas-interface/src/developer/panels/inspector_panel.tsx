@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "../../jsx"
-import { PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, TreeView, VStack, defineSurface, mountSurface, treeItem, type TreeItem } from "../../builder"
+import { Label, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, TreeView, VStack, defineSurface, mountSurface, treeItem, type TreeItem } from "../../builder"
 import { pickerIcon, xMarkIcon } from "../../icons"
 import { signal } from "../../reactivity"
 import { collectIds } from "../../util"
@@ -71,7 +71,7 @@ const InspectorPanelSurface = defineSurface({
       return (
         <PanelColumn>
           <PanelHeader title="Inspector Tree" meta={headerMeta}>
-            <Text tone="muted" size="meta">{picking ? `Picking · ${pickingMeta ?? "Hover an object and click to select."}` : selectionMeta}</Text>
+            <Label tone="muted" size="meta" overflow="visible">{picking ? `Picking · ${pickingMeta ?? "Hover an object and click to select."}` : selectionMeta}</Label>
           </PanelHeader>
           <PanelActionRow
             key="inspector.actions"
@@ -125,10 +125,10 @@ const InspectorPanelSurface = defineSurface({
           />
           <PanelSection title="Selection" key="inspector.selection">
             <VStack style={{ gap: 4 }}>
-              <Text weight="bold">{selected?.label ?? "No selection"}</Text>
-              <Text tone="muted" size="meta">{selected ? describeNode(selected) : tree ? "Select a node to see details." : "Inspector runtime tree is not connected."}</Text>
-              <Text tone="muted" size="meta">{selected ? `Listeners: ${describeListeners(selected)}` : "Listeners: -"}</Text>
-              <Text tone="muted" size="meta">{selected ? `Runtime: ${describeRuntime(selected)}` : "Runtime: -"}</Text>
+              <Label weight="bold">{selected?.label ?? "No selection"}</Label>
+              <Label tone="muted" size="meta" overflow="visible">{selected ? describeNode(selected) : tree ? "Select a node to see details." : "Inspector runtime tree is not connected."}</Label>
+              <Label tone="muted" size="meta" overflow="visible">{selected ? `Listeners: ${describeListeners(selected)}` : "Listeners: -"}</Label>
+              <Label tone="muted" size="meta" overflow="visible">{selected ? `Runtime: ${describeRuntime(selected)}` : "Runtime: -"}</Label>
             </VStack>
           </PanelSection>
           <PanelScroll key="inspector.tree">
@@ -149,7 +149,7 @@ const InspectorPanelSurface = defineSurface({
               />
             ) : (
               <VStack style={{ padding: { l: 2, t: 2, r: 14, b: 2 } }}>
-                <Text tone="muted" size="meta">No runtime tree available</Text>
+                <Label tone="muted" size="meta">No runtime tree available</Label>
               </VStack>
             )}
           </PanelScroll>

@@ -1,6 +1,6 @@
 import { font, theme, neutral } from "@tnl/canvas-interface/theme"
 import { draw, TextOp as DrawTextOp } from "@tnl/canvas-interface/draw"
-import { Paint, Stack, Text, VStack } from "@tnl/canvas-interface/builder/components"
+import { Label, Paint, Stack, VStack } from "@tnl/canvas-interface/builder/components"
 import { defineSurface, mountSurface, type SurfaceDefinition } from "@tnl/canvas-interface/builder/surface_builder"
 import { createElement } from "@tnl/canvas-interface/jsx"
 import { signal } from "@tnl/canvas-interface/reactivity"
@@ -54,8 +54,8 @@ export const TimecodeSurfaceDefinition: SurfaceDefinition<TimecodeSurfaceProps> 
             box={{ fill: neutral[700], stroke: neutral[400], radius: 12 }}
           >
             <VStack key="timecode.center" style={{ align: "center", gap: 12, alignSelf: "center" }}>
-              <Text key="timecode.value" style={{ alignSelf: "center" }} weight="bold" size="headline">{timecode}</Text>
-              <Text key="timecode.state" style={{ alignSelf: "center" }} tone="muted">{state}</Text>
+              <Label key="timecode.value" style={{ alignSelf: "center" }} weight="bold" size="headline">{timecode}</Label>
+              <Label key="timecode.state" style={{ alignSelf: "center" }} tone="muted">{state}</Label>
             </VStack>
             <Paint
               key="timecode.meta"

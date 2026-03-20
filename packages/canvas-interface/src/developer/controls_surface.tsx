@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "../jsx"
-import { Button, Checkbox, Dropdown, FormRow, PanelColumn, PanelSection, Radio, RichText, Row, SectionStack, Text, TextBox, defineSurface } from "../builder"
+import { Button, Checkbox, Dropdown, FormRow, Label, PanelColumn, PanelSection, Radio, RichText, Row, SectionStack, TextBox, defineSurface } from "../builder"
 import { alertIcon, arrowRightIcon, checkCircleIcon, circleIcon, documentIcon, plusIcon, sparklesIcon, xMarkIcon } from "../icons"
 import { signal } from "../reactivity"
 
@@ -51,7 +51,7 @@ export const ControlsSurface = defineSurface({
 
     return () => (
       <PanelColumn>
-        <Text key="controls.title" size="headline" weight="bold">Developer</Text>
+        <Label key="controls.title" size="headline" weight="bold">Developer</Label>
         <RichText
           key="controls.hint"
           tone="muted"
@@ -198,9 +198,9 @@ export const ControlsSurface = defineSurface({
               </Row>
             }
           />
-          <Text key="controls.status" tone="muted" style={{ margin: { l: 74, t: 4, r: 0, b: 0 } }}>
+          <Label key="controls.status" tone="muted" overflow="visible" style={{ margin: { l: 74, t: 4, r: 0, b: 0 } }}>
             {`Checked: ${checked.get() ? "true" : "false"}, Radio: ${radio.get()}, Dropdown: ${dropdown.get()}, Input: ${input.get() || "(empty)"}, Preset: ${palette.get() + 1}`}
-          </Text>
+          </Label>
           <FormRow
             key="controls.input"
             label="Input"
@@ -225,7 +225,7 @@ export const ControlsSurface = defineSurface({
             key="controls.label"
             label="Label"
             labelWidth={64}
-            field={<Text key="controls.input.label">{input.get() || "(empty)"}</Text>}
+            field={<Label key="controls.input.label" overflow="visible">{input.get() || "(empty)"}</Label>}
           />
           <FormRow
             key="controls.dropdown"
@@ -261,9 +261,9 @@ export const ControlsSurface = defineSurface({
           </SectionStack>
         </PanelSection>
         <PanelSection title="Visual Style">
-          <Text key="controls.visual.note" tone="muted">
+          <RichText key="controls.visual.note" tone="muted">
             These buttons use `visualStyle` directly, so each one is showing the new primitive/style model on purpose.
-          </Text>
+          </RichText>
           <Row style={{ gap: 8, margin: { t: 6, l: 0, r: 0, b: 0 } }}>
             <Button
               key="controls.visual.accent"

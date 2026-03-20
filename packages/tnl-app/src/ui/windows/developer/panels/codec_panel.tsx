@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
-import { Button, ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, VStack } from "@tnl/canvas-interface/builder/components"
+import { Button, Label, ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, VStack } from "@tnl/canvas-interface/builder/components"
 import { defineSurface, mountSurface } from "@tnl/canvas-interface/builder/surface_builder"
 import { getDebugLevel } from "@tnl/canvas-interface/debug"
 import { signal } from "@tnl/canvas-interface/reactivity"
@@ -224,7 +224,7 @@ const CodecPanelSurface = defineSurface({
       return (
         <PanelColumn>
           <PanelHeader title="Info" meta={summary}>
-            <Text tone="muted" size="meta">Developer Runtime</Text>
+            <Label tone="muted" size="meta">Developer Runtime</Label>
           </PanelHeader>
           <PanelActionRow
             key="codec.actions"
@@ -251,7 +251,7 @@ const CodecPanelSurface = defineSurface({
                     ))}
                   </VStack>
                 ) : (
-                  <Text tone="muted">No runtime context hooks are available.</Text>
+                  <Label tone="muted">No runtime context hooks are available.</Label>
                 )}
               </PanelSection>
 
@@ -279,7 +279,7 @@ const CodecPanelSurface = defineSurface({
                     ))}
                   </VStack>
                 ) : (
-                  <Text tone="muted">No active decoder or encoder instances have registered with the runtime yet.</Text>
+                  <Label tone="muted">No active decoder or encoder instances have registered with the runtime yet.</Label>
                 )}
               </PanelSection>
 
@@ -317,20 +317,20 @@ const CodecPanelSurface = defineSurface({
 
               {extraInfo !== undefined ? (
                 <PanelSection key="codec.extra" title="Runtime Hook">
-                  <Text tone="muted">{JSON.stringify(extraInfo, null, 2)}</Text>
+                  <Label tone="muted" overflow="visible">{JSON.stringify(extraInfo, null, 2)}</Label>
                 </PanelSection>
               ) : null}
 
               {error ? (
                 <PanelSection key="codec.error" title="Probe Error">
-                  <Text color={theme.colors.danger}>{error}</Text>
+                  <Label color={theme.colors.danger} overflow="visible">{error}</Label>
                 </PanelSection>
               ) : null}
 
               <PanelSection key="codec.notes" title="Notes">
-                <Text tone="muted">
+                <Label tone="muted" overflow="visible">
                   Probe results come from the browser's runtime `isConfigSupported(...)` checks for a small set of representative codecs. They are capability hints, not a complete media compatibility matrix.
-                </Text>
+                </Label>
               </PanelSection>
             </VStack>
           </PanelScroll>

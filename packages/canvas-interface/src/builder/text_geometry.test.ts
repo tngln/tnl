@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { ensureTextCaretVisible, measureTextPrefix, resolveTextIndexFromPoint } from "@tnl/canvas-interface/builder"
+import { ensureTextCaretVisible, measureTextPrefix, resolveTextIndexFromPoint } from "@tnl/canvas-interface/text"
 import { fakeCtx } from "./test_utils"
 
 describe("text geometry", () => {

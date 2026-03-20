@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import { signal } from "@tnl/canvas-interface/reactivity"
 import { theme } from "@tnl/canvas-interface/theme"
-import { BuilderSurface, buttonNode, checkboxNode, column, defineSurface, flattenTreeItems, labelNode, mountSurface, richTextNode, row, rowItemNode, scrollAreaNode, textBoxNode, textNode, treeItem, treeViewNode } from "@tnl/canvas-interface/builder"
+import { BuilderSurface, Label, VStack, buttonNode, checkboxNode, column, defineSurface, flattenTreeItems, labelNode, mountSurface, richTextNode, row, rowItemNode, scrollAreaNode, textBoxNode, treeItem, treeViewNode } from "@tnl/canvas-interface/builder"
 import { PointerUIEvent } from "@tnl/canvas-interface/ui"
 import { fakeCtx, withFakeDocument } from "./test_utils"
 
@@ -139,7 +139,7 @@ describe("surface builder", () => {
       build: () =>
         column(
           [
-            textNode("Label", { key: "label" }),
+            Label({ key: "label", children: ["Label"] }),
             buttonNode("Click", { key: "button" }),
             textBoxNode(value, { key: "textbox" }),
           ],
@@ -179,7 +179,7 @@ describe("surface builder", () => {
       meta: "primitive",
     })
     expect(rootNode?.children?.map((child: any) => [child.label, child.meta])).toEqual([
-      ["text:label", "primitive"],
+      ["label:label", "primitive"],
       ["button:button", "control"],
       ["textbox:textbox", "widget"],
     ])
@@ -331,14 +331,11 @@ describe("surface builder", () => {
   it("applies inherited text style from parent containers", () => {
     const defaultSurface = new BuilderSurface({
       id: "Builder.Inherit.Default",
-      build: () => column([textNode("MMMM")]),
+      build: () => VStack({ children: ["MMMM"] }),
     })
     const inheritedSurface = new BuilderSurface({
       id: "Builder.Inherit.Custom",
-      build: () =>
-        column([textNode("MMMM")], undefined, {
-          provideEnv: { text: { fontSize: 20, lineHeight: 24 } },
-        }),
+      build: () => VStack({ children: ["MMMM"], provideEnv: { text: { fontSize: 20, lineHeight: 24 } } }),
     })
 
     withFakeDocument(() => {
@@ -351,7 +348,7 @@ describe("surface builder", () => {
   it("measures text nodes by intrinsic width even under narrow constraints", () => {
     const surface = new BuilderSurface({
       id: "Builder.Text.IntrinsicWidth",
-      build: () => column([textNode("MMMMMMMM")]),
+      build: () => VStack({ children: ["MMMMMMMM"] }),
     })
 
     withFakeDocument(() => {
@@ -407,19 +404,17 @@ describe("surface builder", () => {
   it("does not propagate envOverride to descendants", () => {
     const surface = new BuilderSurface({
       id: "Builder.Override.Scope",
-      build: () =>
-        column(
-          [
-            textNode("MMMM", { key: "top" }),
-            column(
-              [textNode("MMMM", { key: "nested" })],
-              { axis: "column" },
-              { envOverride: { text: { fontSize: 8, lineHeight: 10 } } },
-            ),
-          ],
-          { axis: "column" },
-          { provideEnv: { text: { fontSize: 20, lineHeight: 24 } } },
-        ),
+      build: () => VStack({
+        provideEnv: { text: { fontSize: 20, lineHeight: 24 } },
+        children: [
+          "MMMM",
+          VStack({
+            key: "nested",
+            envOverride: { text: { fontSize: 8, lineHeight: 10 } },
+            children: ["MMMM"],
+          }),
+        ],
+      }),
     })
 
     withFakeDocument(() => {

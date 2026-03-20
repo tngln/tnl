@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
-import { Button, PanelActionRow, PanelBody, PanelColumn, PanelHeader, PanelSection, RichText, SectionStack, Text, VStack } from "@tnl/canvas-interface/builder/components"
+import { Button, Label, PanelActionRow, PanelBody, PanelColumn, PanelHeader, PanelSection, RichText, SectionStack, VStack } from "@tnl/canvas-interface/builder/components"
 import { defineSurface, surfaceMount } from "@tnl/canvas-interface/builder/surface_builder"
 import { getRootCanvas, applyDocumentTheme, scheduleAnimationFrame, addWindowResizeListener } from "@tnl/canvas-interface/browser"
 import { createDeveloperToolsWindow, DEVELOPER_WINDOW_ID, type DeveloperContext } from "@tnl/canvas-interface/developer"
@@ -33,7 +33,7 @@ const DemoHomeSurface = defineSurface<DemoSurfaceProps>({
     return (props) => (
       <PanelColumn>
         <PanelHeader title="Canvas Interface Demo" meta="framework-only sample">
-          <Text tone="muted" size="meta">No tnl-app runtime required</Text>
+          <Label tone="muted" size="meta">No tnl-app runtime required</Label>
         </PanelHeader>
 
         <PanelActionRow
@@ -62,24 +62,24 @@ const DemoHomeSurface = defineSurface<DemoSurfaceProps>({
 
             <PanelSection title="Live State">
               <SectionStack>
-                <Text>{`Clicks: ${clicks.get()}`}</Text>
-                <Text tone="muted">{`Paint flash: ${props.isPaintFlashEnabled() ? "enabled" : "disabled"}`}</Text>
-                <Text tone="muted">{`Signals currently tracked: ${listSignals().length}`}</Text>
+                <Label overflow="visible">{`Clicks: ${clicks.get()}`}</Label>
+                <Label tone="muted" overflow="visible">{`Paint flash: ${props.isPaintFlashEnabled() ? "enabled" : "disabled"}`}</Label>
+                <Label tone="muted" overflow="visible">{`Signals currently tracked: ${listSignals().length}`}</Label>
               </SectionStack>
             </PanelSection>
 
             <PanelSection title="Suggested Checks">
               <SectionStack>
-                <Text tone="muted">Drag and resize windows.</Text>
-                <Text tone="muted">Open Developer and inspect WM / Surface / Runtime / Data panels.</Text>
-                <Text tone="muted">Toggle paint flash and interact with this window.</Text>
+                <Label tone="muted">Drag and resize windows.</Label>
+                <Label tone="muted">Open Developer and inspect WM / Surface / Runtime / Data panels.</Label>
+                <Label tone="muted">Toggle paint flash and interact with this window.</Label>
               </SectionStack>
             </PanelSection>
           </VStack>
           <PanelSection title="Notes">
-            <Text tone="muted">
+            <Label tone="muted" overflow="visible">
               Storage panel behavior still depends on browser OPFS availability, but the demo itself is framework-only.
-            </Text>
+            </Label>
           </PanelSection>
         </PanelBody>
       </PanelColumn>

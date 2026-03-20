@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "../../jsx"
-import { Button, PanelColumn, PanelScroll, PanelSection, SplitRow, Text, TreeView, VStack, defineSurface, mountSurface, type TreeItem } from "../../builder"
+import { Button, Label, PanelColumn, PanelScroll, PanelSection, SplitRow, TreeView, VStack, defineSurface, mountSurface, type TreeItem } from "../../builder"
 import type { DeveloperPanelSpec } from "../index"
 import { getStateTreeItems } from "../states"
 import { listSignals, type DebugSignalRecord } from "../../reactivity"
@@ -84,7 +84,7 @@ export const DataPanelSurface = defineSurface({
           <SplitRow
             key="data.toolbar"
             left={[
-              <Text key="data.title" weight="bold">State Tree</Text>,
+              <Label key="data.title" weight="bold">State Tree</Label>,
               <Button
                 key="data.expandCollapse"
                 text={hasCollapsed ? "Expand All" : "Collapse All"}
@@ -100,19 +100,19 @@ export const DataPanelSurface = defineSurface({
                 }}
               />,
             ]}
-            right={<Text key="data.meta" tone="muted" size="meta">{`${items.length} roots`}</Text>}
+            right={<Label key="data.meta" tone="muted" size="meta">{`${items.length} roots`}</Label>}
           />
           <PanelSection title="Selection" key="data.selection">
             <VStack style={{ gap: 4 }}>
               {selected ? (
                 <Fragment>
-                  <Text weight="bold">{selected.debugLabel ?? selected.name ?? `signal#${selected.id}`}</Text>
-                  <Text tone="muted" size="meta">{`scope: ${selected.scope ?? "unknown"} · id: ${selected.id} · subs: ${selected.subscribers} · created: ${formatLocalTime(selected.createdAt)}`}</Text>
-                  {selectedJson ? <Text tone="muted" size="meta">{selectedJson}</Text> : <Text tone="muted" size="meta">{String(selectedValue)}</Text>}
-                  {selectedStack ? <Text tone="muted" size="meta">{selectedStack}</Text> : null}
+                  <Label weight="bold">{selected.debugLabel ?? selected.name ?? `signal#${selected.id}`}</Label>
+                  <Label tone="muted" size="meta" overflow="visible">{`scope: ${selected.scope ?? "unknown"} · id: ${selected.id} · subs: ${selected.subscribers} · created: ${formatLocalTime(selected.createdAt)}`}</Label>
+                  {selectedJson ? <Label tone="muted" size="meta" overflow="visible">{selectedJson}</Label> : <Label tone="muted" size="meta" overflow="visible">{String(selectedValue)}</Label>}
+                  {selectedStack ? <Label tone="muted" size="meta" overflow="visible">{selectedStack}</Label> : null}
                 </Fragment>
               ) : (
-                <Text tone="muted" size="meta">Select a signal node to see details.</Text>
+                <Label tone="muted" size="meta" overflow="visible">Select a signal node to see details.</Label>
               )}
             </VStack>
           </PanelSection>
@@ -133,7 +133,7 @@ export const DataPanelSurface = defineSurface({
               />
             ) : (
               <VStack style={{ padding: { l: 2, t: 2, r: 14, b: 2 } }}>
-                <Text tone="muted" size="meta">No signals</Text>
+                <Label tone="muted" size="meta">No signals</Label>
               </VStack>
             )}
           </PanelScroll>

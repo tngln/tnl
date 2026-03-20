@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { blurTextSession, blurTextSessionBridge, createSessionBridgeState, createTextSessionState, focusTextSession, focusTextSessionBridge, moveSessionCaret, moveSessionCaretTo, normalizedTextSessionSelection, setSessionSelection, syncTextSessionBridge } from "@tnl/canvas-interface/builder"
+import { blurTextSession, blurTextSessionBridge, createSessionBridgeState, createTextSessionState, focusTextSession, focusTextSessionBridge, moveSessionCaret, moveSessionCaretTo, normalizedTextSessionSelection, setSessionSelection, syncTextSessionBridge } from "@tnl/canvas-interface/text"
 
 describe("text session", () => {
   it("tracks focus and normalized selection", () => {

@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "../../jsx"
-import { Button, ListRow, PanelColumn, PanelScroll, PanelSection, SplitRow, Text, TextBox, VStack, defineSurface, mountSurface } from "../../builder"
+import { Button, Label, ListRow, PanelColumn, PanelScroll, PanelSection, SplitRow, TextBox, VStack, defineSurface, mountSurface } from "../../builder"
 import { signal } from "../../reactivity"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 import type { DebugBlitInfo, DebugLayerInfo } from "../../ui"
@@ -83,7 +83,7 @@ export const SurfacePanelSurface = defineSurface<Props>({
           <SplitRow
             key="surface.toolbar"
             left={[
-              <Text key="surface.title" weight="bold">Compositor</Text>,
+              <Label key="surface.title" weight="bold">Compositor</Label>,
               <TextBox key="surface.filter" value={filter} placeholder="Filter (id / surface)" style={{ grow: 1, basis: 0 }} />,
               <Button
                 key="surface.freeze"
@@ -110,22 +110,22 @@ export const SurfacePanelSurface = defineSurface<Props>({
                 }}
               />,
             ]}
-            right={<Text key="surface.meta" tone="muted" size="meta">{`${visible.length}/${layers.length} layers · ${blits.length} blits`}</Text>}
+            right={<Label key="surface.meta" tone="muted" size="meta">{`${visible.length}/${layers.length} layers · ${blits.length} blits`}</Label>}
           />
 
           <PanelSection title="Selection" key="surface.selection">
             <VStack style={{ gap: 4 }}>
               {selectedLayer ? (
                 <Fragment>
-                  <Text weight="bold">{selectedLayer.id}</Text>
-                  <Text tone="muted" size="meta">
+                  <Label weight="bold">{selectedLayer.id}</Label>
+                  <Label tone="muted" size="meta" overflow="visible">
                     {`${selectedLayer.tag?.surfaceId ? `surface:${selectedLayer.tag.surfaceId} · ` : ""}${selectedLayer.wCss}×${selectedLayer.hCss}@${selectedLayer.dpr} · ${selectedLayer.wPx}×${selectedLayer.hPx}px · ${formatBytes(selectedLayer.estimatedBytes)}`}
-                  </Text>
-                  <Text tone="muted" size="meta">{`renderedFrame: ${selectedLayer.renderedFrame} · blits: ${selectedBlits}`}</Text>
-                  <Text tone="muted" size="meta">{`last dest: ${formatRect(selectedDest)}`}</Text>
+                  </Label>
+                  <Label tone="muted" size="meta" overflow="visible">{`renderedFrame: ${selectedLayer.renderedFrame} · blits: ${selectedBlits}`}</Label>
+                  <Label tone="muted" size="meta" overflow="visible">{`last dest: ${formatRect(selectedDest)}`}</Label>
                 </Fragment>
               ) : (
-                <Text tone="muted" size="meta">Select a layer to see details and highlight its last blit rect.</Text>
+                <Label tone="muted" size="meta" overflow="visible">Select a layer to see details and highlight its last blit rect.</Label>
               )}
             </VStack>
           </PanelSection>
@@ -147,7 +147,7 @@ export const SurfacePanelSurface = defineSurface<Props>({
                   />
                 )
               })}
-              {!visible.length ? <Text tone="muted" size="meta">No layers</Text> : null}
+              {!visible.length ? <Label tone="muted" size="meta">No layers</Label> : null}
             </VStack>
           </PanelScroll>
         </PanelColumn>

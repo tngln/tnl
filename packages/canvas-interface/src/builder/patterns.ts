@@ -1,5 +1,5 @@
 import { theme, neutral } from "../theme"
-import { column, labelNode, row, textNode } from "./nodes"
+import { column, labelNode, row } from "./nodes"
 import type { BuilderNode, CommonNodeProps } from "./types"
 import type { LayoutStyle } from "../layout"
 
@@ -8,7 +8,7 @@ type PatternBase = Omit<CommonNodeProps, "style"> & { style?: LayoutStyle }
 export function section(title: string, body: BuilderNode[], opts: PatternBase = {}): BuilderNode {
   return column(
     [
-      textNode(title, {
+      labelNode(title, {
         key: opts.key ? `${opts.key}.title` : undefined,
         emphasis: { bold: true },
         style: { margin: { b: theme.spacing.xs, l: 0, t: 0, r: 0 } },

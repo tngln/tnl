@@ -1,7 +1,7 @@
 import { theme } from "../../theme"
 import { openOpfs, type OpfsEntryV1, showAlert, showConfirm, showPrompt, downloadBlob, pickFiles } from "../../browser"
 import { createElement } from "../../jsx"
-import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack, defineSurface, mountSurface } from "../../builder"
+import { Label, ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, VStack, defineSurface, mountSurface } from "../../builder"
 import { downloadIcon, filterIcon, pencilIcon, refreshIcon, trashIcon, uploadIcon } from "../../icons"
 import { signal } from "../../reactivity"
 import { formatBytes } from "../../util"
@@ -173,7 +173,7 @@ export const StoragePanelSurface = defineSurface({
       return (
         <PanelColumn>
           <PanelHeader key="storage.header" title="Storage" meta={selectionMeta}>
-            <Text tone="muted" size="meta" color={statusColor}>{statusText}</Text>
+            <Label tone="muted" size="meta" color={statusColor}>{statusText}</Label>
           </PanelHeader>
           <PanelActionRow
             key="storage.actions"

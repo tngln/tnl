@@ -1,4 +1,4 @@
-import { textNode } from "./builder/surface_builder"
+import { contentTextNode } from "./builder/content_text"
 import { isRichInlineNode, richTextElement, type RichInlineChild } from "./builder/rich_text_children"
 import type { BuilderNode, BoxStyle, CommonNodeProps } from "./builder/surface_builder"
 
@@ -29,7 +29,7 @@ export function normalizeChildren(children: BuilderChild[]) {
   const out: BuilderNode[] = []
   for (const child of flat) {
     if (isRichInlineNode(child)) throw new Error("RichText intrinsic tags can only be used inside <RichText>.")
-    if (typeof child === "string" || typeof child === "number") out.push(textNode(String(child)))
+    if (typeof child === "string" || typeof child === "number") out.push(contentTextNode(String(child)))
     else out.push(child as BuilderNode)
   }
   return out

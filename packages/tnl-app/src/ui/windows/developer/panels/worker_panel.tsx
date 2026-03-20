@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
-import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, Text, VStack } from "@tnl/canvas-interface/builder/components"
+import { Label, ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, VStack } from "@tnl/canvas-interface/builder/components"
 import { defineSurface, mountSurface } from "@tnl/canvas-interface/builder/surface_builder"
 import { signal } from "@tnl/canvas-interface/reactivity"
 import { theme } from "@tnl/canvas-interface/theme"
@@ -66,9 +66,9 @@ const WorkerPanelSurface = defineSurface({
       return (
         <PanelColumn>
           <PanelHeader title="Workers" meta={headerMeta}>
-            <Text tone="muted" size="meta">
+            <Label tone="muted" size="meta" overflow="visible">
               {workers.length ? `running ${running} · stopped ${stopped} · error ${error}` : "No worker registry entries yet."}
-            </Text>
+            </Label>
           </PanelHeader>
           <PanelActionRow
             key="worker.actions"
@@ -104,7 +104,7 @@ const WorkerPanelSurface = defineSurface({
                     ))}
                   </VStack>
                 ) : (
-                  <Text tone="muted">No workers have registered yet.</Text>
+                  <Label tone="muted">No workers have registered yet.</Label>
                 )}
               </PanelSection>
 
@@ -121,13 +121,13 @@ const WorkerPanelSurface = defineSurface({
                       <ListRow key="worker.sel.last" leftText="Last Message" rightText={formatTime(selected.lastMessageAt)} />
                     </VStack>
                     {selected.metrics?.lastError ? (
-                      <Text color={theme.colors.danger} size="meta" style={{ margin: { t: 8, r: 0, b: 0, l: 0 } }}>
+                      <Label color={theme.colors.danger} size="meta" overflow="visible" style={{ margin: { t: 8, r: 0, b: 0, l: 0 } }}>
                         {selected.metrics.lastError}
-                      </Text>
+                      </Label>
                     ) : null}
                   </Fragment>
                 ) : (
-                  <Text tone="muted">Select a worker to see details.</Text>
+                  <Label tone="muted">Select a worker to see details.</Label>
                 )}
               </PanelSection>
             </VStack>

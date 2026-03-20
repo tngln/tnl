@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
-import { PanelColumn, RichText, SectionStack, Text } from "@tnl/canvas-interface/builder/components"
+import { Label, PanelColumn, RichText, SectionStack } from "@tnl/canvas-interface/builder/components"
 import { defineSurface, surfaceMount } from "@tnl/canvas-interface/builder/surface_builder"
 import { theme } from "@tnl/canvas-interface/theme"
 import { SurfaceWindow } from "@tnl/canvas-interface/window"
@@ -11,8 +11,8 @@ const AboutBodySurface = defineSurface({
   setup: () => () => (
     <PanelColumn>
         <SectionStack style={{ gap: theme.spacing.sm }}>
-          <Text key="about.headline" size="headline" weight="bold">tnl - Tung's Non-Linear Editor</Text>
-          <Text key="about.license" tone="muted">MIT License</Text>
+          <Label key="about.headline" size="headline" weight="bold">tnl - Tung's Non-Linear Editor</Label>
+          <Label key="about.license" tone="muted">MIT License</Label>
           <RichText key="about.copy" tone="muted" selectable>
             Copyright (c) <b>Tung Leen</b> & <u>tnl contributors</u>. <i>All rights reserved.</i> This message is here mostly to fill space.
           </RichText>

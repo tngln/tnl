@@ -1,5 +1,5 @@
 import { createElement } from "../../jsx"
-import { PanelColumn, PanelScroll, PanelSection, SplitRow, Text, VStack, defineSurface, mountSurface } from "../../builder"
+import { Label, PanelColumn, PanelScroll, PanelSection, SplitRow, VStack, defineSurface, mountSurface } from "../../builder"
 import type { DebugCanvasRuntimeSnapshot } from "../../ui"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 
@@ -29,21 +29,21 @@ const RuntimePanelSurface = defineSurface({
         <PanelColumn>
           <SplitRow
             key="runtime.toolbar"
-            left={<Text weight="bold">Interaction Runtime</Text>}
-            right={<Text tone="muted" size="meta">{runtime ? `${runtime.recentEvents.length} events · ${runtime.invalidations.length} invalidations` : "No runtime"}</Text>}
+            left={<Label weight="bold">Interaction Runtime</Label>}
+            right={<Label tone="muted" size="meta">{runtime ? `${runtime.recentEvents.length} events · ${runtime.invalidations.length} invalidations` : "No runtime"}</Label>}
           />
           <PanelSection title="Sessions" key="runtime.sessions">
-            {runtime ? <SessionSummary runtime={runtime} /> : <Text tone="muted" size="meta">Runtime snapshot is not connected.</Text>}
+            {runtime ? <SessionSummary runtime={runtime} /> : <Label tone="muted" size="meta" overflow="visible">Runtime snapshot is not connected.</Label>}
           </PanelSection>
           <PanelSection title="Last Event" key="runtime.event">
             {runtime?.lastEvent ? (
               <VStack style={{ gap: 4 }}>
-                <Text weight="bold">{runtime.lastEvent.reason ? `${runtime.lastEvent.kind} (${runtime.lastEvent.reason})` : runtime.lastEvent.kind}</Text>
-                <Text tone="muted" size="meta">{`hit: ${formatPath(runtime.lastEvent.hitPath)}`}</Text>
-                <Text tone="muted" size="meta">{`dispatch: ${formatPath(runtime.lastEvent.dispatchPath)}`}</Text>
+                <Label weight="bold">{runtime.lastEvent.reason ? `${runtime.lastEvent.kind} (${runtime.lastEvent.reason})` : runtime.lastEvent.kind}</Label>
+                <Label tone="muted" size="meta" overflow="visible">{`hit: ${formatPath(runtime.lastEvent.hitPath)}`}</Label>
+                <Label tone="muted" size="meta" overflow="visible">{`dispatch: ${formatPath(runtime.lastEvent.dispatchPath)}`}</Label>
               </VStack>
             ) : (
-              <Text tone="muted" size="meta">No events recorded yet.</Text>
+              <Label tone="muted" size="meta">No events recorded yet.</Label>
             )}
           </PanelSection>
           <PanelScroll key="runtime.scroll">
@@ -52,22 +52,22 @@ const RuntimePanelSurface = defineSurface({
                 <VStack style={{ gap: 4 }}>
                   {(runtime?.recentEvents.length
                     ? [...runtime.recentEvents].reverse().map((event, index) => (
-                        <Text key={`runtime.event.${index}`} tone="muted" size="meta">
+                        <Label key={`runtime.event.${index}`} tone="muted" size="meta" overflow="visible">
                           {`${event.kind}${event.reason ? ` (${event.reason})` : ""} · hit ${formatPath(event.hitPath)} · dispatch ${formatPath(event.dispatchPath)}`}
-                        </Text>
+                        </Label>
                       ))
-                    : [<Text key="runtime.events.empty" tone="muted" size="meta">No recent events</Text>])}
+                    : [<Label key="runtime.events.empty" tone="muted" size="meta">No recent events</Label>])}
                 </VStack>
               </PanelSection>
               <PanelSection title="Recent Invalidations" key="runtime.invalidations">
                 <VStack style={{ gap: 4 }}>
                   {(runtime?.invalidations.length
                     ? [...runtime.invalidations].reverse().map((entry, index) => (
-                        <Text key={`runtime.invalidate.${index}`} tone="muted" size="meta">
+                        <Label key={`runtime.invalidate.${index}`} tone="muted" size="meta" overflow="visible">
                           {`${entry.source}${entry.force ? " · force" : ""} · ${formatRect(entry.rect)}`}
-                        </Text>
+                        </Label>
                       ))
-                    : [<Text key="runtime.invalidations.empty" tone="muted" size="meta">No invalidations</Text>])}
+                    : [<Label key="runtime.invalidations.empty" tone="muted" size="meta">No invalidations</Label>])}
                 </VStack>
               </PanelSection>
             </VStack>
@@ -82,11 +82,11 @@ function SessionSummary(props: { runtime: DebugCanvasRuntimeSnapshot }) {
   const { runtime } = props
   return (
     <VStack style={{ gap: 4 }}>
-      <Text tone="muted" size="meta">{`focus: ${formatPath(runtime.focus.focusedPath)}`}</Text>
-      <Text tone="muted" size="meta">{`focus reason: ${runtime.focus.reason ?? "-"}`}</Text>
-      <Text tone="muted" size="meta">{`hover: ${formatPath(runtime.pointer.hoverPath)}`}</Text>
-      <Text tone="muted" size="meta">{`capture: ${formatPath(runtime.pointer.capturePath)}`}</Text>
-      <Text tone="muted" size="meta">{`pointer: ${runtime.pointer.activePointerId ?? "-"}`}</Text>
+      <Label tone="muted" size="meta" overflow="visible">{`focus: ${formatPath(runtime.focus.focusedPath)}`}</Label>
+      <Label tone="muted" size="meta" overflow="visible">{`focus reason: ${runtime.focus.reason ?? "-"}`}</Label>
+      <Label tone="muted" size="meta" overflow="visible">{`hover: ${formatPath(runtime.pointer.hoverPath)}`}</Label>
+      <Label tone="muted" size="meta" overflow="visible">{`capture: ${formatPath(runtime.pointer.capturePath)}`}</Label>
+      <Label tone="muted" size="meta" overflow="visible">{`pointer: ${runtime.pointer.activePointerId ?? "-"}`}</Label>
     </VStack>
   )
 }

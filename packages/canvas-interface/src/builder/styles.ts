@@ -1,6 +1,6 @@
 import { theme } from "../theme"
 import type { RichTextStyle, TextEmphasis } from "../draw"
-import type { LabelNode, NodeEnv, TextEnv, TextNode } from "./types"
+import type { BuilderNode, LabelNode, NodeEnv, TextEnv } from "./types"
 
 export function defaultBodyStyle(): RichTextStyle {
   return {
@@ -53,7 +53,7 @@ export function textEnvToRichTextStyle(text: TextEnv | undefined): RichTextStyle
   }
 }
 
-type StyledTextNode = TextNode | LabelNode
+type StyledTextNode = Extract<BuilderNode, { kind: "text" }> | LabelNode
 
 export function resolveTextStyle(env: NodeEnv, node: StyledTextNode): RichTextStyle {
   const text = env.text

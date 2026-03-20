@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "../../jsx"
-import { ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, Text, VStack, defineSurface, mountSurface } from "../../builder"
+import { Label, ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, VStack, defineSurface, mountSurface } from "../../builder"
 import { dockIcon, focusIcon, maximizeIcon, minimizeIcon, powerIcon, restoreIcon } from "../../icons"
 import type { DeveloperContext, DeveloperPanelSpec } from "../index"
 
@@ -45,7 +45,7 @@ const WmPanelSurface = defineSurface({
       return (
         <PanelColumn>
           <PanelHeader title="Window Manager" meta={selectedMeta}>
-            <Text tone="muted" size="meta">{selectedState}</Text>
+            <Label tone="muted" size="meta">{selectedState}</Label>
           </PanelHeader>
           <PanelActionRow
             key="wm.actions"

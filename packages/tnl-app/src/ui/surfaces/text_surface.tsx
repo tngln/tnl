@@ -1,5 +1,5 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
-import { PanelColumn, RichText, Text } from "@tnl/canvas-interface/builder/components"
+import { Label, PanelColumn, RichText } from "@tnl/canvas-interface/builder/components"
 import { defineSurface, mountSurface, type SurfaceDefinition } from "@tnl/canvas-interface/builder/surface_builder"
 import { theme } from "@tnl/canvas-interface/theme"
 
@@ -9,7 +9,7 @@ export const TextSurfaceDefinition: SurfaceDefinition<TextSurfaceProps> = define
   id: (props) => `TextSurface.${props.title}`,
   setup: (props) => () => (
     <PanelColumn style={{ padding: theme.spacing.md, gap: theme.spacing.xs }}>
-      <Text key="title" size="headline" weight="bold">{props.title}</Text>
+      <Label key="title" size="headline" weight="bold">{props.title}</Label>
       <RichText
         key="body"
         tone="muted"

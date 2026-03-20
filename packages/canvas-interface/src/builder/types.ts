@@ -45,7 +45,7 @@ export type ContainerNode = NodeBase & {
   children: BuilderNode[]
 }
 
-export type TextNode = NodeBase & {
+type ContentTextNode = NodeBase & {
   kind: "text"
   text: string
   color?: string
@@ -172,7 +172,7 @@ export type SliderNode = NodeBase & {
 
 export type BuilderNode =
   | ContainerNode
-  | TextNode
+  | ContentTextNode
   | LabelNode
   | RichTextNode
   | ButtonNode

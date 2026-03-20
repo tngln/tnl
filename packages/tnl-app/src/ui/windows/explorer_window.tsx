@@ -5,7 +5,7 @@ import { getSeekableEnd, probeVideoDuration, resolvePlaybackDuration } from "@tn
 import { buildAcceptString } from "@tnl/app/platform"
 import { baseName, dirName, formatBytes, formatLocalTime } from "@tnl/canvas-interface/util"
 import type { Surface } from "@tnl/canvas-interface/viewport"
-import { Button, ClickArea, HStack, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelToolbar, SplitRow, Stack, Text, TextBox, VStack } from "@tnl/canvas-interface/builder/components"
+import { Button, ClickArea, HStack, Label, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelToolbar, SplitRow, Stack, TextBox, VStack } from "@tnl/canvas-interface/builder/components"
 import { defineSurface, mountSurface } from "@tnl/canvas-interface/builder/surface_builder"
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { createAsyncJobState } from "@tnl/canvas-interface/async_state"
@@ -822,12 +822,12 @@ export const ExplorerSurface = defineSurface({
                       >
                         <VStack key={`explorer.thumb.inner.${e.id}`} style={{ gap: 6 }}>
                           {ThumbPreviewPaint({ image: img, fallbackLabel, maxWidth: 156, height: 88 })}
-                          <Text key={`explorer.thumb.name.${e.id}`} weight="bold">
+                          <Label key={`explorer.thumb.name.${e.id}`} weight="bold">
                             {e.name}
-                          </Text>
-                          <Text key={`explorer.thumb.meta.${e.id}`} tone="muted" size="meta">
+                          </Label>
+                          <Label key={`explorer.thumb.meta.${e.id}`} tone="muted" size="meta">
                             {formatBytes(e.size)}
-                          </Text>
+                          </Label>
                         </VStack>
                         <ClickArea
                           key={`explorer.thumb.click.${e.id}`}
@@ -851,15 +851,15 @@ export const ExplorerSurface = defineSurface({
         if (!selected) {
           return (
             <VStack key="explorer.details.empty" style={{ gap: 8, padding: 10 }}>
-              <Text tone="muted">No selection</Text>
+              <Label tone="muted">No selection</Label>
             </VStack>
           )
         }
         if (selected.kind === "dir") {
           return (
             <VStack key="explorer.details.dir" style={{ gap: 8, padding: 10 }}>
-              <Text weight="bold">{selected.name}</Text>
-              <Text tone="muted" size="meta">{selected.path}</Text>
+              <Label weight="bold">{selected.name}</Label>
+              <Label tone="muted" size="meta" overflow="visible">{selected.path}</Label>
               <Button text="Open" title="Open folder" style={{ fixed: 120 }} onClick={() => void enterSelectedDir()} />
             </VStack>
           )
@@ -875,29 +875,29 @@ export const ExplorerSurface = defineSurface({
             {ThumbPreviewPaint({ image: img, fallbackLabel, maxWidth: 240, height: 120 })}
             {thumbError ? (
               <VStack style={{ gap: 6 }}>
-                <Text tone="muted" size="meta">{thumbError}</Text>
+                <Label tone="muted" size="meta" overflow="visible">{thumbError}</Label>
                 <Button text="Retry Thumb" title="Retry thumbnail" style={{ fixed: 120 }} onClick={() => retryThumb(e, { force: true })} />
               </VStack>
             ) : st.state === "loading" ? (
-              <Text tone="muted" size="meta">Building thumbnail...</Text>
+              <Label tone="muted" size="meta">Building thumbnail...</Label>
             ) : isVideoEntry(e) && st.state !== "ready" ? (
               <Button text="Build Thumb" title="Build thumbnail" style={{ fixed: 120 }} onClick={() => retryThumb(e, { force: true })} />
             ) : null}
             <VStack style={{ gap: 4 }}>
-              <Text weight="bold">{e.name}</Text>
-              <Text tone="muted" size="meta">{e.path}</Text>
+              <Label weight="bold">{e.name}</Label>
+              <Label tone="muted" size="meta" overflow="visible">{e.path}</Label>
             </VStack>
             <VStack style={{ gap: 4 }}>
-              <Text size="meta" tone="muted">{`Type: ${e.type}`}</Text>
-              <Text size="meta" tone="muted">{`Size: ${formatBytes(e.size)}`}</Text>
-              <Text size="meta" tone="muted">{`Created: ${formatLocalTime(e.createdAt)}`}</Text>
-              <Text size="meta" tone="muted">{`Updated: ${formatLocalTime(e.updatedAt)}`}</Text>
+              <Label size="meta" tone="muted" overflow="visible">{`Type: ${e.type}`}</Label>
+              <Label size="meta" tone="muted" overflow="visible">{`Size: ${formatBytes(e.size)}`}</Label>
+              <Label size="meta" tone="muted" overflow="visible">{`Created: ${formatLocalTime(e.createdAt)}`}</Label>
+              <Label size="meta" tone="muted" overflow="visible">{`Updated: ${formatLocalTime(e.updatedAt)}`}</Label>
               {isVideoEntry(e) ? (
                 <Fragment>
-                  <Text size="meta" tone="muted">{`Duration: ${meta.duration}`}</Text>
-                  <Text size="meta" tone="muted">{`Video: ${meta.dimensions}`}</Text>
-                  <Text size="meta" tone="muted">{`FPS: ${meta.frameRate}`}</Text>
-                  <Text size="meta" tone="muted">{`Audio: ${meta.audio}`}</Text>
+                  <Label size="meta" tone="muted" overflow="visible">{`Duration: ${meta.duration}`}</Label>
+                  <Label size="meta" tone="muted" overflow="visible">{`Video: ${meta.dimensions}`}</Label>
+                  <Label size="meta" tone="muted" overflow="visible">{`FPS: ${meta.frameRate}`}</Label>
+                  <Label size="meta" tone="muted" overflow="visible">{`Audio: ${meta.audio}`}</Label>
                 </Fragment>
               ) : null}
             </VStack>
@@ -908,9 +908,9 @@ export const ExplorerSurface = defineSurface({
       return (
         <PanelColumn>
           <PanelHeader key="explorer.header" title="Explorer" meta={cwdMeta}>
-            <Text tone="muted" size="meta" color={statusColor}>
+            <Label tone="muted" size="meta" color={statusColor} overflow="visible">
               {statusText}
-            </Text>
+            </Label>
           </PanelHeader>
           <SplitRow
             key="explorer.address"

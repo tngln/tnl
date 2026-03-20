@@ -1,6 +1,7 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { describe, expect, it } from "bun:test"
-import { HStack, RichText, Stack, Text, VStack, resolveRichTextChildren } from "@tnl/canvas-interface/builder"
+import * as builder from "@tnl/canvas-interface/builder"
+import { HStack, Label, RichText, Stack, VStack, resolveRichTextChildren } from "@tnl/canvas-interface/builder"
 import { theme } from "@tnl/canvas-interface/theme"
 
 describe("jsx runtime", () => {
@@ -19,25 +20,32 @@ describe("jsx runtime", () => {
     )
     expect(node.kind).toBe("flex")
     expect(node.children).toHaveLength(3)
+    expect(node.children.map((child: any) => child.kind)).toEqual(["text", "text", "text"])
     expect(node.children.map((child: any) => child.text)).toEqual(["alpha", "beta", "gamma"])
   })
 
   it("invokes function components through createElement", () => {
     function Demo() {
-      return <Text>ok</Text>
+      return <Label>ok</Label>
     }
     const node: any = <Demo />
-    expect(node.kind).toBe("text")
+    expect(node.kind).toBe("label")
     expect(node.text).toBe("ok")
   })
 
   it("keeps implied axes for stack helpers", () => {
-    const vNode: any = <VStack style={{ gap: 4 }}><Text>a</Text><Text>b</Text></VStack>
-    const hNode: any = <HStack style={{ gap: 4 }}><Text>a</Text><Text>b</Text></HStack>
-    const sNode: any = <Stack><Text>a</Text><Text>b</Text></Stack>
+    const vNode: any = <VStack style={{ gap: 4 }}><Label>a</Label><Label>b</Label></VStack>
+    const hNode: any = <HStack style={{ gap: 4 }}><Label>a</Label><Label>b</Label></HStack>
+    const sNode: any = <Stack><Label>a</Label><Label>b</Label></Stack>
     expect(vNode.style?.axis).toBe("column")
     expect(hNode.style?.axis).toBe("row")
     expect(sNode.kind).toBe("stack")
+  })
+
+  it("does not expose Text or textNode in the public builder API", () => {
+    expect("Label" in builder).toBe(true)
+    expect("Text" in builder).toBe(false)
+    expect("textNode" in builder).toBe(false)
   })
 
   it("creates rich text intrinsic nodes", () => {

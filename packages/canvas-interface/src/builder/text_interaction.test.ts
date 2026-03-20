@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { clampTextSelection, createTextBridgeState, moveTextCaret, moveTextCaretTo, moveTextSelectionState, moveTextSelectionStateTo, normalizeTextSelection, setTextSelectionState } from "@tnl/canvas-interface/builder"
+import { clampTextSelection, createTextBridgeState, moveTextCaret, moveTextCaretTo, moveTextSelectionState, moveTextSelectionStateTo, normalizeTextSelection, setTextSelectionState } from "@tnl/canvas-interface/text"
 
 describe("text interaction", () => {
   it("normalizes and clamps text selections", () => {

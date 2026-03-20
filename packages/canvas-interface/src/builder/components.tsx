@@ -23,7 +23,6 @@ import {
   stack,
   textBoxNode,
   treeViewNode,
-  textNode,
   toolbarRow,
   type BoxStyle,
   type BuilderNode,
@@ -39,16 +38,13 @@ import { resolveRichTextChildren, type RichInlineChild } from "./rich_text_child
 
 type ContainerProps = JSXNodeProps
 
-type TextProps = JSXNodeProps & {
+type LabelProps = JSXNodeProps & {
   text?: string
   color?: string
   emphasis?: TextEmphasis
   tone?: "primary" | "muted"
   weight?: "normal" | "bold"
   size?: "body" | "headline" | "meta"
-}
-
-type LabelProps = TextProps & {
   overflow?: TextOverflow
 }
 
@@ -282,16 +278,6 @@ export function Flex(props: ContainerProps & { axis?: "row" | "column" }) {
 
 export function Stack(props: ContainerProps) {
   return stack(resolveChildren(props), props.style, commonWithoutStyle(props))
-}
-
-export function Text(props: TextProps) {
-  const text = props.text ?? resolveTextContent(props)
-  return textNode(text, {
-    ...common(props),
-    color: props.color,
-    emphasis: props.emphasis,
-    envOverride: mergeEnv(props.envOverride, textEnvPatch(props)),
-  })
 }
 
 export function Label(props: LabelProps) {
