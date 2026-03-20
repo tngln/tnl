@@ -4,7 +4,7 @@
 
 - `canvas-interface` 可以独立承载 `CanvasUI`
 - 可以独立承载 `WindowManager` / `SurfaceWindow`
-- 可以独立承载 Builder surface
+- 可以独立承载声明式 surface
 - 可以独立承载 Developer 基础面板
 
 ## 运行

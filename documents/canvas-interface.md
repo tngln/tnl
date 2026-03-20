@@ -70,7 +70,7 @@
 
 - `SurfaceWindow`
 - `defineSurface(...)`
-- JSX / Builder 组件
+- JSX / 声明式组件
 
 也就是说，默认心智模型仍然是：
 
@@ -158,7 +158,7 @@ const panels = [...defaultDeveloperPanels(), ...tnlAppDeveloperPanels()]
 - `CanvasUI`
 - `WindowManager`
 - `SurfaceWindow`
-- Builder surface
+- 声明式 surface
 - Developer 基础面板
 
 ## 与 `tnl-app` 的分工

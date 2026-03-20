@@ -15,7 +15,7 @@
 2. `UIElement`
 3. `Surface` / `ViewportElement`
 4. `ModalWindow` / `SurfaceWindow` / `WindowManager`
-5. Builder / JSX / 函数式 surface
+5. 声明式 UI / JSX / 函数式 surface
 
 对应的实现现在主要位于：
 
@@ -46,7 +46,7 @@
 默认使用：
 
 - JSX
-- Builder components
+- 声明式组件
 - `PanelColumn`
 - `PanelHeader`
 - `PanelActionRow`
@@ -70,7 +70,7 @@
 - 自定义 hit test
 - 明显以绘图为主，而不是普通控件排版
 
-## Builder 侧约定
+## 声明式 UI 约定
 
 ### JSX 不是 React
 
@@ -95,7 +95,7 @@
 
 ### 布局与样式
 
-Builder 当前消费的是 `@tnl/canvas-interface/layout` 提供的布局语义。
+声明式 UI 当前消费的是 `@tnl/canvas-interface/layout` 提供的布局语义。
 
 最常用属性仍然是：
 

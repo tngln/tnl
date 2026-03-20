@@ -1,6 +1,6 @@
 # Layout / Flex 说明
 
-本文说明当前 `@tnl/canvas-interface/layout` 的真实能力，以及它在 Builder 中的使用方式。
+本文说明当前 `@tnl/canvas-interface/layout` 的真实能力，以及它在声明式 UI 中的使用方式。
 
 主入口说明仍然是 [canvas-interface.md](./canvas-interface.md)。
 
@@ -15,7 +15,7 @@
 
 它支撑了：
 
-- JSX / Builder 页面布局
+- JSX / 声明式页面布局
 - `PanelColumn`
 - `PanelScroll`
 - `FormRow`
@@ -57,7 +57,7 @@
 
 需要注意：`overflow` 仍然是布局语义，不等于自动滚动条实现。普通页面滚动依然优先用 `ScrollArea` / `PanelScroll`。
 
-## Builder 中的典型使用方式
+## 声明式 UI 中的典型使用方式
 
 ### 整页纵向布局
 
@@ -90,10 +90,10 @@
 
 ## 当前建议
 
-- 普通面板先用 Builder 组件，不先算坐标
+- 普通面板先用声明式组件，不先算坐标
 - 优先尝试 `PanelColumn` / `PanelScroll` / `PanelSection`
 - 需要占满主轴剩余空间时优先用 `grow: 1, basis: 0`
 - 需要交叉轴铺满时优先用 `align: "stretch"` / `alignSelf: "stretch"`
 - 左右分布优先用 `SplitRow` 或明确的左右分组
 - 普通页面滚动用 `ScrollArea` / `PanelScroll`
-- 只有复杂编辑器控件才脱离 Builder 自管局部布局
+- 只有复杂编辑器控件才脱离声明式 UI 自管局部布局

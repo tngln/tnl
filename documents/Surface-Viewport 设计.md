@@ -30,7 +30,7 @@
 - 可选处理 pointer / wheel
 - 可选接入 `Compositor`
 
-当前 `Surface` 不承担通用页面布局职责。普通页面布局主要已经由 Builder + `@tnl/canvas-interface/layout` 负责。
+当前 `Surface` 不承担通用页面布局职责。普通页面布局主要已经由声明式 UI + `@tnl/canvas-interface/layout` 负责。
 
 ### 2.2 `ViewportElement`
 
@@ -77,7 +77,7 @@
 
 最初设想里，Surface 会承担更多内部布局工作。现在实际走通的路线是：
 
-- 普通页面：Builder + `@tnl/canvas-interface/layout`
+- 普通页面：声明式 UI + `@tnl/canvas-interface/layout`
 - 复杂画布控件：类式 `Surface`
 
 这比“所有内容都走同一种 surface 布局协议”更实用。
