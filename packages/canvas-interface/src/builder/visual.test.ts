@@ -62,6 +62,43 @@ describe("visual fragments", () => {
     expect(ctx.calls.some((call) => call.op === "drawImage")).toBe(true)
   })
 
+  it("keeps trailing text inside bounds when grow and justify-between are combined", () => {
+    const ctx = fakeCtx() as CanvasRenderingContext2D & { calls: Array<{ op: string; args: any[] }> }
+    drawVisualNode(ctx, {
+      kind: "box",
+      style: { base: { layout: { axis: "row", align: "center", justify: "between", gap: 6 } } },
+      children: [
+        {
+          kind: "text",
+          text: "Primary label",
+          style: {
+            base: {
+              text: { lineHeight: 20, truncate: true },
+              layout: { grow: true, minH: 20 },
+            },
+          },
+        },
+        {
+          kind: "text",
+          text: "Meta",
+          style: {
+            base: {
+              text: { lineHeight: 20, align: "end", truncate: true },
+              layout: { minH: 20 },
+            },
+          },
+        },
+      ],
+    }, { x: 0, y: 0, w: 200, h: 20 }, {
+      state: { hover: false, pressed: false, dragging: false, disabled: false },
+    })
+
+    const trailingTextCalls = ctx.calls.filter((call) => call.op === "fillText" && call.args[0] === "Meta")
+    const trailingText = trailingTextCalls[trailingTextCalls.length - 1]
+    expect(trailingText).toBeDefined()
+    expect(trailingText?.args[1]).toBe(200)
+  })
+
   it("draws line primitives for check-style marks", () => {
     const ctx = fakeCtx() as CanvasRenderingContext2D & { calls: Array<{ op: string; args: any[] }> }
     const visual: VisualNode = {
