@@ -2,7 +2,7 @@ import { theme, alpha } from "../theme"
 import { draw, RectOp, ZERO_RECT, type Rect as BoundsRect, type Vec2 } from "../draw"
 import { invariant } from "../errors"
 import { UIElement } from "./ui_base"
-import { ModalWindow, type Root, type WindowSnapshot } from "../window"
+import { ModalWindow, type Root, type WindowSnapshot } from "../ui/window"
 
 export type WindowControlApi = {
   listWindows(): WindowSnapshot[]

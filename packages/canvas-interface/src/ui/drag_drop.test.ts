@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
-import { DragDropController, type ActiveDragSession, type DragPayloadByKind, type DropCandidate, type DropProvider } from "@tnl/canvas-interface/drag_drop"
+import { DragDropController, type ActiveDragSession, type DragPayloadByKind, type DropCandidate, type DropProvider } from "@tnl/canvas-interface/ui"
 
-declare module "@tnl/canvas-interface/drag_drop" {
+declare module "@tnl/canvas-interface/ui" {
   interface DragPayloadByKind {
     "test.box": { id: string }
   }

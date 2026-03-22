@@ -1,6 +1,6 @@
 import { createEventStream, pointerDragSession, type InteractionCancelReason } from "../event_stream"
 import type { Vec2 } from "../draw"
-import { PointerUIEvent, UIElement } from "../ui_base"
+import { PointerUIEvent, UIElement } from "../ui/ui_base"
 
 export type DragHandlePhase = "idle" | "pressed" | "dragging"
 

@@ -1,6 +1,6 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
-import { Button, Label, ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, VStack } from "@tnl/canvas-interface/builder/components"
-import { defineSurface, mountSurface } from "@tnl/canvas-interface/builder/surface_builder"
+import { Button, Label, ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelSection, VStack } from "@tnl/canvas-interface/builder"
+import { defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
 import { getDebugLevel } from "@tnl/canvas-interface/debug"
 import { signal } from "@tnl/canvas-interface/reactivity"
 import { theme } from "@tnl/canvas-interface/theme"

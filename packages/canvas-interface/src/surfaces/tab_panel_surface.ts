@@ -2,7 +2,14 @@ import { theme, neutral } from "../theme"
 import { draw, LineOp, RectOp, clamp } from "../draw"
 import { drawSingleLineText } from "../text/single_line"
 import { signal, type Signal } from "../reactivity"
-import { UIElement, type DebugTreeNodeSnapshot, type Rect, type Vec2, WheelUIEvent, pointInRect, ViewportElement, SurfaceRoot, type Surface, type ViewportContext, InteractiveElement, Scrollbar } from "../ui"
+import type { DebugTreeNodeSnapshot } from "../ui/ui.element"
+import { pointInRect } from "../ui/ui.hit_test"
+import { type WheelUIEvent } from "../ui/ui.events"
+import { UIElement } from "../ui/ui_base"
+import { SurfaceRoot, type Surface, type ViewportContext, ViewportElement } from "../ui/viewport"
+import { InteractiveElement } from "../widgets/interactive"
+import { Scrollbar } from "../widgets/scrollbar"
+import type { Rect, Vec2 } from "../draw"
 
 class TabButton extends InteractiveElement {
   private readonly text: () => string

@@ -14,8 +14,8 @@
 
 import type { InteractionCancelReason } from "../event_stream"
 import type { Rect } from "../draw"
-import type { CursorKind, DebugRuntimeStateSnapshot, RuntimeDeactivateReason, Vec2 } from "../ui_base"
-import { PointerUIEvent, UIElement } from "../ui_base"
+import type { CursorKind, DebugRuntimeStateSnapshot, RuntimeDeactivateReason, Vec2 } from "../ui/ui_base"
+import { PointerUIEvent, UIElement } from "../ui/ui_base"
 import { usePress, type PressBinding } from "../use/use_press"
 
 export type ControlState = {

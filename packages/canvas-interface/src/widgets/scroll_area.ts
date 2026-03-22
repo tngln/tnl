@@ -1,6 +1,6 @@
 import { clamp, ZERO_RECT, type Rect, type Vec2 } from "../draw"
-import { UIElement, WheelUIEvent } from "../ui_base"
-import { type Surface, ViewportElement } from "../viewport"
+import { UIElement, WheelUIEvent } from "../ui/ui_base"
+import { type Surface, ViewportElement } from "../ui/viewport"
 import type { RenderElement } from "../builder/types"
 import type { WidgetDescriptor } from "../builder/widget_registry"
 import { Scrollbar } from "./scrollbar"

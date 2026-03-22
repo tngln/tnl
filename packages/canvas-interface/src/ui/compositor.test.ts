@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { Compositor } from "@tnl/canvas-interface/compositor"
+import { Compositor } from "@tnl/canvas-interface/ui"
 import { fakeContext, withFakeDom } from "./test_utils"
 
 describe("compositor debug", () => {

@@ -1,8 +1,7 @@
 import { ControlsSurface } from "../surfaces/controls_surface"
-import { DividerSurface, TabPanelSurface } from "@tnl/canvas-interface/surfaces"
 import { TextSurface } from "../surfaces/text_surface"
-import { mountSurface } from "@tnl/canvas-interface/builder/surface_builder"
-import { type Surface, SurfaceWindow } from "@tnl/canvas-interface/ui"
+import { mountSurface } from "@tnl/canvas-interface/builder"
+import { DividerSurface, TabPanelSurface, type Surface, SurfaceWindow } from "@tnl/canvas-interface/ui"
 
 export const TOOLS_DIALOG_ID = "Tools.Dialog"
 

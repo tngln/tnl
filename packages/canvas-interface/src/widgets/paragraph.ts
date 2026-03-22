@@ -1,5 +1,5 @@
 import { createRichTextBlock, type RichTextSpan, type RichTextStyle, type Rect } from "../draw"
-import { UIElement } from "../ui_base"
+import { UIElement } from "../ui/ui_base"
 
 export class Paragraph extends UIElement {
   private readonly rect: () => Rect

@@ -8,7 +8,7 @@ import { createToolsSurface, TOOLS_DIALOG_ID } from "../windows/tools_dialog"
 import type { DockablePaneInit, DockDropPlacement } from "@tnl/canvas-interface/docking"
 import { theme, neutral } from "@tnl/canvas-interface/theme"
 import { createLayerCanvas, getCanvas2DContext } from "@tnl/canvas-interface/platform/web"
-import type { DragImageSpec } from "@tnl/canvas-interface/drag_drop"
+import type { DragImageSpec } from "@tnl/canvas-interface/ui"
 
 export type DefaultDockablePaneSpec = DockablePaneInit & {
   title: string

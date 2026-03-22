@@ -1,7 +1,7 @@
 import { invalidateAll } from "../invalidate"
 import type { InteractionCancelReason } from "../event_stream"
 import { ZERO_RECT } from "../draw"
-import { Compositor } from "../compositor"
+import { Compositor } from "./compositor"
 import { PointerUIEvent, UIElement, WheelUIEvent, dispatchPointerCancelEvent, dispatchPointerEvent, dispatchWheelEvent, pointInRect, type DebugTreeNodeSnapshot, type Rect as BoundsRect, type UIElementEventMap, type UIEventTargetNode, type Vec2 } from "./ui_base"
 
 export class SurfaceRoot extends UIElement {

@@ -10,7 +10,7 @@ import { ensureTextCaretVisible, measureTextPrefix, resolveTextIndexFromPoint, b
 import { resolveTextBoxRegions } from "../builder/widget_regions"
 import type { VisualStyleInput } from "../builder/visual"
 import { buildTextBoxChromeVisual, buildTextBoxTextVisual, type TextBoxChromeVisualModel, type TextBoxTextVisualModel, type TextBoxVisualModel } from "../builder/widget_visuals"
-import { CursorRegion, KeyUIEvent, UIElement, type DebugRuntimeStateSnapshot } from "../ui_base"
+import { CursorRegion, KeyUIEvent, UIElement, type DebugRuntimeStateSnapshot } from "../ui/ui_base"
 import type { RetainedPayload, WidgetDescriptor } from "../builder/widget_registry"
 
 const TEXTBOX_HEIGHT = theme.ui.controls.inputHeight

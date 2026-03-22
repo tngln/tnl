@@ -1,8 +1,8 @@
 import { effect } from "../reactivity"
 import { invalidateAll } from "../invalidate"
 import { createMeasureContext } from "../platform/web/canvas"
-import { SurfaceRoot, type Surface, type ViewportContext } from "../viewport"
-import { WheelUIEvent, type DebugTreeNodeSnapshot, type Vec2 } from "../ui_base"
+import { SurfaceRoot, type Surface, type ViewportContext } from "../ui/viewport"
+import { WheelUIEvent, type DebugTreeNodeSnapshot, type Vec2 } from "../ui/ui_base"
 import { RenderEngine } from "./engine"
 import type { RenderElement, MountedSurface, SurfaceDefinition, SurfaceMountSpec, SurfaceSetup } from "./types"
 

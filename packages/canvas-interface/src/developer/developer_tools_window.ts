@@ -1,5 +1,5 @@
-import type { Surface } from "../viewport"
-import { SurfaceWindow } from "../window"
+import type { Surface } from "../ui/viewport"
+import { SurfaceWindow } from "../ui/window"
 import { TabPanelSurface } from "../surfaces/tab_panel_surface"
 import { defaultDeveloperPanels, type DeveloperContext, type DeveloperPanelSpec } from "./index"
 

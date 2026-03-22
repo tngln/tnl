@@ -1,6 +1,6 @@
 import type { InteractionCancelReason } from "../event_stream"
 import { createPressMachine } from "../fsm"
-import { PointerUIEvent, UIElement } from "../ui_base"
+import { PointerUIEvent, UIElement } from "../ui/ui_base"
 
 export type PressBinding = {
   pressed: () => boolean

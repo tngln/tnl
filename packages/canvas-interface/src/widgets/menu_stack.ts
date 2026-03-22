@@ -1,7 +1,7 @@
 import type { Rect, Vec2 } from "../draw"
-import type { TopLayerController } from "../top_layer"
-import { useClickOutsideHandler } from "../top_layer"
-import { UIElement } from "../ui_base"
+import type { TopLayerController } from "../ui/top_layer"
+import { useClickOutsideHandler } from "../ui/top_layer"
+import { UIElement } from "../ui/ui_base"
 import { Menu, measureMenuHeight, type MenuItem } from "./menu"
 import { placeFloatingRect } from "./floating"
 

@@ -1,6 +1,6 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
-import { Button, Label, Section, SectionStack, SplitRow, VStack } from "@tnl/canvas-interface/builder/components"
-import { defineSurface } from "@tnl/canvas-interface/builder/surface_builder"
+import { Button, Label, Section, SectionStack, SplitRow, VStack } from "@tnl/canvas-interface/builder"
+import { defineSurface } from "@tnl/canvas-interface/builder"
 import { signal } from "@tnl/canvas-interface/reactivity"
 import { theme } from "@tnl/canvas-interface/theme"
 

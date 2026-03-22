@@ -1,7 +1,7 @@
 import { toGetter, type Rect } from "../draw"
 import { drawSingleLineText } from "../text/single_line"
 import { font, theme } from "../theme"
-import { UIElement } from "../ui_base"
+import { UIElement } from "../ui/ui_base"
 
 export class Label extends UIElement {
   private readonly rect: () => Rect

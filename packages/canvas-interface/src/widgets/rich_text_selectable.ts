@@ -3,8 +3,8 @@ import { draw, RectOp, type Any2DContext, type RichTextBlock, type RichTextLayou
 import { get1pxTextareaBridge } from "../platform/web/1px_textarea"
 import { writeTextToClipboard } from "../platform/web/clipboard"
 import { createMeasureContext } from "../platform/web/canvas"
-import { UIElement } from "../ui_base"
-import type { TopLayerController } from "../top_layer"
+import { UIElement } from "../ui/ui_base"
+import type { TopLayerController } from "../ui/top_layer"
 import { clamp } from "../builder/utils"
 import {
   blurTextSession,

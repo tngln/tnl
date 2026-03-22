@@ -1,6 +1,6 @@
 import type { Rect } from "../draw"
 import type { RuntimeStateBinding } from "./runtime_state"
-import type { UIElement } from "../ui_base"
+import type { UIElement } from "../ui/ui_base"
 
 export type RetainedNodeKind = "control" | "widget"
 export type WidgetCapabilityShape = {

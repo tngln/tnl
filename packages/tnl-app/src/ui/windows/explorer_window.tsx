@@ -5,8 +5,8 @@ import { getSeekableEnd, probeVideoDuration, resolvePlaybackDuration } from "@tn
 import { buildAcceptString } from "@tnl/app/platform"
 import { baseName, dirName, formatBytes, formatLocalTime } from "@tnl/canvas-interface/util"
 import type { Surface } from "@tnl/canvas-interface/ui"
-import { Button, ClickArea, HStack, Label, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelToolbar, SplitRow, Stack, TextBox, VStack } from "@tnl/canvas-interface/builder/components"
-import { defineSurface, mountSurface } from "@tnl/canvas-interface/builder/surface_builder"
+import { Button, ClickArea, HStack, Label, ListRow, Paint, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, PanelToolbar, SplitRow, Stack, TextBox, VStack } from "@tnl/canvas-interface/builder"
+import { defineSurface, mountSurface } from "@tnl/canvas-interface/builder"
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { createAsyncJobState } from "@tnl/canvas-interface/async_state"
 

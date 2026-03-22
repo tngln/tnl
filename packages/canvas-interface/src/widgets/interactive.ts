@@ -1,6 +1,6 @@
 import type { Rect } from "../draw"
 import type { InteractionCancelReason } from "../event_stream"
-import { UIElement, type DebugEventListenerSnapshot, type DebugRuntimeStateSnapshot } from "../ui_base"
+import { UIElement, type DebugEventListenerSnapshot, type DebugRuntimeStateSnapshot } from "../ui/ui_base"
 import { usePress, type PressBinding } from "../use/use_press"
 
 /**

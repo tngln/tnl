@@ -1,6 +1,6 @@
 import { theme, neutral } from "../theme"
 import { draw, RectOp, clamp, ZERO_RECT, type Rect } from "../draw"
-import { UIElement, pointInRect } from "../ui_base"
+import { UIElement, pointInRect } from "../ui/ui_base"
 import { useDragHandle } from "../use/use_drag_handle"
 import type { WidgetDescriptor } from "../builder/widget_registry"
 

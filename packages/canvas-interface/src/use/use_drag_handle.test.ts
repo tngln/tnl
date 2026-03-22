@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import type { Vec2 } from "../draw"
-import { PointerUIEvent, UIElement } from "../ui_base"
+import { PointerUIEvent, UIElement } from "../ui/ui_base"
 import { useDragHandle } from "./use_drag_handle"
 
 function pointer(x: number, y: number, buttons = 1) {

@@ -1,7 +1,12 @@
 import { theme, neutral } from "../theme"
 import { draw, RectOp, clamp } from "../draw"
 import { signal, type Signal } from "../reactivity"
-import { CursorRegion, UIElement, type Rect, type Vec2, pointInRect, ViewportElement, SurfaceRoot, type Surface, type ViewportContext, useDragHandle } from "../ui"
+import { UIElement } from "../ui/ui_base"
+import { CursorRegion } from "../ui/ui.element"
+import { pointInRect } from "../ui/ui.hit_test"
+import { SurfaceRoot, type Surface, type ViewportContext, ViewportElement } from "../ui/viewport"
+import { useDragHandle } from "../use/use_drag_handle"
+import type { Rect, Vec2 } from "../draw"
 
 type Axis = "x" | "y"
 type DividerHandleChrome = {

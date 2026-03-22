@@ -16,20 +16,15 @@
     "./commands": "./src/commands/index.ts",
     "./shortcuts": "./src/shortcuts/index.ts",
     "./invalidate": "./src/invalidate.ts",
-    "./drag_drop": "./src/drag_drop/index.ts",
-    "./compositor": "./src/compositor/index.ts",
     "./icons": "./src/icons/index.ts",
     "./widgets": "./src/widgets/index.ts",
     "./builder": "./src/builder/index.ts",
-    "./builder/components": "./src/builder/components.tsx",
-    "./builder/surface_builder": "./src/builder/surface_builder.ts",
     "./text": "./src/text/index.ts",
     "./platform/web": "./src/platform/web/index.ts",
     "./theme": "./src/theme/index.ts",
     "./jsx": "./src/jsx/index.ts",
     "./async_state": "./src/async_state.ts",
     "./util": "./src/util.ts",
-    "./docking": "./src/docking/index.ts",
-    "./surfaces": "./src/surfaces/index.ts"
+    "./docking": "./src/docking/index.ts"
   }
 }

@@ -1,6 +1,6 @@
 import type { Rect, Vec2 } from "./ui_base"
 import { UIElement } from "./ui_base"
-import type { DragDropController, DragImageSpec } from "../drag_drop"
+import type { DragDropController, DragImageSpec } from "./drag_drop"
 import { ZERO_RECT } from "../draw"
 
 function dragImageRect(pointer: Vec2, image: DragImageSpec): Rect {

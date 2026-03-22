@@ -2,7 +2,7 @@ import type { Signal } from "../reactivity"
 import type { RichTextSpan, RichTextStyle, TextEmphasis } from "../draw"
 import type { IconDef } from "../icons"
 import type { LayoutNode, LayoutStyle } from "../layout"
-import type { Surface } from "../viewport"
+import type { Surface } from "../ui/viewport"
 import type { VisualImageSource, VisualStyleInput } from "./visual"
 import type { NodeEnv } from "./env"
 

@@ -1,7 +1,7 @@
 import type { InteractionCancelReason } from "../event_stream"
 import { intersects, ZERO_RECT, type Rect, type Vec2 } from "../draw"
 import type { CursorKind } from "../platform/web/input"
-import { Compositor } from "../compositor"
+import { Compositor } from "./compositor"
 import { KeyUIEvent, PointerUIEvent, type UIElementEventMap, type UIEventTargetNode, WheelUIEvent } from "./ui.events"
 import { pointInRect } from "./ui.hit_test"
 

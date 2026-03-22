@@ -4,7 +4,7 @@ import { drawSingleLineText } from "../text/single_line"
 import type { InteractionCancelReason } from "../event_stream"
 import { batch, signal, type Signal } from "../reactivity"
 import { CursorRegion, pointInRect, type DebugEventListenerSnapshot, type DebugRuntimeStateSnapshot, PointerUIEvent, UIElement } from "./ui_base"
-import { ViewportElement, type Surface } from "../viewport"
+import { ViewportElement, type Surface } from "../ui/viewport"
 import { isSurfaceMountSpec, mountSurface, type SurfaceMountSpec } from "../builder/surface_builder"
 import { useDragHandle } from "../use/use_drag_handle"
 

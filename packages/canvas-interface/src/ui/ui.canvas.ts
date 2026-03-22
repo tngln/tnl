@@ -13,7 +13,7 @@ import {
   setElementPointerCapture,
   type CursorKind,
 } from "../platform/web"
-import { Compositor } from "../compositor"
+import { Compositor } from "./compositor"
 import { dispatchDoubleClickEvent, dispatchKeyEvent, dispatchPointerCancelEvent, dispatchPointerEvent, dispatchWheelEvent } from "./ui.dispatch"
 import { KeyUIEvent, type KeyLike, PointerUIEvent, WheelUIEvent } from "./ui.events"
 import { UIElement, type DebugTreeNodeSnapshot, type InvalidateRectOpts } from "./ui.element"

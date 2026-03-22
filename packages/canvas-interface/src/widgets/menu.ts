@@ -3,7 +3,7 @@ import { draw, RectOp, toGetter, type Rect, type Vec2 } from "../draw"
 import { drawSingleLineText } from "../text/single_line"
 import type { InteractionCancelReason } from "../event_stream"
 import { createPressMachine } from "../fsm"
-import { PointerUIEvent, UIElement, pointInRect } from "../ui_base"
+import { PointerUIEvent, UIElement, pointInRect } from "../ui/ui_base"
 
 export type MenuItem =
   | { kind?: "item"; key: string; text: string; title?: string; disabled?: boolean; rightText?: string; submenu?: MenuItem[]; onSelect?: () => void }
