@@ -16,7 +16,7 @@
 - `@tnl/canvas-interface/theme`
 - `@tnl/canvas-interface/builder`
 - `@tnl/canvas-interface/jsx`
-- `@tnl/canvas-interface/browser`
+- `@tnl/canvas-interface/platform/web`
 - `@tnl/canvas-interface/developer`
 - `@tnl/canvas-interface/docking`
 - `@tnl/canvas-interface/surfaces`

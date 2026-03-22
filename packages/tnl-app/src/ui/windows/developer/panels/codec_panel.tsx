@@ -4,7 +4,7 @@ import { defineSurface, mountSurface } from "@tnl/canvas-interface/builder/surfa
 import { getDebugLevel } from "@tnl/canvas-interface/debug"
 import { signal } from "@tnl/canvas-interface/reactivity"
 import { theme } from "@tnl/canvas-interface/theme"
-import { getWebNavigatorInfo, getWebRuntimeFlags } from "@tnl/canvas-interface/browser"
+import { getWebNavigatorInfo, getWebRuntimeFlags } from "@tnl/canvas-interface/platform/web"
 import { probeCodecConfig } from "@tnl/app/platform"
 import type { DeveloperCodecEntry, DeveloperContext, DeveloperPanelSpec } from "@tnl/canvas-interface/developer"
 import { createAsyncJobState } from "@tnl/canvas-interface/async_state"

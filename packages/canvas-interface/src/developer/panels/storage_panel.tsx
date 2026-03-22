@@ -1,5 +1,5 @@
 import { theme } from "../../theme"
-import { openOpfs, type OpfsEntryV1, showAlert, showConfirm, showPrompt, downloadBlob, pickFiles } from "../../browser"
+import { openOpfs, type OpfsEntryV1, showAlert, showConfirm, showPrompt, downloadBlob, pickFiles } from "@tnl/canvas-interface/platform/web"
 import { createElement } from "../../jsx"
 import { Label, ListRow, PanelActionRow, PanelColumn, PanelHeader, PanelScroll, VStack, defineSurface, mountSurface } from "../../builder"
 import { downloadIcon, filterIcon, pencilIcon, refreshIcon, trashIcon, uploadIcon } from "../../icons"

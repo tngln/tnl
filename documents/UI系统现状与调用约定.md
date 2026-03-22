@@ -131,7 +131,7 @@
 
 ## 平台边界约定
 
-浏览器通用能力优先从 `@tnl/canvas-interface/browser` 进入。
+浏览器通用能力优先从 `@tnl/canvas-interface/platform/web` 进入。
 
 如果能力明确属于视频编辑 / 媒体 runtime，则从 `@tnl/app/platform` 进入。
 

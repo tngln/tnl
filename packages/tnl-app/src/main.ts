@@ -8,7 +8,7 @@ import { createEventStream } from "@tnl/canvas-interface/event_stream"
 import { ShortcutManager, type ShortcutContextResolver, type ShortcutExecutionContext } from "@tnl/canvas-interface/shortcuts"
 import { createCodecRegistry, workerRegistry } from "@tnl/app/render"
 import { ABOUT_DIALOG_ID, createAboutDialog } from "./ui/windows/about_dialog"
-import { addBrowserInteractionCancelListener, addWindowErrorListener, addWindowKeyDownListener, addWindowKeyUpListener, addWindowLoadListener, addWindowResizeListener, addWindowUnhandledRejectionListener, applyDocumentTheme, getRootCanvas, registerServiceWorker, scheduleAnimationFrame } from "@tnl/canvas-interface/browser"
+import { addBrowserInteractionCancelListener, addWindowErrorListener, addWindowKeyDownListener, addWindowKeyUpListener, addWindowLoadListener, addWindowResizeListener, addWindowUnhandledRejectionListener, applyDocumentTheme, getRootCanvas, registerServiceWorker, scheduleAnimationFrame } from "@tnl/canvas-interface/platform/web"
 import { DockingManager, findLeafByPane } from "@tnl/canvas-interface/docking"
 import { createDefaultDockablePaneSpecs, type DefaultDockablePaneSpec } from "./ui/docking/default_panes"
 

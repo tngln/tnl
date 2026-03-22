@@ -1,5 +1,5 @@
 import { theme, neutral } from "@tnl/canvas-interface/theme"
-import { normalizePath, openOpfs, showConfirm, showPrompt, downloadBlob, pickFiles, type OpfsEntryV1 } from "@tnl/canvas-interface/browser"
+import { normalizePath, openOpfs, showConfirm, showPrompt, downloadBlob, pickFiles, type OpfsEntryV1 } from "@tnl/canvas-interface/platform/web"
 import { signal } from "@tnl/canvas-interface/reactivity"
 import { getSeekableEnd, probeVideoDuration, resolvePlaybackDuration } from "@tnl/app/platform"
 import { buildAcceptString } from "@tnl/app/platform"

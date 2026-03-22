@@ -1,7 +1,7 @@
 import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { Button, Label, PanelActionRow, PanelBody, PanelColumn, PanelHeader, PanelSection, RichText, SectionStack, VStack } from "@tnl/canvas-interface/builder/components"
 import { defineSurface, surfaceMount } from "@tnl/canvas-interface/builder/surface_builder"
-import { getRootCanvas, applyDocumentTheme, scheduleAnimationFrame, addWindowResizeListener } from "@tnl/canvas-interface/browser"
+import { getRootCanvas, applyDocumentTheme, scheduleAnimationFrame, addWindowResizeListener } from "@tnl/canvas-interface/platform/web"
 import { createDeveloperToolsWindow, DEVELOPER_WINDOW_ID, type DeveloperContext } from "@tnl/canvas-interface/developer"
 import { invariant } from "@tnl/canvas-interface/errors"
 import { listSignals, signal } from "@tnl/canvas-interface/reactivity"

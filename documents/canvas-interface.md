@@ -57,7 +57,6 @@
 
 ### 平台与调试
 
-- `packages/canvas-interface/src/browser`
 - `packages/canvas-interface/src/platform/web`
 - `packages/canvas-interface/src/developer`
 - `packages/canvas-interface/src/diagnostics`
@@ -91,7 +90,7 @@
 
 ### 浏览器能力
 
-浏览器通用能力从 `@tnl/canvas-interface/browser` 进入，例如：
+浏览器通用能力从 `@tnl/canvas-interface/platform/web` 进入，例如：
 
 - canvas / layer canvas
 - RAF / animation helpers
@@ -132,7 +131,7 @@ const panels = [...defaultDeveloperPanels(), ...tnlAppDeveloperPanels()]
 
 - `@tnl/canvas-interface/ui`
 - `@tnl/canvas-interface/builder`
-- `@tnl/canvas-interface/browser`
+- `@tnl/canvas-interface/platform/web`
 - `@tnl/canvas-interface/developer`
 - `@tnl/canvas-interface/docking`
 

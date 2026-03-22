@@ -1,5 +1,5 @@
 import { buildAcceptString } from "../../platform/web/media_formats"
-import { pickFiles, openOpfs, type OpfsEntryV1 } from "@tnl/canvas-interface/browser"
+import { pickFiles, openOpfs, type OpfsEntryV1 } from "@tnl/canvas-interface/platform/web"
 import { PlaybackRuntime, type PlaybackRuntimeSnapshot } from "../../platform/web/playback"
 import { createLogger } from "@tnl/canvas-interface/debug"
 import { describeError, toAppError, toErrorInfo } from "@tnl/canvas-interface/errors"
