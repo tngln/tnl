@@ -1,8 +1,7 @@
 import { TimelineCompositeSurface } from "../surfaces/timeline_surface"
 import { createFrameUnitAdapter } from "../timeline/model"
 import { getPlaybackSession } from "@tnl/app/playback"
-import type { Surface } from "@tnl/canvas-interface/viewport"
-import { SurfaceWindow } from "@tnl/canvas-interface/window"
+import { type Surface, SurfaceWindow } from "@tnl/canvas-interface/ui"
 
 export const TIMELINE_TOOL_WINDOW_ID = "Timeline.Tool"
 

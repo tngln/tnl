@@ -6,8 +6,7 @@ import { createDeveloperToolsWindow, DEVELOPER_WINDOW_ID, type DeveloperContext 
 import { invariant } from "@tnl/canvas-interface/errors"
 import { listSignals, signal } from "@tnl/canvas-interface/reactivity"
 import { theme, neutral } from "@tnl/canvas-interface/theme"
-import { CanvasUI, ModalWindow, Root, WindowManager } from "@tnl/canvas-interface/ui"
-import { SurfaceWindow } from "@tnl/canvas-interface/window"
+import { CanvasUI, ModalWindow, Root, SurfaceWindow, WindowManager } from "@tnl/canvas-interface/ui"
 
 const canvas = getRootCanvas("#app")
 invariant(canvas, {

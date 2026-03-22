@@ -4,7 +4,6 @@ import { createControlPanel } from "./panels/control_panel"
 import { createDataPanel } from "./panels/data_panel"
 import { ControlsSurface } from "./controls_surface"
 import { createDeveloperToolsSurface, createDeveloperToolsWindow, DEVELOPER_WINDOW_ID } from "./developer_tools_window"
-import { createInfoPanel } from "./panels/info_panel"
 import { createInspectorPanel } from "./panels/inspector_panel"
 import { createRuntimePanel } from "./panels/runtime_panel"
 import { createStoragePanel } from "./panels/storage_panel"
@@ -100,7 +99,6 @@ export {
   createDataPanel,
   createDeveloperToolsSurface,
   createDeveloperToolsWindow,
-  createInfoPanel,
   createInspectorPanel,
   createRuntimePanel,
   createStoragePanel,

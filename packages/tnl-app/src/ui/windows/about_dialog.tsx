@@ -2,7 +2,7 @@ import { createElement, Fragment } from "@tnl/canvas-interface/jsx"
 import { Label, PanelColumn, RichText, SectionStack } from "@tnl/canvas-interface/builder/components"
 import { defineSurface, surfaceMount } from "@tnl/canvas-interface/builder/surface_builder"
 import { theme } from "@tnl/canvas-interface/theme"
-import { SurfaceWindow } from "@tnl/canvas-interface/window"
+import { SurfaceWindow } from "@tnl/canvas-interface/ui"
 
 export const ABOUT_DIALOG_ID = "Help.About"
 

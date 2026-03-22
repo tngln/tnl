@@ -135,7 +135,7 @@ const panels = [...defaultDeveloperPanels(), ...tnlAppDeveloperPanels()]
 - `@tnl/canvas-interface/developer`
 - `@tnl/canvas-interface/docking`
 
-但不再鼓励重新引入随意增长的内部 bridge 或旧路径兼容层。
+但不再鼓励重新引入随意增长的内部 bridge、旧路径兼容层，或把内部实现目录继续暴露成新的 package API。
 
 更具体的入口分级约定，见 [canvas-interface-public-api.md](./canvas-interface-public-api.md)。
 

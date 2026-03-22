@@ -1,6 +1,6 @@
 import { estimateStorageUsage, getOpfsRootDirectory } from "./opfs_native"
-import { AppError } from "@tnl/canvas-interface/errors"
-import { baseName, dirName } from "@tnl/canvas-interface/util"
+import { AppError } from "../../errors"
+import { baseName, dirName } from "../../util"
 
 export type OpfsErrorCode = "NotFound" | "AlreadyExists" | "InvalidPath" | "DbCorrupted" | "PermissionDenied" | "Unsupported" | "Unknown"
 
